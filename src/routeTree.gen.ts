@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FindDonorsRouteImport } from './routes/find-donors'
+import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as RequestBloodRouteImport } from './routes/request-blood'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const FindDonorsRoute = FindDonorsRouteImport.update({
   path: '/find-donors',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestBloodRoute = RequestBloodRouteImport.update({
   id: '/request-blood',
   path: '/request-blood',
@@ -32,30 +38,34 @@ const RequestBloodRoute = RequestBloodRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/find-donors': typeof FindDonorsRoute
+  '/inventory': typeof InventoryRoute
   '/request-blood': typeof RequestBloodRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/find-donors': typeof FindDonorsRoute
+  '/inventory': typeof InventoryRoute
   '/request-blood': typeof RequestBloodRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/find-donors': typeof FindDonorsRoute
+  '/inventory': typeof InventoryRoute
   '/request-blood': typeof RequestBloodRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/find-donors' | '/request-blood'
+  fullPaths: '/' | '/find-donors' | '/inventory' | '/request-blood'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/find-donors' | '/request-blood'
-  id: '__root__' | '/' | '/find-donors' | '/request-blood'
+  to: '/' | '/find-donors' | '/inventory' | '/request-blood'
+  id: '__root__' | '/' | '/find-donors' | '/inventory' | '/request-blood'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FindDonorsRoute: typeof FindDonorsRoute
+  InventoryRoute: typeof InventoryRoute
   RequestBloodRoute: typeof RequestBloodRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FindDonorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/request-blood': {
       id: '/request-blood'
       path: '/request-blood'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FindDonorsRoute: FindDonorsRoute,
+  InventoryRoute: InventoryRoute,
   RequestBloodRoute: RequestBloodRoute,
 }
 export const routeTree = rootRouteImport
