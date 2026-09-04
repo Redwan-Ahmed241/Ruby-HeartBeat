@@ -61,7 +61,7 @@ function RequestBlood() {
     e.preventDefault();
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
+      toast.error(parsed.error.issues[0]?.message ?? "Please check your details");
       return;
     }
     toast.success("Blood request posted to nearby donors");
