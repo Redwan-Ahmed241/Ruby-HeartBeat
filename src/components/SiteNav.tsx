@@ -2,11 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { Droplet, Menu } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { NotificationHub } from "@/components/NotificationHub";
 
 const tabs = [
   { to: "/find-donors", label: "Find Donors" },
   { to: "/request-blood", label: "Request Blood" },
   { to: "/inventory", label: "Blood Inventory" },
+  { to: "/admin", label: "Admin Control" },
   { to: "/", label: "My Profile" },
 ] as const;
 
@@ -35,13 +37,16 @@ export function SiteNav() {
           ))}
         </div>
 
-        <button
-          aria-label="Toggle menu"
-          onClick={() => setOpen((o) => !o)}
-          className="rounded-md p-2 transition-colors hover:bg-primary-glow/40 md:hidden"
-        >
-          <Menu className="size-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationHub />
+          <button
+            aria-label="Toggle menu"
+            onClick={() => setOpen((o) => !o)}
+            className="rounded-md p-2 transition-colors hover:bg-primary-glow/40 md:hidden"
+          >
+            <Menu className="size-5" />
+          </button>
+        </div>
       </nav>
 
       <div className={cn("border-t border-primary-glow/40 md:hidden", open ? "block" : "hidden")}>
