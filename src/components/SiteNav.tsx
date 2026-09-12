@@ -3,6 +3,7 @@ import { Droplet, Menu } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const tabs = [
   { to: "/find-donors", label: "Find Donors" },
@@ -37,7 +38,8 @@ export function SiteNav() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <AuthDialog />
           <NotificationHub />
           <button
             aria-label="Toggle menu"

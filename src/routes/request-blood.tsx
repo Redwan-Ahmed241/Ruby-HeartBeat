@@ -1,8 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { AlertTriangle, Lock, MapPin, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  Lock,
+  MapPin,
+  ShieldCheck,
+  Loader2,
+  CheckCircle2,
+  Sparkles,
+  Phone,
+  Mail,
+  Home,
+} from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +36,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  useCreateBloodRequest,
+  useCreateEmergencyRequest,
+  useRespondToMatch,
+  useRevealDonorContact,
+} from "@/hooks/useRequests";
+import { useCurrentUser } from "@/hooks/useAuth";
+import {
+  BLOOD_GROUP_UI_MAP,
+  toApiBloodGroup,
+  toDisplayBloodGroup,
+  type BloodGroup,
+  type ComponentType,
+  type RequestUrgency,
+  type BloodRequestResponse,
+  type MaskedDonorMatchResponse,
+  type DonorContactReveal,
+} from "@/lib/api/types";
 
 export const Route = createFileRoute("/request-blood")({
   head: () => ({
@@ -45,145 +74,122 @@ export const Route = createFileRoute("/request-blood")({
   component: RequestBlood,
 });
 
-const GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
-type Group = (typeof GROUPS)[number];
+const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
+const COMPONENTS = [
+  { label: "Whole Blood", value: "WHOLE_BLOOD" },
+  { label: "Plasma", value: "PLASMA" },
+  { label: "Platelets", value: "PLATELETS" },
+] as const;
 
-const COMPONENTS = ["Whole Blood", "Plasma", "Platelets"] as const;
-const URGENCIES = ["Normal", "Urgent", "Emergency"] as const;
-type Urgency = (typeof URGENCIES)[number];
-
-// Red-cell compatibility: which donor groups can give to a recipient group.
-const RED_CELL_DONORS: Record<Group, Group[]> = {
-  "A+": ["A+", "A-", "O+", "O-"],
-  "A-": ["A-", "O-"],
-  "B+": ["B+", "B-", "O+", "O-"],
-  "B-": ["B-", "O-"],
-  "AB+": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-  "AB-": ["A-", "B-", "AB-", "O-"],
-  "O+": ["O+", "O-"],
-  "O-": ["O-"],
-};
-
-// Plasma compatibility is inverted relative to red cells.
-const PLASMA_DONORS: Record<Group, Group[]> = {
-  "A+": ["A+", "A-", "AB+", "AB-"],
-  "A-": ["A+", "A-", "AB+", "AB-"],
-  "B+": ["B+", "B-", "AB+", "AB-"],
-  "B-": ["B+", "B-", "AB+", "AB-"],
-  "AB+": ["AB+", "AB-"],
-  "AB-": ["AB+", "AB-"],
-  "O+": GROUPS as unknown as Group[],
-  "O-": GROUPS as unknown as Group[],
-};
-
-type Donor = {
-  id: string;
-  name: string;
-  group: Group;
-  area: string;
-  distanceKm: number;
-  phone: string;
-  email: string;
-  available: boolean;
-  lastDonationDays: number;
-};
-
-const DONORS: Donor[] = [
-  { id: "d1", name: "Ayesha Rahman", group: "O-", area: "Dhanmondi", distanceKm: 1.4, phone: "+8801711234567", email: "ayesha.r@example.com", available: true, lastDonationDays: 142 },
-  { id: "d2", name: "Tanvir Hasan", group: "O+", area: "Mirpur", distanceKm: 3.2, phone: "+8801822345678", email: "tanvir.h@example.com", available: true, lastDonationDays: 98 },
-  { id: "d3", name: "Nusrat Jahan", group: "A-", area: "Gulshan", distanceKm: 2.1, phone: "+8801933456789", email: "nusrat.j@example.com", available: true, lastDonationDays: 210 },
-  { id: "d4", name: "Imran Kabir", group: "AB+", area: "Uttara", distanceKm: 8.6, phone: "+8801644567890", email: "imran.k@example.com", available: true, lastDonationDays: 120 },
-  { id: "d5", name: "Sadia Islam", group: "B+", area: "Bashundhara", distanceKm: 5.9, phone: "+8801555678901", email: "sadia.i@example.com", available: true, lastDonationDays: 365 },
-  { id: "d6", name: "Rafiul Karim", group: "A+", area: "Banani", distanceKm: 2.8, phone: "+8801766789012", email: "rafiul.k@example.com", available: true, lastDonationDays: 190 },
-  { id: "d7", name: "Mahmud Alam", group: "AB-", area: "Motijheel", distanceKm: 6.4, phone: "+8801877890123", email: "mahmud.a@example.com", available: true, lastDonationDays: 130 },
-  { id: "d8", name: "Farhana Chowdhury", group: "B-", area: "Mohakhali", distanceKm: 4.3, phone: "+8801988901234", email: "farhana.c@example.com", available: true, lastDonationDays: 156 },
-  { id: "d9", name: "Shakil Ahmed", group: "O+", area: "Badda", distanceKm: 7.7, phone: "+8801699012345", email: "shakil.a@example.com", available: false, lastDonationDays: 40 },
-];
-
-function maskPhone(phone: string) {
-  return `${phone.slice(0, 5)}••••••${phone.slice(-2)}`;
-}
-
-function maskEmail(email: string) {
-  const [user, domain] = email.split("@");
-  return `${(user ?? "").slice(0, 2)}•••@•••.${(domain ?? "").split(".").pop()}`;
-}
+const URGENCIES = [
+  { label: "Normal (Standard Search)", value: "NORMAL" },
+  { label: "Urgent (Priority Radius)", value: "URGENT" },
+  { label: "Emergency (Immediate 50km Broadcast)", value: "EMERGENCY" },
+] as const;
 
 const schema = z.object({
   patient: z.string().trim().min(1, "Patient name is required").max(100),
-  group: z.enum(GROUPS),
-  component: z.enum(COMPONENTS),
-  units: z.coerce.number().int().min(1, "At least 1 unit").max(10, "Maximum 10 units"),
-  urgency: z.enum(URGENCIES),
+  group: z.string().min(1, "Blood group is required"),
+  component: z.enum(["WHOLE_BLOOD", "PLASMA", "PLATELETS"]),
+  units: z.coerce.number().min(0.5, "At least 0.5 unit").max(20, "Maximum 20 units"),
+  urgency: z.enum(["NORMAL", "URGENT", "EMERGENCY"]),
   location: z.string().trim().min(3, "Delivery location is required").max(150),
   notes: z.string().trim().max(500).optional(),
 });
 
-type RequestData = z.infer<typeof schema>;
-
 function RequestBlood() {
+  const { data: currentUser } = useCurrentUser();
+
   const [form, setForm] = useState({
-    patient: "",
-    group: "O+" as Group,
-    component: "Whole Blood" as (typeof COMPONENTS)[number],
+    patient: "Patient Rahman",
+    group: "O+",
+    component: "WHOLE_BLOOD" as ComponentType,
     units: "1",
-    urgency: "Normal" as Urgency,
-    location: "",
+    urgency: "NORMAL" as RequestUrgency,
+    location: "United Hospital, Gulshan 2, Dhaka",
     notes: "",
   });
-  const [request, setRequest] = useState<RequestData | null>(null);
-  const [contactDonor, setContactDonor] = useState<Donor | null>(null);
-  const [contactMessage, setContactMessage] = useState("");
-  const [approvedIds, setApprovedIds] = useState<string[]>([]);
-  const [pendingIds, setPendingIds] = useState<string[]>([]);
+
+  const [createdRequest, setCreatedRequest] = useState<BloodRequestResponse | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<MaskedDonorMatchResponse | null>(null);
+  const [revealedContact, setRevealedContact] = useState<DonorContactReveal | null>(null);
+
+  const createRequestMutation = useCreateBloodRequest();
+  const createEmergencyMutation = useCreateEmergencyRequest();
+  const respondMatchMutation = useRespondToMatch();
+  const revealContactMutation = useRevealDonorContact();
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const matches = useMemo(() => {
-    if (!request) return [];
-    const table = request.component === "Plasma" ? PLASMA_DONORS : RED_CELL_DONORS;
-    const compatible = table[request.group];
-    return DONORS.filter((d) => d.available && compatible.includes(d.group))
-      .map((d) => ({
-        donor: d,
-        exact: d.group === request.group,
-        universal: d.group === "O-" || d.group === "AB-",
-      }))
-      .sort((a, b) => {
-        const rank = (m: typeof a) => (m.exact ? 0 : m.universal ? 1 : 2);
-        return rank(a) - rank(b) || a.donor.distanceKm - b.donor.distanceKm;
-      });
-  }, [request]);
-
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) {
+      toast.error("Please sign in or use the 1-Click Role Switcher first.");
+      return;
+    }
+
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Please check your details");
       return;
     }
-    setRequest(parsed.data);
-    setApprovedIds([]);
-    setPendingIds([]);
-    toast.success("Request posted — matching donors found");
+
+    const apiGroup = toApiBloodGroup(form.group);
+    // Approximate coordinates for Dhaka hospital areas
+    const payload = {
+      blood_group: apiGroup,
+      component_type: form.component,
+      quantity: Number(form.units),
+      urgency: form.urgency,
+      required_location: form.location,
+      latitude: 23.7998,
+      longitude: 90.4208,
+      notes: form.notes || null,
+    };
+
+    try {
+      let res: BloodRequestResponse;
+      if (form.urgency === "EMERGENCY") {
+        res = await createEmergencyMutation.mutateAsync(payload);
+      } else {
+        res = await createRequestMutation.mutateAsync(payload);
+      }
+      setCreatedRequest(res);
+      setRevealedContact(null);
+    } catch {
+      // toast handled in hook
+    }
   };
 
-  const sendContactRequest = () => {
-    if (!contactDonor) return;
-    if (contactMessage.trim().length > 500) return;
-    setPendingIds((p) => [...p, contactDonor.id]);
-    toast.success(`Contact approval requested from ${contactDonor.name}`);
-    // Simulated donor approval response.
-    const id = contactDonor.id;
-    setTimeout(() => {
-      setPendingIds((p) => p.filter((x) => x !== id));
-      setApprovedIds((a) => [...a, id]);
-    }, 2500);
-    setContactDonor(null);
-    setContactMessage("");
+  // Contact Reveal Safeguard: Call backend endpoint GET /matches/{id}/contact
+  const handleViewContact = async (match: MaskedDonorMatchResponse) => {
+    setSelectedMatch(match);
+    try {
+      const contact = await revealContactMutation.mutateAsync(match.match_id);
+      setRevealedContact(contact);
+    } catch {
+      // If 403 Forbidden, toast with Safeguard warning is displayed by hook
+      setRevealedContact(null);
+    }
   };
 
-  const isEmergency = request?.urgency === "Emergency";
+  // Allow simulating/testing donor response directly for test ease
+  const handleDonorResponse = async (matchId: string, status: "ACCEPTED" | "DECLINED") => {
+    await respondMatchMutation.mutateAsync({
+      matchId,
+      payload: { response: status },
+    });
+    // Refresh local match status
+    if (createdRequest?.matches) {
+      const updated = createdRequest.matches.map((m) =>
+        m.match_id === matchId ? { ...m, response_status: status } : m
+      );
+      setCreatedRequest({ ...createdRequest, matches: updated });
+    }
+  };
+
+  const isEmergency = form.urgency === "EMERGENCY" || createdRequest?.urgency === "EMERGENCY";
+  const matches = createdRequest?.matches || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,9 +203,8 @@ function RequestBlood() {
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
-              EMERGENCY REQUEST — {request?.units} unit(s) of {request?.group}{" "}
-              {request?.component} needed now at {request?.location}. Alerting all matching donors
-              nearby.
+              EMERGENCY BROADCAST — Alerting all compatible donors across a 50 km radius via the
+              FastAPI Matching Engine.
             </p>
           </div>
         </div>
@@ -208,36 +213,38 @@ function RequestBlood() {
       <main className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Request Blood</h1>
         <p className="mt-2 text-muted-foreground">
-          Submit a request and we match compatible, available donors ranked by blood group and
-          distance.
+          Submit your request to trigger the Intelligent Real-Time Matching Engine, ranking donors by
+          compatibility, distance, and reliability with Contact Privacy enforced.
         </p>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+          {/* Request Form */}
           <Card className="h-fit shadow-[var(--shadow-elegant)]">
             <CardHeader>
-              <CardTitle>Blood request form</CardTitle>
-              <CardDescription>All fields except notes are required</CardDescription>
+              <CardTitle>Blood Request Form</CardTitle>
+              <CardDescription>Directly dispatches into Supabase database</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="patient">Patient name</Label>
+                  <Label htmlFor="patient">Patient Name</Label>
                   <Input
                     id="patient"
                     maxLength={100}
                     value={form.patient}
                     onChange={(e) => set("patient")(e.target.value)}
+                    required
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="rg">Required blood group</Label>
+                  <Label htmlFor="rg">Required Blood Group</Label>
                   <Select value={form.group} onValueChange={set("group")}>
                     <SelectTrigger id="rg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {GROUPS.map((g) => (
+                      {UI_GROUPS.map((g) => (
                         <SelectItem key={g} value={g}>
                           {g}
                         </SelectItem>
@@ -247,15 +254,18 @@ function RequestBlood() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="comp">Blood component</Label>
-                  <Select value={form.component} onValueChange={set("component")}>
+                  <Label htmlFor="comp">Blood Component</Label>
+                  <Select
+                    value={form.component}
+                    onValueChange={(v) => set("component")(v as ComponentType)}
+                  >
                     <SelectTrigger id="comp">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {COMPONENTS.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,27 +273,32 @@ function RequestBlood() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="units">Amount needed (units/bags)</Label>
+                  <Label htmlFor="units">Units Needed</Label>
                   <Input
                     id="units"
                     type="number"
-                    min={1}
-                    max={10}
+                    min={0.5}
+                    max={20}
+                    step={0.5}
                     value={form.units}
                     onChange={(e) => set("units")(e.target.value)}
+                    required
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="urg">Urgency level</Label>
-                  <Select value={form.urgency} onValueChange={set("urgency")}>
+                  <Label htmlFor="urg">Urgency Level</Label>
+                  <Select
+                    value={form.urgency}
+                    onValueChange={(v) => set("urgency")(v as RequestUrgency)}
+                  >
                     <SelectTrigger id="urg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {URGENCIES.map((u) => (
-                        <SelectItem key={u} value={u}>
-                          {u}
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -291,13 +306,13 @@ function RequestBlood() {
                 </div>
 
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="loc">Delivery location</Label>
+                  <Label htmlFor="loc">Hospital / Delivery Location</Label>
                   <Input
                     id="loc"
                     maxLength={150}
-                    placeholder="Hospital name, area"
                     value={form.location}
                     onChange={(e) => set("location")(e.target.value)}
+                    required
                   />
                 </div>
 
@@ -306,101 +321,152 @@ function RequestBlood() {
                   <Textarea
                     id="notes"
                     maxLength={500}
+                    placeholder="Provide patient ward, bed number, or specific clinical instructions..."
                     value={form.notes}
                     onChange={(e) => set("notes")(e.target.value)}
                   />
                 </div>
 
-                <Button type="submit" className="sm:col-span-2">
-                  Find matching donors
+                <Button
+                  type="submit"
+                  className="sm:col-span-2"
+                  disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
+                >
+                  {createRequestMutation.isPending || createEmergencyMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Running Matching Engine...
+                    </>
+                  ) : form.urgency === "EMERGENCY" ? (
+                    "Dispatch Emergency Request (50km Sweep)"
+                  ) : (
+                    "Find Matching Donors"
+                  )}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
+          {/* Matches & Contact Safeguard View */}
           <section>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xl font-semibold">Matching donors</h2>
-              {request && (
+              <h2 className="text-xl font-semibold">Matched Donors</h2>
+              {createdRequest && (
                 <Badge variant={isEmergency ? "destructive" : "secondary"}>
-                  {matches.length} compatible · {request.urgency}
+                  {matches.length} Dispatched · {createdRequest.status}
                 </Badge>
               )}
             </div>
 
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <ShieldCheck className="size-4" /> Contact details stay hidden until the donor
-              approves your request.
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ShieldCheck className="size-4 text-primary shrink-0" />
+              <strong>Contact Reveal Safeguard Active:</strong> Donor details remain masked until the
+              donor explicitly approves the match in accordance with security specifications.
             </p>
 
-            {!request && (
+            {!createdRequest && (
               <Card className="mt-4 border-dashed">
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Submit a request to see ranked, compatible donors.
+                <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                  Submit the request form to execute the matching algorithm against registered donors.
                 </CardContent>
               </Card>
             )}
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {matches.map(({ donor, exact }) => {
-                const approved = approvedIds.includes(donor.id);
-                const pending = pendingIds.includes(donor.id);
+              {matches.map((match) => {
+                const isAccepted = match.response_status === "ACCEPTED";
+                const isDeclined = match.response_status === "DECLINED";
+
                 return (
-                  <Card key={donor.id} className="shadow-[var(--shadow-elegant)]">
+                  <Card key={match.match_id} className="shadow-[var(--shadow-elegant)]">
                     <CardContent className="space-y-3 p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold">{donor.name}</p>
-                          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="size-3.5" /> {donor.area} · {donor.distanceKm} km
+                          <p className="font-semibold">{match.donor_name_initial}</p>
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="size-3.5" /> {match.distance_km} km away
                           </p>
                         </div>
-                        <span className="rounded-md bg-primary px-2.5 py-1 text-sm font-bold text-primary-foreground">
-                          {donor.group}
+                        <span className="rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                          {toDisplayBloodGroup(match.blood_group)}
                         </span>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant={exact ? "default" : "secondary"}>
-                          {exact ? "Exact match" : "Compatible"}
+                        <Badge variant="outline" className="text-[11px]">
+                          Score: {match.match_score}/100
                         </Badge>
-                        <Badge variant="secondary">
-                          Last donated {donor.lastDonationDays}d ago
+                        <Badge
+                          variant={
+                            isAccepted
+                              ? "default"
+                              : isDeclined
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="text-[11px]"
+                        >
+                          Status: {match.response_status}
                         </Badge>
                       </div>
 
-                      <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm">
-                        <p className="flex items-center gap-2 font-mono text-muted-foreground">
-                          <Lock className="size-3.5" />
-                          {approved ? donor.phone : maskPhone(donor.phone)}
-                        </p>
-                        <p className="mt-1 font-mono text-muted-foreground">
-                          {approved ? donor.email : maskEmail(donor.email)}
+                      {/* Contact Reveal Safeguard box */}
+                      <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs">
+                        <div className="flex items-center justify-between text-muted-foreground mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <Lock className="size-3.5" /> Contact Privacy
+                          </span>
+                          <span className="text-[10px]">
+                            {isAccepted ? "Verified & Revealed" : "Safeguard Protected"}
+                          </span>
+                        </div>
+                        <p className="font-mono text-muted-foreground">
+                          {isAccepted ? "Ready for reveal" : "Phone: +88017••••••• (Masked)"}
                         </p>
                       </div>
 
-                      <Button
-                        className="w-full"
-                        variant={approved ? "secondary" : "default"}
-                        disabled={approved || pending}
-                        onClick={() => setContactDonor(donor)}
-                      >
-                        {approved
-                          ? "Contact shared"
-                          : pending
-                            ? "Awaiting approval…"
-                            : "Request Contact Approval"}
-                      </Button>
+                      <div className="space-y-1.5">
+                        <Button
+                          className="w-full text-xs h-8"
+                          variant={isAccepted ? "default" : "secondary"}
+                          onClick={() => handleViewContact(match)}
+                          disabled={revealContactMutation.isPending}
+                        >
+                          {isAccepted ? "View Revealed Contact" : "Attempt Contact Reveal"}
+                        </Button>
+
+                        {/* Testing helper: simulate donor acceptance */}
+                        {!isAccepted && !isDeclined && (
+                          <div className="flex gap-1.5 pt-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-1/2 text-[10px] h-7"
+                              onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
+                            >
+                              Simulate Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-1/2 text-[10px] h-7"
+                              onClick={() => handleDonorResponse(match.match_id, "DECLINED")}
+                            >
+                              Simulate Decline
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
 
-            {request && matches.length === 0 && (
+            {createdRequest && matches.length === 0 && (
               <Card className="mt-4 border-dashed">
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  No available donors match {request.group} {request.component} right now.
+                <CardContent className="p-8 text-center text-muted-foreground text-sm">
+                  No eligible donors found within the current radius for {form.group} ({form.component}).
                 </CardContent>
               </Card>
             )}
@@ -408,30 +474,36 @@ function RequestBlood() {
         </div>
       </main>
 
-      <Dialog open={!!contactDonor} onOpenChange={(o) => !o && setContactDonor(null)}>
-        <DialogContent>
+      {/* Revealed Contact Modal */}
+      <Dialog open={!!revealedContact} onOpenChange={(o) => !o && setRevealedContact(null)}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Request contact approval</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="size-5" />
+              Contact Revealed (Safeguard Approved)
+            </DialogTitle>
             <DialogDescription>
-              {contactDonor?.name} will receive your request. Their phone and email are revealed
-              only after they approve.
+              The donor has explicitly ACCEPTED this request. You are authorized to contact them directly.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2">
-            <Label htmlFor="msg">Message to donor (optional)</Label>
-            <Textarea
-              id="msg"
-              maxLength={500}
-              placeholder={`Need ${form.units} unit(s) of ${form.group} ${form.component} at ${form.location || "our location"}.`}
-              value={contactMessage}
-              onChange={(e) => setContactMessage(e.target.value)}
-            />
-          </div>
+          {revealedContact && (
+            <div className="space-y-3 py-2 text-sm">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2">
+                <p className="font-semibold text-foreground text-base">{revealedContact.full_name}</p>
+                <p className="flex items-center gap-2 text-muted-foreground font-mono">
+                  <Phone className="size-4 text-primary" /> {revealedContact.phone}
+                </p>
+                <p className="flex items-center gap-2 text-muted-foreground font-mono">
+                  <Mail className="size-4 text-primary" /> {revealedContact.email}
+                </p>
+                <p className="flex items-center gap-2 text-muted-foreground">
+                  <Home className="size-4 text-primary" /> {revealedContact.address}
+                </p>
+              </div>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setContactDonor(null)}>
-              Cancel
-            </Button>
-            <Button onClick={sendContactRequest}>Send request</Button>
+            <Button onClick={() => setRevealedContact(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
