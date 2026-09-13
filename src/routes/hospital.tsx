@@ -55,8 +55,11 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/hospital")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: (search.tab as "dashboard" | "inventory" | "transactions" | "appointments") || "dashboard",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: "dashboard" | "inventory" | "transactions" | "appointments" } => ({
+    tab:
+      (search.tab as "dashboard" | "inventory" | "transactions" | "appointments") || "dashboard",
   }),
   head: () => ({
     meta: [

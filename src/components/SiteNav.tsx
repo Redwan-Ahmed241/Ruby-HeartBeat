@@ -77,6 +77,7 @@ export function SiteNav() {
             <>
               <Link
                 to="/donor"
+                search={{ tab: "overview" }}
                 activeOptions={{ exact: true }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
@@ -84,14 +85,16 @@ export function SiteNav() {
                 Dashboard
               </Link>
               <Link
-                to="/donor/appointments"
+                to="/donor"
+                search={{ tab: "appointments" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
                 My Appointments
               </Link>
               <Link
-                to="/donor/history"
+                to="/donor"
+                search={{ tab: "history" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
@@ -112,6 +115,7 @@ export function SiteNav() {
             <>
               <Link
                 to="/recipient"
+                search={{ tab: "overview" }}
                 activeOptions={{ exact: true }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
@@ -126,7 +130,8 @@ export function SiteNav() {
                 Create Request
               </Link>
               <Link
-                to="/recipient/requests"
+                to="/recipient"
+                search={{ tab: "requests" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
@@ -140,6 +145,7 @@ export function SiteNav() {
             <>
               <Link
                 to="/hospital"
+                search={{ tab: "dashboard" }}
                 activeOptions={{ exact: true }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
@@ -147,21 +153,24 @@ export function SiteNav() {
                 Dashboard
               </Link>
               <Link
-                to="/hospital/inventory"
+                to="/hospital"
+                search={{ tab: "inventory" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
                 Blood Inventory
               </Link>
               <Link
-                to="/hospital/transactions"
+                to="/hospital"
+                search={{ tab: "transactions" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
                 Transactions
               </Link>
               <Link
-                to="/hospital/appointments"
+                to="/hospital"
+                search={{ tab: "appointments" }}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
                 activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
               >
@@ -344,20 +353,23 @@ export function SiteNav() {
             <>
               <Link
                 to="/donor"
+                search={{ tab: "overview" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
                 Dashboard
               </Link>
               <Link
-                to="/donor/appointments"
+                to="/donor"
+                search={{ tab: "appointments" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
                 My Appointments
               </Link>
               <Link
-                to="/donor/history"
+                to="/donor"
+                search={{ tab: "history" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
@@ -375,6 +387,7 @@ export function SiteNav() {
             <>
               <Link
                 to="/recipient"
+                search={{ tab: "overview" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
@@ -388,7 +401,8 @@ export function SiteNav() {
                 Create Request
               </Link>
               <Link
-                to="/recipient/requests"
+                to="/recipient"
+                search={{ tab: "requests" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
@@ -399,27 +413,31 @@ export function SiteNav() {
             <>
               <Link
                 to="/hospital"
+                search={{ tab: "dashboard" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
                 Dashboard
               </Link>
               <Link
-                to="/hospital/inventory"
+                to="/hospital"
+                search={{ tab: "inventory" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
                 Blood Inventory
               </Link>
               <Link
-                to="/hospital/transactions"
+                to="/hospital"
+                search={{ tab: "transactions" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
                 Transactions
               </Link>
               <Link
-                to="/hospital/appointments"
+                to="/hospital"
+                search={{ tab: "appointments" }}
                 onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
               >
