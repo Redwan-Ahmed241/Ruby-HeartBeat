@@ -268,7 +268,7 @@ export function SiteNav() {
             <AuthDialog />
           )}
 
-          <NotificationHub />
+          {(isDonor || isRecipient) && <NotificationHub />}
 
           {/* Mobile hamburger toggle */}
           <button

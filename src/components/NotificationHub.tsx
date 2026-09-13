@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { Bell, Check, Phone, X } from "lucide-react";
+import {
+  Bell,
+  Check,
+  Phone,
+  X,
+  AlertCircle,
+  Clock,
+  MapPin,
+  HeartHandshake,
+  UserCheck,
+  ShieldCheck,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,84 +25,152 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { useBloodRequests, useRespondToMatch, useRevealDonorContact } from "@/hooks/useRequests";
+import type {
+  BloodRequestResponse,
+  MaskedDonorMatchResponse,
+  DonorContactReveal,
+  BloodGroup,
+  RequestUrgency,
+} from "@/lib/api/types";
 
-type ApprovalRequest = {
-  id: string;
-  recipient: string;
-  group: string;
-  hospital: string;
-  urgency: "Normal" | "Urgent" | "Emergency";
-  askedAgo: string;
-  message: string;
-};
+// Helper to format blood group enum for clean display (e.g. O_PLUS -> O+)
+function formatBloodGroup(bg: BloodGroup | string): string {
+  return bg
+    .replace("_PLUS", "+")
+    .replace("_MINUS", "-")
+    .replace("_", " ");
+}
 
-const INITIAL_REQUESTS: ApprovalRequest[] = [
-  {
-    id: "r1",
-    recipient: "Sabbir Hossain",
-    group: "O-",
-    hospital: "Square Hospital, Panthapath",
-    urgency: "Emergency",
-    askedAgo: "2 min ago",
-    message: "Surgery scheduled tonight, need 2 units urgently.",
-  },
-  {
-    id: "r2",
-    recipient: "Rehana Begum",
-    group: "O-",
-    hospital: "Dhaka Medical College Hospital",
-    urgency: "Urgent",
-    askedAgo: "26 min ago",
-    message: "Thalassemia transfusion for my daughter.",
-  },
-  {
-    id: "r3",
-    recipient: "Arif Mahmud",
-    group: "O+",
-    hospital: "United Hospital, Gulshan",
-    urgency: "Normal",
-    askedAgo: "3 hours ago",
-    message: "Planned procedure next week — building a standby list.",
-  },
-];
-
-const INITIAL_FEED = [
-  { id: "f1", text: "Your contact request was approved by John Doe", time: "just now" },
-  { id: "f2", text: "Ayesha Rahman marked herself Available", time: "12 min ago" },
-  { id: "f3", text: "Emergency O- request near Dhanmondi was fulfilled", time: "1 hour ago" },
-  { id: "f4", text: "Your donor profile passed medical verification", time: "yesterday" },
-];
+// Helper to format urgency badge styling
+function getUrgencyBadge(urgency: RequestUrgency | string) {
+  if (urgency === "EMERGENCY") {
+    return <Badge variant="destructive" className="font-semibold animate-pulse">EMERGENCY</Badge>;
+  }
+  if (urgency === "URGENT") {
+    return <Badge className="bg-amber-500 hover:bg-amber-600 text-white font-medium">Urgent</Badge>;
+  }
+  return <Badge variant="secondary">Normal</Badge>;
+}
 
 export function NotificationHub() {
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [feed, setFeed] = useState(INITIAL_FEED);
+  const { data: user } = useCurrentUser();
+  const { data: requests, isLoading: requestsLoading, refetch } = useBloodRequests();
+  const respondMutation = useRespondToMatch();
+  const revealMutation = useRevealDonorContact();
 
-  const resolve = (req: ApprovalRequest, approved: boolean) => {
-    setRequests((rs) => rs.filter((r) => r.id !== req.id));
-    setFeed((f) => [
+  // Track revealed contacts by match_id for recipients
+  const [revealedContacts, setRevealedContacts] = useState<Record<string, DonorContactReveal>>({});
+  const [revealingMatchId, setRevealingMatchId] = useState<string | null>(null);
+
+  const isDonor = user?.role === "DONOR";
+  const isRecipient = user?.role === "RECIPIENT";
+
+  // If unauthenticated or role is neither DONOR nor RECIPIENT, do not render
+  if (!user || (!isDonor && !isRecipient)) {
+    return null;
+  }
+
+  // 1. DONOR Logic: Filter incoming blood requests that contain a match for this donor
+  // Note: user.donor?.donor_id or user.user_id matches the donor_id in MaskedDonorMatchResponse
+  const donorId = user.donor?.donor_id || user.user_id;
+
+  const donorMatchedItems: {
+    request: BloodRequestResponse;
+    match: MaskedDonorMatchResponse;
+  }[] = [];
+
+  if (isDonor && requests) {
+    for (const req of requests) {
+      if (req.matches && req.matches.length > 0) {
+        for (const m of req.matches) {
+          if (m.donor_id === donorId) {
+            donorMatchedItems.push({ request: req, match: m });
+          }
+        }
+      }
+    }
+  }
+
+  // Pending donor requests requiring action
+  const pendingDonorMatches = donorMatchedItems.filter(
+    (item) => item.match.response_status === "PENDING"
+  );
+  const resolvedDonorMatches = donorMatchedItems.filter(
+    (item) => item.match.response_status !== "PENDING"
+  );
+
+  // 2. RECIPIENT Logic: Filter requests created by this recipient
+  const recipientRequests = isRecipient && requests
+    ? requests.filter((r) => r.recipient_id === user.user_id)
+    : [];
+
+  // Find accepted matches across recipient's requests
+  const acceptedMatchesForRecipient: {
+    request: BloodRequestResponse;
+    match: MaskedDonorMatchResponse;
+  }[] = [];
+
+  for (const req of recipientRequests) {
+    if (req.matches) {
+      for (const m of req.matches) {
+        if (m.response_status === "ACCEPTED") {
+          acceptedMatchesForRecipient.push({ request: req, match: m });
+        }
+      }
+    }
+  }
+
+  // Count active badge notifications
+  const notificationCount = isDonor
+    ? pendingDonorMatches.length
+    : acceptedMatchesForRecipient.length;
+
+  // Donor action handlers
+  const handleDonorResponse = (matchId: string, response: "ACCEPTED" | "DECLINED") => {
+    respondMutation.mutate(
+      { matchId, payload: { response } },
       {
-        id: `${req.id}-${approved ? "a" : "d"}`,
-        text: approved
-          ? `You approved phone access for ${req.recipient}`
-          : `You declined the contact request from ${req.recipient}`,
-        time: "just now",
+        onSuccess: () => {
+          refetch();
+          if (response === "ACCEPTED") {
+            toast.success("Contact details shared with recipient.");
+          } else {
+            toast.info("You declined this request.");
+          }
+        },
+      }
+    );
+  };
+
+  // Recipient action handler to reveal donor contact
+  const handleRevealContact = (matchId: string) => {
+    setRevealingMatchId(matchId);
+    revealMutation.mutate(matchId, {
+      onSuccess: (data) => {
+        setRevealedContacts((prev) => ({ ...prev, [matchId]: data }));
+        setRevealingMatchId(null);
+        toast.success(`Contact details revealed for ${data.full_name}`);
       },
-      ...f,
-    ]);
-    toast.success(approved ? `Phone access shared with ${req.recipient}` : "Request declined");
+      onError: (err) => {
+        setRevealingMatchId(null);
+        toast.error(err.message || "Failed to reveal contact information.");
+      },
+    });
   };
 
   return (
     <Sheet>
       <SheetTrigger asChild>
         <button
-          aria-label="Notifications and contact approvals"
-          className="relative rounded-md p-2 transition-colors hover:bg-primary-glow/40"
+          aria-label="Notifications and alerts"
+          className="relative rounded-md p-2 transition-colors hover:bg-primary-glow/40 text-primary-foreground"
         >
           <Bell className="size-5" />
-          {requests.length > 0 && (
-            <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-background text-[10px] font-bold text-primary">
-              {requests.length}
+          {notificationCount > 0 && (
+            <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-background text-[10px] font-bold text-primary shadow-sm">
+              {notificationCount}
             </span>
           )}
         </button>
@@ -97,70 +178,249 @@ export function NotificationHub() {
 
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Notifications</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <Bell className="size-4 text-primary" />
+            {isDonor ? "Donor Match Notifications" : "Blood Request Alerts"}
+          </SheetTitle>
           <SheetDescription>
-            Approve or decline contact requests — your phone number stays private until you approve.
+            {isDonor
+              ? "Incoming emergency & urgent matching requests seeking your compatible blood."
+              : "Live updates and donor acceptance alerts on your submitted blood requests."}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 px-4 pb-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Pending contact approvals</h3>
-            <Badge variant="secondary">{requests.length}</Badge>
-          </div>
-
-          {requests.length === 0 && (
-            <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No pending requests right now.
-            </p>
-          )}
-
-          {requests.map((r) => (
-            <div key={r.id} className="space-y-3 rounded-lg border border-border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{r.recipient}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.hospital} · {r.askedAgo}
-                  </p>
-                </div>
-                <Badge variant={r.urgency === "Emergency" ? "destructive" : "secondary"}>
-                  {r.group} · {r.urgency}
+        <div className="space-y-5 px-4 pb-8 pt-4">
+          {requestsLoading ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+              <p className="mt-2 text-xs">Checking live notifications...</p>
+            </div>
+          ) : isDonor ? (
+            /* ====================================================================
+             * DONOR NOTIFICATION VIEW
+             * ==================================================================== */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Incoming Match Requests</h3>
+                <Badge variant={pendingDonorMatches.length > 0 ? "default" : "secondary"}>
+                  {pendingDonorMatches.length} Pending
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{r.message}</p>
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1" onClick={() => resolve(r, true)}>
-                  <Phone /> Approve Phone Access
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => resolve(r, false)}
-                >
-                  <X /> Decline
-                </Button>
-              </div>
+
+              {pendingDonorMatches.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  <ShieldCheck className="mx-auto size-8 text-muted-foreground/60 mb-2" />
+                  <p className="font-medium text-foreground">No new notifications. You're all caught up!</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When an active patient request matches your blood group and radius, it will appear here for contact approval.
+                  </p>
+                </div>
+              ) : (
+                pendingDonorMatches.map(({ request, match }) => (
+                  <div
+                    key={match.match_id}
+                    className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-base text-primary">
+                            {formatBloodGroup(request.blood_group)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({request.component_type.replace("_", " ")})
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium text-foreground mt-0.5 flex items-center gap-1">
+                          <MapPin className="size-3 text-muted-foreground" />
+                          {request.required_location}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock className="size-3" />
+                          Distance: ~{match.distance_km} km · Urgency:
+                        </p>
+                      </div>
+                      {getUrgencyBadge(request.urgency)}
+                    </div>
+
+                    {request.notes && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 italic">
+                        "{request.notes}"
+                      </p>
+                    )}
+
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs font-semibold"
+                        disabled={respondMutation.isPending}
+                        onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
+                      >
+                        <Phone className="mr-1 size-3.5" /> Approve Contact Access
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        disabled={respondMutation.isPending}
+                        onClick={() => handleDonorResponse(match.match_id, "DECLINED")}
+                      >
+                        <X className="mr-1 size-3.5" /> Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Resolved history */}
+              {resolvedDonorMatches.length > 0 && (
+                <>
+                  <Separator className="my-3" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Previous Responses
+                  </h3>
+                  <div className="space-y-2">
+                    {resolvedDonorMatches.slice(0, 5).map(({ request, match }) => (
+                      <div
+                        key={match.match_id}
+                        className="flex items-center justify-between text-xs rounded border border-border/50 p-2.5 bg-muted/20"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {formatBloodGroup(request.blood_group)} for {request.required_location}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {match.response_status === "ACCEPTED"
+                              ? "Contact details shared with recipient."
+                              : "You declined this match."}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={match.response_status === "ACCEPTED" ? "default" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {match.response_status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          ))}
+          ) : (
+            /* ====================================================================
+             * RECIPIENT NOTIFICATION VIEW
+             * ==================================================================== */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Donor Acceptance Updates</h3>
+                <Badge variant={acceptedMatchesForRecipient.length > 0 ? "default" : "secondary"}>
+                  {acceptedMatchesForRecipient.length} Accepted
+                </Badge>
+              </div>
 
-          <Separator />
+              {acceptedMatchesForRecipient.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  <HeartHandshake className="mx-auto size-8 text-muted-foreground/60 mb-2" />
+                  <p className="font-medium text-foreground">No new notifications. You're all caught up!</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When a compatible donor accepts your blood request, you'll receive an instant notification here to view their verified contact details.
+                  </p>
+                </div>
+              ) : (
+                acceptedMatchesForRecipient.map(({ request, match }) => {
+                  const revealed = revealedContacts[match.match_id];
+                  const isRevealing = revealingMatchId === match.match_id;
 
-          <h3 className="text-sm font-semibold">Activity feed</h3>
-          <ul className="space-y-3">
-            {feed.map((f) => (
-              <li key={f.id} className="flex gap-3 text-sm">
-                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <Check className="size-3.5 text-muted-foreground" />
-                </span>
-                <span>
-                  {f.text}
-                  <span className="block text-xs text-muted-foreground">{f.time}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+                  return (
+                    <div
+                      key={match.match_id}
+                      className="space-y-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-xs">
+                            <UserCheck className="size-4" /> Donor Accepted!
+                          </div>
+                          <p className="text-xs text-foreground mt-1">
+                            A compatible donor has accepted your <strong>{formatBloodGroup(request.blood_group)}</strong> request for <em>{request.required_location}</em>.
+                          </p>
+                        </div>
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]">
+                          ACCEPTED
+                        </Badge>
+                      </div>
+
+                      {revealed ? (
+                        <div className="rounded-md border border-emerald-500/40 bg-card p-3 space-y-1.5 text-xs">
+                          <p className="font-bold text-foreground flex items-center gap-1 text-sm">
+                            <Check className="size-4 text-emerald-600" /> {revealed.full_name}
+                          </p>
+                          <p className="text-foreground flex items-center gap-1.5">
+                            <Phone className="size-3.5 text-primary" />
+                            <a
+                              href={`tel:${revealed.phone}`}
+                              className="font-medium underline hover:text-primary"
+                            >
+                              {revealed.phone}
+                            </a>
+                          </p>
+                          <p className="text-muted-foreground flex items-center gap-1.5">
+                            <MapPin className="size-3.5 text-primary" />
+                            {revealed.address}
+                          </p>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={isRevealing}
+                          onClick={() => handleRevealContact(match.match_id)}
+                        >
+                          {isRevealing ? (
+                            <Loader2 className="mr-1 size-3.5 animate-spin" />
+                          ) : (
+                            <Phone className="mr-1 size-3.5" />
+                          )}
+                          Click to View Contact Details
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+
+              {/* Status summary of submitted requests */}
+              {recipientRequests.length > 0 && (
+                <>
+                  <Separator className="my-3" />
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Your Active Requests ({recipientRequests.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {recipientRequests.slice(0, 4).map((r) => (
+                      <div
+                        key={r.request_id}
+                        className="flex items-center justify-between text-xs rounded border border-border/50 p-2.5 bg-muted/20"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {formatBloodGroup(r.blood_group)} · {r.quantity} Unit(s)
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {r.required_location}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {r.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
