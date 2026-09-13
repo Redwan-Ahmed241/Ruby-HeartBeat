@@ -48,7 +48,7 @@ function LoginPage() {
           <CardHeader className="text-center">
             <CardTitle>Welcome Back</CardTitle>
             <CardDescription>
-              Sign in to your LifeDrop account or use the 1-Click Role Switcher
+              Sign in to your LifeDrop account to access your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">

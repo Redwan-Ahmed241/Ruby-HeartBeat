@@ -50,7 +50,7 @@ function RegisterPage() {
           <CardHeader className="text-center">
             <CardTitle>Join LifeDrop</CardTitle>
             <CardDescription>
-              Register as a <strong>{role}</strong> or switch to instant 1-Click test accounts
+              Register as a <strong>{role}</strong> to join the blood management network
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">

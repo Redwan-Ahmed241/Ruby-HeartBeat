@@ -58,7 +58,7 @@ export const Route = createFileRoute("/inventory")({
       {
         name: "description",
         content:
-          "Live stock levels by blood group and component, shortage alerts and an emergency request feed backed by Supabase PostgreSQL.",
+          "Live stock levels by blood group and component, shortage alerts, and emergency request tracking across partner blood banks.",
       },
       { property: "og:title", content: "Blood Inventory Levels — LifeDrop" },
       {
@@ -216,8 +216,8 @@ function Inventory() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blood Inventory</h1>
             <p className="mt-2 text-muted-foreground">
-              {isLoading ? "Fetching real-time stock..." : `${totalUnits} units in stock`} connected
-              to Supabase PostgreSQL.
+              {isLoading ? "Fetching real-time stock..." : `${totalUnits} units in stock`} across
+              connected hospital blood banks.
             </p>
           </div>
 

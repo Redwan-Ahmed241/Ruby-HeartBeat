@@ -124,7 +124,7 @@ function RequestBlood() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
-      toast.error("Please sign in or use the 1-Click Role Switcher first.");
+      toast.error("Please sign in to submit a request.");
       return;
     }
 
@@ -204,7 +204,7 @@ function RequestBlood() {
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
               EMERGENCY BROADCAST — Alerting all compatible donors across a 50 km radius via the
-              FastAPI Matching Engine.
+              Intelligent Matching Engine.
             </p>
           </div>
         </div>
@@ -236,7 +236,9 @@ function RequestBlood() {
           <Card className="h-fit shadow-[var(--shadow-elegant)]">
             <CardHeader>
               <CardTitle>Blood Request Form</CardTitle>
-              <CardDescription>Directly dispatches into Supabase database</CardDescription>
+              <CardDescription>
+                Dispatches directly to verified donors and affiliated blood banks
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">

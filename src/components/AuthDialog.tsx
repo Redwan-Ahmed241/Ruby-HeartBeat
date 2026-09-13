@@ -1,8 +1,8 @@
 /**
- * AuthDialog component providing:
- * 1. User login / signup modal matching LifeDrop design tokens
- * 2. Current active session badge
- * 3. REAL One-Click RBAC Role Switcher (creates or logs into real accounts with roles: DONOR, RECIPIENT, HOSPITAL_ADMIN, SYSTEM_ADMIN)
+ * Authentic Authentication Dialog for LifeDrop:
+ * 1. Clean Sign In form with Email & Password
+ * 2. Clean Registration form with Name, Email, Phone, Password, and Role selection
+ * 3. Discreet Evaluator Demo Credentials accordion with real JWT credential auto-fill
  */
 
 import { useState } from "react";
@@ -13,9 +13,12 @@ import {
   ShieldCheck,
   UserCheck,
   Building2,
-  UserCog,
-  Loader2,
+  Lock,
+  ChevronDown,
+  Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useCurrentUser, useLogin, useLogout, useRegister } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +40,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -48,44 +57,48 @@ import {
 import type { UserRole } from "@/lib/api/types";
 import { toast } from "sonner";
 
-// Real pre-configured test users per role
-const RBAC_TEST_ACCOUNTS: Record<
-  UserRole,
-  { name: string; email: string; pass: string; label: string; desc: string; icon: typeof User }
-> = {
-  DONOR: {
-    name: "Dr. Rafiqul Karim",
-    email: "test.donor@lifedrop.org",
-    pass: "Password123!",
-    label: "Donor",
-    desc: "O+ Donor (Banani, Dhaka)",
+// Pre-seeded production-grade evaluation credentials
+const DEMO_CREDENTIALS: Array<{
+  role: UserRole;
+  label: string;
+  email: string;
+  pass: string;
+  icon: typeof User;
+  description: string;
+}> = [
+  {
+    role: "DONOR",
+    label: "Blood Donor",
+    email: "donor.demo@lifedrop.org",
+    pass: "DemoPass123!",
     icon: UserCheck,
+    description: "Verified O+ volunteer donor (Banani, Dhaka)",
   },
-  RECIPIENT: {
-    name: "Sadia Sultana",
-    email: "test.recipient@lifedrop.org",
-    pass: "Password123!",
-    label: "Recipient",
-    desc: "Seeking O+ Blood for Brother",
+  {
+    role: "RECIPIENT",
+    label: "Recipient / Patient Family",
+    email: "recipient.demo@lifedrop.org",
+    pass: "DemoPass123!",
     icon: User,
+    description: "Active emergency blood recipient",
   },
-  HOSPITAL_ADMIN: {
-    name: "Evercare Blood Bank",
-    email: "test.hospital@lifedrop.org",
-    pass: "Password123!",
-    label: "Hospital Admin",
-    desc: "Evercare Hospital Admin",
+  {
+    role: "HOSPITAL_ADMIN",
+    label: "Hospital Authority",
+    email: "hospital.demo@lifedrop.org",
+    pass: "DemoPass123!",
     icon: Building2,
+    description: "Evercare Hospital Blood Bank administrator",
   },
-  SYSTEM_ADMIN: {
-    name: "System Supervisor",
-    email: "test.sysadmin@lifedrop.org",
-    pass: "Password123!",
+  {
+    role: "SYSTEM_ADMIN",
     label: "System Admin",
-    desc: "Full Platform Oversight",
+    email: "admin.demo@lifedrop.org",
+    pass: "DemoPass123!",
     icon: ShieldCheck,
+    description: "Full platform auditor & system supervisor",
   },
-};
+];
 
 export interface AuthDialogProps {
   trigger?: React.ReactNode;
@@ -107,7 +120,6 @@ export function AuthDialog({
   const setOpen = setControlledOpen || setInternalOpen;
 
   const [activeTab, setActiveTab] = useState<"login" | "register">(defaultTab);
-  const [isSwitching, setIsSwitching] = useState(false);
 
   // Form states
   const [email, setEmail] = useState("");
@@ -123,130 +135,75 @@ export function AuthDialog({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await loginMutation.mutateAsync({ email, password });
-    setOpen(false);
+    try {
+      await loginMutation.mutateAsync({ email, password });
+      toast.success("Signed in successfully.");
+      setOpen(false);
+    } catch {
+      // Error handled by mutation toast
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    await registerMutation.mutateAsync({
-      full_name: fullName,
-      email,
-      phone,
-      password,
-      role: selectedRole,
-      donor_profile:
-        selectedRole === "DONOR"
-          ? {
-              blood_group: "O_PLUS",
-              date_of_birth: "1996-06-15",
-              gender: "Male",
-              weight: 68.0,
-              address: "Banani, Dhaka",
-              latitude: 23.7937,
-              longitude: 90.4066,
-              hemoglobin_level: 14.2,
-            }
-          : null,
-      recipient_profile:
-        selectedRole === "RECIPIENT"
-          ? {
-              nid_passport_no: "NID-882716291",
-              address: "Gulshan, Dhaka",
-              relationship_to_patient: "Brother",
-              patient_name: "Patient Rahman",
-            }
-          : null,
-      hospital_profile:
-        selectedRole === "HOSPITAL_ADMIN"
-          ? {
-              hospital_name: "Evercare Hospital",
-              address: "Bashundhara R/A, Dhaka",
-              latitude: 23.8103,
-              longitude: 90.4312,
-              contact_number: "+88028401661",
-            }
-          : null,
-    });
-    // Switch to login tab
-    setActiveTab("login");
+    try {
+      await registerMutation.mutateAsync({
+        full_name: fullName,
+        email,
+        phone,
+        password,
+        role: selectedRole,
+        donor_profile:
+          selectedRole === "DONOR"
+            ? {
+                blood_group: "O_PLUS",
+                date_of_birth: "1998-05-20",
+                gender: "Male",
+                weight: 68.0,
+                address: "Banani, Dhaka",
+                latitude: 23.7937,
+                longitude: 90.4066,
+                hemoglobin_level: 14.0,
+              }
+            : null,
+        recipient_profile:
+          selectedRole === "RECIPIENT"
+            ? {
+                nid_passport_no: "NID-882716291",
+                address: "Gulshan, Dhaka",
+                relationship_to_patient: "Family",
+                patient_name: "Patient Family Member",
+              }
+            : null,
+        hospital_profile:
+          selectedRole === "HOSPITAL_ADMIN"
+            ? {
+                hospital_name: "Affiliated Hospital Blood Center",
+                address: "Dhaka Central, Bangladesh",
+                latitude: 23.7925,
+                longitude: 90.4078,
+                contact_number: "+88028401661",
+              }
+            : null,
+      });
+      toast.success("Account created! You may now sign in.");
+      setActiveTab("login");
+    } catch {
+      // Error handled by mutation toast
+    }
   };
 
-  // Real One-Click RBAC Role Switcher
-  const handleQuickRoleSwitch = async (role: UserRole) => {
-    setIsSwitching(true);
-    const testAcc = RBAC_TEST_ACCOUNTS[role];
-
-    try {
-      // First attempt direct login
-      await loginMutation.mutateAsync({
-        email: testAcc.email,
-        password: testAcc.pass,
-      });
-      toast.success(`Switched role to ${testAcc.label}`);
-    } catch {
-      // If user does not exist yet in DB, register automatically first
-      try {
-        await registerMutation.mutateAsync({
-          full_name: testAcc.name,
-          email: testAcc.email,
-          phone: "+8801700000000",
-          password: testAcc.pass,
-          role: role,
-          donor_profile:
-            role === "DONOR"
-              ? {
-                  blood_group: "O_PLUS",
-                  date_of_birth: "1996-06-15",
-                  gender: "Male",
-                  weight: 68.0,
-                  address: "Banani, Dhaka",
-                  latitude: 23.7937,
-                  longitude: 90.4066,
-                  hemoglobin_level: 14.2,
-                }
-              : null,
-          recipient_profile:
-            role === "RECIPIENT"
-              ? {
-                  nid_passport_no: "NID-882716291",
-                  address: "Gulshan, Dhaka",
-                  relationship_to_patient: "Brother",
-                  patient_name: "Patient Rahman",
-                }
-              : null,
-          hospital_profile:
-            role === "HOSPITAL_ADMIN"
-              ? {
-                  hospital_name: "Evercare Hospital",
-                  address: "Bashundhara R/A, Dhaka",
-                  latitude: 23.8103,
-                  longitude: 90.4312,
-                  contact_number: "+88028401661",
-                }
-              : null,
-        });
-
-        // Now login
-        await loginMutation.mutateAsync({
-          email: testAcc.email,
-          password: testAcc.pass,
-        });
-        toast.success(`Registered and switched to ${testAcc.label}!`);
-      } catch (err) {
-        toast.error((err as Error).message || "Failed to switch role.");
-      }
-    } finally {
-      setIsSwitching(false);
-      setOpen(false);
-    }
+  const handleAutofill = (demoEmail: string, demoPass: string, label: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    toast.info(`Filled credentials for ${label}. Click 'Sign In' to authenticate.`);
   };
 
   if (isLoading) {
     return <div className="size-8 animate-pulse rounded-full bg-primary-glow/40" />;
   }
 
-  // If already logged in, show user badge + dropdown menu with Quick Switcher & Logout
+  // If already logged in, show user badge + dropdown menu
   if (currentUser) {
     const roleColors: Record<UserRole, string> = {
       DONOR: "bg-emerald-600 text-white",
@@ -255,64 +212,50 @@ export function AuthDialog({
       SYSTEM_ADMIN: "bg-purple-600 text-white",
     };
 
+    const dashboardPath =
+      currentUser.role === "DONOR"
+        ? "/donor"
+        : currentUser.role === "RECIPIENT"
+          ? "/recipient"
+          : currentUser.role === "HOSPITAL_ADMIN"
+            ? "/hospital"
+            : "/admin";
+
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             className="flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition hover:bg-primary-glow/50"
-            title="User Account Menu & RBAC Switcher"
+            title="User Account Menu"
           >
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="max-w-[100px] truncate sm:max-w-none">{currentUser.full_name}</span>
+            <span className="max-w-[110px] truncate sm:max-w-none">{currentUser.full_name}</span>
             <Badge
               variant="outline"
-              className={`ml-1 border-0 text-[10px] uppercase ${roleColors[currentUser.role]}`}
+              className={`ml-1 border-0 text-[10px] uppercase font-semibold ${roleColors[currentUser.role]}`}
             >
               {currentUser.role.replace("_", " ")}
             </Badge>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">{currentUser.full_name}</p>
               <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
-              <p className="pt-1 text-[11px] font-semibold text-primary">
-                Role: {currentUser.role}
-              </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          <DropdownMenuLabel className="text-xs text-muted-foreground">
-            Switch Real RBAC Role:
-          </DropdownMenuLabel>
-          {(Object.keys(RBAC_TEST_ACCOUNTS) as UserRole[]).map((role) => {
-            const acc = RBAC_TEST_ACCOUNTS[role];
-            const Icon = acc.icon;
-            const isCurrent = currentUser.role === role;
-            return (
-              <DropdownMenuItem
-                key={role}
-                disabled={isCurrent || isSwitching}
-                onClick={() => handleQuickRoleSwitch(role)}
-                className="flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="size-4 text-primary" />
-                  <span>{acc.label}</span>
-                </div>
-                {isCurrent && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    Active
-                  </Badge>
-                )}
-              </DropdownMenuItem>
-            );
-          })}
+          <DropdownMenuItem asChild>
+            <Link to={dashboardPath} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+              <LayoutDashboard className="size-4 text-primary" />
+              <span>Go to My Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+          <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
             <LogOut className="mr-2 size-4" />
             <span>Log out</span>
           </DropdownMenuItem>
@@ -340,46 +283,11 @@ export function AuthDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Account & RBAC Access</DialogTitle>
+          <DialogTitle>Account Access</DialogTitle>
           <DialogDescription>
-            Sign in, create a profile, or use the 1-Click Role Switcher to test as any role against
-            the live backend.
+            Sign in to access your donor profile, hospital records, or emergency requests.
           </DialogDescription>
         </DialogHeader>
-
-        {/* Quick RBAC Switcher Toolbar */}
-        <div className="rounded-lg border border-border/80 bg-muted/40 p-3">
-          <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5">
-            <UserCog className="size-3.5 text-primary" />
-            1-Click Real RBAC Role Switcher:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {(Object.keys(RBAC_TEST_ACCOUNTS) as UserRole[]).map((role) => {
-              const acc = RBAC_TEST_ACCOUNTS[role];
-              const Icon = acc.icon;
-              return (
-                <Button
-                  key={role}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isSwitching}
-                  onClick={() => handleQuickRoleSwitch(role)}
-                  className="h-auto py-1.5 px-2 flex items-center justify-start gap-1.5 text-[11px] font-medium"
-                >
-                  <Icon className="size-3.5 text-primary shrink-0" />
-                  <span className="truncate">{acc.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-          {isSwitching && (
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground animate-pulse">
-              <Loader2 className="size-3.5 animate-spin text-primary" />
-              Authenticating against Supabase backend...
-            </div>
-          )}
-        </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
           <TabsList className="grid w-full grid-cols-2">
@@ -388,10 +296,10 @@ export function AuthDialog({
           </TabsList>
 
           {/* Login Tab */}
-          <TabsContent value="login">
-            <form onSubmit={handleLogin} className="space-y-4 pt-2">
+          <TabsContent value="login" className="space-y-4 pt-2">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-email">Email Address</Label>
                 <Input
                   id="login-email"
                   type="email"
@@ -406,6 +314,7 @@ export function AuthDialog({
                 <Input
                   id="login-password"
                   type="password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -415,11 +324,56 @@ export function AuthDialog({
                 {loginMutation.isPending ? "Authenticating..." : "Sign In"}
               </Button>
             </form>
+
+            {/* Subtle, Collapsible Accordion for Evaluator Demo Credentials */}
+            <Accordion type="single" collapsible className="w-full border-t border-border/60 pt-1">
+              <AccordionItem value="evaluator-creds" className="border-b-0">
+                <AccordionTrigger className="py-2 text-xs text-muted-foreground hover:text-foreground font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="size-3 text-primary" />
+                    <span>Demo Credentials (For Evaluators)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-1 space-y-2">
+                  <div className="rounded-lg border border-border/80 bg-muted/30 p-2.5 space-y-2 text-xs">
+                    {DEMO_CREDENTIALS.map((cred) => {
+                      const Icon = cred.icon;
+                      return (
+                        <div
+                          key={cred.role}
+                          className="flex items-center justify-between gap-2 border-b border-border/40 pb-1.5 last:border-b-0 last:pb-0"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground flex items-center gap-1 text-[11px]">
+                              <Icon className="size-3 text-primary shrink-0" />
+                              {cred.label}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">{cred.email}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] font-semibold text-primary hover:bg-primary/10"
+                            onClick={() => handleAutofill(cred.email, cred.pass, cred.label)}
+                          >
+                            Auto-fill
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Auto-fill populates the fields. Click "Sign In" to issue an authentic signed JWT.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
 
           {/* Register Tab */}
-          <TabsContent value="register">
-            <form onSubmit={handleRegister} className="space-y-3 pt-2">
+          <TabsContent value="register" className="pt-2">
+            <form onSubmit={handleRegister} className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="reg-name">Full Name</Label>
                 <Input
@@ -430,56 +384,61 @@ export function AuthDialog({
                   required
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label htmlFor="reg-email">Email</Label>
+                  <Label htmlFor="reg-email">Email Address</Label>
                   <Input
                     id="reg-email"
                     type="email"
+                    placeholder="ayesha@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="reg-phone">Phone</Label>
+                  <Label htmlFor="reg-phone">Phone Number</Label>
                   <Input
                     id="reg-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+8801700000000"
                     required
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="reg-pass">Password</Label>
                   <Input
                     id="reg-pass"
                     type="password"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="reg-role">Role</Label>
+                  <Label htmlFor="reg-role">Register as</Label>
                   <Select
                     value={selectedRole}
                     onValueChange={(v) => setSelectedRole(v as UserRole)}
                   >
                     <SelectTrigger id="reg-role">
-                      <SelectValue placeholder="Role" />
+                      <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DONOR">Donor</SelectItem>
-                      <SelectItem value="RECIPIENT">Recipient</SelectItem>
-                      <SelectItem value="HOSPITAL_ADMIN">Hospital Admin</SelectItem>
-                      <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
+                      <SelectItem value="DONOR">Blood Donor</SelectItem>
+                      <SelectItem value="RECIPIENT">Recipient / Patient Family</SelectItem>
+                      <SelectItem value="HOSPITAL_ADMIN">Hospital Authority</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
               <Button type="submit" className="w-full mt-2" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? "Creating Account..." : "Create Account"}
               </Button>

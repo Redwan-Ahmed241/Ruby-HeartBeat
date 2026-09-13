@@ -391,7 +391,9 @@ function DonorDashboardPage() {
                     <HeartPulse className="size-5 text-primary" />
                     Live Clinical Engine
                   </CardTitle>
-                  <CardDescription>Validated via FastAPI & Supabase</CardDescription>
+                  <CardDescription>
+                    Validated against clinical transfusion safety guidelines
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">

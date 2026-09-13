@@ -37,7 +37,7 @@ export const Route = createFileRoute("/admin")({
       {
         name: "description",
         content:
-          "Live system analytics, real blood requests, and immutable audit logs backed by FastAPI & Supabase PostgreSQL.",
+          "Live system operations, blood request queue, and verified audit records for platform administrators.",
       },
       { property: "og:title", content: "Admin Control & Audit Trail — LifeDrop" },
       {
@@ -119,8 +119,7 @@ function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Admin Control & Audit</h1>
             <p className="mt-2 text-muted-foreground">
-              Live system operations, blood request queue, and real-time security audit trails from
-              Supabase.
+              Live system operations, blood request queue, and verified security audit trail.
             </p>
           </div>
 
@@ -145,8 +144,8 @@ function AdminDashboard() {
             <div className="flex-1">
               <span className="font-semibold">Restricted View:</span> You are currently viewing as{" "}
               <strong>{currentUser?.role || "Guest"}</strong>. To view live audit logs and manage
-              system queues, click <strong>Sign In</strong> and select the{" "}
-              <strong>Hospital Admin</strong> or <strong>System Admin</strong> 1-Click test role.
+              system queues, sign in with an authorized <strong>Hospital Administrator</strong> or{" "}
+              <strong>System Administrator</strong> account.
             </div>
           </div>
         )}

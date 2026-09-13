@@ -187,7 +187,7 @@ function HospitalPortalPage() {
           <p className="mt-2 text-muted-foreground text-sm">
             {user
               ? `You are signed in as ${user.role}. This portal is strictly restricted to certified Hospital Administrators.`
-              : "Sign in with a Hospital Admin account or use the 1-Click Role Switcher to manage hospital blood reserves and transactions."}
+              : "Sign in with an authorized Hospital Administrator account to manage hospital blood reserves and transactions."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <AuthDialog defaultTab="login" defaultRole="HOSPITAL_ADMIN" />

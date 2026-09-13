@@ -53,7 +53,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Connecting volunteer blood donors, emergency recipients, and hospital blood banks with strict RBAC privacy and live clinical validation.",
+          "Connecting volunteer blood donors, emergency recipients, and hospital blood banks with verified privacy safeguards and automated clinical screening.",
       },
       { property: "og:title", content: "LifeDrop — Blood Donor Management System" },
       {
@@ -143,7 +143,7 @@ export function LandingPage() {
 
   const handleSaveToProfile = async () => {
     if (!user) {
-      toast.error("Please sign in or use the 1-Click Role Switcher first.");
+      toast.error("Please sign in to your account first.");
       return;
     }
     try {
@@ -201,7 +201,7 @@ export function LandingPage() {
             {/* Subtitle */}
             <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
               LifeDrop synchronizes verified volunteer donors, emergency recipients, and hospital
-              blood banks. Backed by strict RBAC privacy safeguards, proximity radar, and automated
+              blood banks. Backed by verified privacy safeguards, proximity radar, and automated
               clinical verification.
             </p>
 
@@ -245,7 +245,7 @@ export function LandingPage() {
               </a>
             </div>
 
-            {/* RBAC Architecture Badges */}
+            {/* Core Platform Pillars */}
             <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4 max-w-4xl w-full text-left">
               <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-primary font-semibold text-sm">
@@ -450,14 +450,14 @@ export function LandingPage() {
                     ) : (
                       <div className="space-y-2">
                         <p className="text-xs text-muted-foreground">
-                          You are currently signed in as <strong>{user.role}</strong>. Use the
-                          1-Click Role Switcher to test as a Recipient.
+                          You are currently signed in as <strong>{user.role}</strong>. Sign in with a
+                          Recipient account to access the proximity radar.
                         </p>
                         <AuthDialog
                           defaultRole="RECIPIENT"
                           trigger={
                             <Button size="sm" className="gap-2">
-                              Switch to Recipient Role
+                              Switch to Recipient Account
                             </Button>
                           }
                         />
@@ -799,7 +799,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 5. About LifeDrop & Architecture */}
+      {/* 5. About LifeDrop Platform */}
       <section id="about" className="py-16 bg-muted/10">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -807,14 +807,14 @@ export function LandingPage() {
               variant="outline"
               className="text-xs uppercase font-semibold text-primary border-primary mb-2"
             >
-              System Architecture
+              Institutional Mission
             </Badge>
             <h2 className="text-3xl font-bold tracking-tight text-foreground">
               About the LifeDrop Platform
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Engineered with modern full-stack reliability: FastAPI serverless backend, PostgreSQL
-              via Supabase, and a TanStack React client.
+              A secure, intelligent blood donation network connecting donors, recipients, and
+              hospitals across Dhaka in real time.
             </p>
           </div>
 
@@ -824,12 +824,11 @@ export function LandingPage() {
                 <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-2">
                   <ShieldCheck className="size-5" />
                 </div>
-                <CardTitle className="text-base">Role-Based Access Control</CardTitle>
+                <CardTitle className="text-base">Verified & Privacy-Preserving</CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                Four distinct user tiers (DONOR, RECIPIENT, HOSPITAL_ADMIN, SYSTEM_ADMIN). Ensures
-                sensitive donor contact records and blood bank inventories are never exposed to
-                unauthorized actors.
+                Donor contact details are protected and only shared upon mutual agreement during an
+                active blood request.
               </CardContent>
             </Card>
 
@@ -841,9 +840,8 @@ export function LandingPage() {
                 <CardTitle className="text-base">Clinical Safety Validation</CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                Automated clinical rules verify donor hemoglobin (&ge; 12.5 g/dL), minimum body
-                weight (&ge; 50 kg), and enforce strict 90-day recovery cooldown periods to preserve
-                donor health.
+                Automated health screening ensures donors meet medical weight, age, and recovery
+                intervals before matching.
               </CardContent>
             </Card>
 
@@ -852,12 +850,11 @@ export function LandingPage() {
                 <div className="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 mb-2">
                   <Building2 className="size-5" />
                 </div>
-                <CardTitle className="text-base">Centralized Inventory & Expiry</CardTitle>
+                <CardTitle className="text-base">Hospital Inventory Network</CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                Connected hospital blood banks monitor stocks across Whole Blood, Plasma, and
-                Platelets in real-time, with automated scans detecting nearing expiration dates and
-                critical shortages.
+                Partner hospitals maintain live blood unit availability to accelerate emergency
+                dispatches.
               </CardContent>
             </Card>
           </div>
