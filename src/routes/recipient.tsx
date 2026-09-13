@@ -31,7 +31,7 @@ import { toast } from "sonner";
 const DonorMap = lazy(() => import("@/components/DonorMap"));
 
 export const Route = createFileRoute("/recipient")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "requests" | "map" } => ({
     tab: (search.tab as "overview" | "requests" | "map") || "overview",
   }),
   head: () => ({

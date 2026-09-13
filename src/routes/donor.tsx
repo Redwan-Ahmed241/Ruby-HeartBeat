@@ -45,8 +45,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/donor")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: (search.tab as "overview" | "appointments" | "history") || "overview",
+  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "appointments" | "history" } => ({
+    tab: (search["tab"] as "overview" | "appointments" | "history") || "overview",
   }),
   head: () => ({
     meta: [
