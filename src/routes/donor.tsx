@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   HeartPulse,
@@ -63,8 +63,17 @@ export const Route = createFileRoute("/donor")({
 const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
 
 function DonorDashboardPage() {
-  const { tab } = useSearch({ from: "/donor" });
-  const [activeTab, setActiveTab] = useState<string>(tab || "overview");
+  const search = useSearch({ from: "/donor" });
+  const navigate = useNavigate();
+  const activeTab = search["tab"] || "overview";
+
+  const handleTabChange = (newTab: string) => {
+    navigate({
+      to: "/donor",
+      search: { tab: newTab as "overview" | "appointments" | "history" },
+    });
+  };
+
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const donor = user?.donor;
 
@@ -179,9 +188,9 @@ function DonorDashboardPage() {
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Donor Dashboard</h1>
               <Badge
                 variant="outline"
-                className="text-xs uppercase font-semibold text-primary border-primary"
+                className="text-xs font-semibold text-primary border-primary bg-primary/5"
               >
-                DONOR
+                Verified Blood Donor
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -281,16 +290,10 @@ function DonorDashboardPage() {
           </Card>
         </div>
 
-        {/* Dashboard Tabs: Overview / Appointments / History */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="overview">Profile & Eligibility</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="history">Donation History</TabsTrigger>
-          </TabsList>
-
+        {/* Views: Profile & Eligibility, Appointments, Donation History driven by URL Search Params */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
           {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-6">
+          <TabsContent value="overview">
             <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
               {/* Profile Details Card */}
               <Card className="shadow-[var(--shadow-elegant)]">

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import {
   Boxes,
@@ -77,8 +77,17 @@ const GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
 const CAPACITY = 60;
 
 function HospitalPortalPage() {
-  const { tab } = useSearch({ from: "/hospital" });
-  const [activeTab, setActiveTab] = useState<string>(tab || "dashboard");
+  const search = useSearch({ from: "/hospital" });
+  const navigate = useNavigate();
+  const activeTab = search["tab"] || "dashboard";
+
+  const handleTabChange = (newTab: string) => {
+    navigate({
+      to: "/hospital",
+      search: { tab: newTab as "dashboard" | "inventory" | "transactions" | "appointments" },
+    });
+  };
+
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const { data: inventoryItems, isLoading: invLoading, refetch: refetchInv } = useBloodInventory();
@@ -216,9 +225,9 @@ function HospitalPortalPage() {
               </h1>
               <Badge
                 variant="outline"
-                className="text-xs uppercase font-semibold text-primary border-primary"
+                className="text-xs font-semibold text-primary border-primary bg-primary/5"
               >
-                {user.role}
+                Hospital Authority
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -365,17 +374,10 @@ function HospitalPortalPage() {
           </Card>
         </div>
 
-        {/* Tabs: Dashboard, Inventory, Transactions, Appointments */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="inventory">Blood Inventory</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          </TabsList>
-
+        {/* Views: Dashboard, Inventory, Transactions, Appointments driven by URL Search Params */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
           {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="mt-6 space-y-6">
+          <TabsContent value="dashboard" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <Card className="shadow-[var(--shadow-elegant)]">
                 <CardHeader>
@@ -399,7 +401,7 @@ function HospitalPortalPage() {
                     variant="outline"
                     size="sm"
                     className="w-full text-xs"
-                    onClick={() => setActiveTab("inventory")}
+                    onClick={() => handleTabChange("inventory")}
                   >
                     View All 8 Blood Groups
                   </Button>

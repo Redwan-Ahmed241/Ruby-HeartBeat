@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, lazy, Suspense } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import {
@@ -49,8 +49,17 @@ export const Route = createFileRoute("/recipient")({
 const RADII = [5, 10, 25, 50];
 
 function RecipientDashboardPage() {
-  const { tab } = useSearch({ from: "/recipient" });
-  const [activeTab, setActiveTab] = useState<string>(tab || "overview");
+  const search = useSearch({ from: "/recipient" });
+  const navigate = useNavigate();
+  const activeTab = search["tab"] || "overview";
+
+  const handleTabChange = (newTab: string) => {
+    navigate({
+      to: "/recipient",
+      search: { tab: newTab as "overview" | "requests" | "map" },
+    });
+  };
+
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   // Requests query
@@ -124,9 +133,9 @@ function RecipientDashboardPage() {
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient Dashboard</h1>
               <Badge
                 variant="outline"
-                className="text-xs uppercase font-semibold text-primary border-primary"
+                className="text-xs font-semibold text-primary border-primary bg-primary/5"
               >
-                RECIPIENT
+                Verified Recipient
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -190,16 +199,10 @@ function RecipientDashboardPage() {
           </Card>
         </div>
 
-        {/* Tabs: Overview, Requests, Map */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="requests">My Requests</TabsTrigger>
-            <TabsTrigger value="map">Nearby Donors (Map)</TabsTrigger>
-          </TabsList>
-
+        {/* Views: Overview, Requests, Map driven by URL Search Params */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
           {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-6 space-y-6">
+          <TabsContent value="overview" className="space-y-6">
             <Card className="shadow-[var(--shadow-elegant)]">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>

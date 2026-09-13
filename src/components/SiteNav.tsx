@@ -1,16 +1,19 @@
-import { Link } from "@tanstack/react-router";
-import { Droplet, Menu, AlertCircle, Sparkles } from "lucide-react";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Droplet, Menu, AlertCircle, Sparkles, LogOut, Building2, User } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
 import { AuthDialog } from "@/components/AuthDialog";
-import { useCurrentUser } from "@/hooks/useAuth";
+import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { useToggleAvailability } from "@/hooks/useDonor";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const logout = useLogout();
   const { data: user } = useCurrentUser();
   const toggleAvailabilityMutation = useToggleAvailability();
 
@@ -21,10 +24,43 @@ export function SiteNav() {
 
   const isDonorAvailable = user?.donor?.availability_status === "AVAILABLE";
 
+  const currentPath = location.pathname;
+  const searchParams = (location.search as Record<string, string>) || {};
+  const currentTab = searchParams.tab;
+
+  const isLinkActive = (path: string, tab?: string, isDefault?: boolean) => {
+    if (currentPath !== path) return false;
+    if (!tab) return true;
+    if (currentTab === tab) return true;
+    if (!currentTab && isDefault) return true;
+    return false;
+  };
+
+  const getLinkClass = (path: string, tab?: string, isDefault?: boolean) =>
+    cn(
+      "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+      isLinkActive(path, tab, isDefault)
+        ? "bg-primary-glow/60 opacity-100 font-semibold shadow-sm"
+        : "opacity-85 hover:bg-primary-glow/40 hover:opacity-100",
+    );
+
+  const getMobileLinkClass = (path: string, tab?: string, isDefault?: boolean) =>
+    cn(
+      "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+      isLinkActive(path, tab, isDefault)
+        ? "bg-primary-glow/60 opacity-100 font-semibold shadow-sm"
+        : "opacity-90 hover:bg-primary-glow/40",
+    );
+
   const handleAvailabilityToggle = (checked: boolean) => {
     toggleAvailabilityMutation.mutate({
       availability_status: checked ? "AVAILABLE" : "UNAVAILABLE",
     });
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/" });
   };
 
   return (
@@ -46,8 +82,7 @@ export function SiteNav() {
               <Link
                 to="/"
                 activeOptions={{ exact: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/", undefined, true)}
               >
                 Home
               </Link>
@@ -78,32 +113,27 @@ export function SiteNav() {
               <Link
                 to="/donor"
                 search={{ tab: "overview" }}
-                activeOptions={{ exact: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/donor", "overview", true)}
               >
                 Dashboard
               </Link>
               <Link
                 to="/donor"
                 search={{ tab: "appointments" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/donor", "appointments")}
               >
                 My Appointments
               </Link>
               <Link
                 to="/donor"
                 search={{ tab: "history" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/donor", "history")}
               >
                 Donation History
               </Link>
               <Link
                 to="/events"
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/events")}
               >
                 Events
               </Link>
@@ -116,24 +146,27 @@ export function SiteNav() {
               <Link
                 to="/recipient"
                 search={{ tab: "overview" }}
-                activeOptions={{ exact: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/recipient", "overview", true)}
               >
                 Dashboard
               </Link>
               <Link
-                to="/requests/new"
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                to="/recipient"
+                search={{ tab: "map" }}
+                className={getLinkClass("/recipient", "map")}
+              >
+                Nearby Donors
+              </Link>
+              <Link
+                to="/request-blood"
+                className={getLinkClass("/request-blood")}
               >
                 Create Request
               </Link>
               <Link
                 to="/recipient"
                 search={{ tab: "requests" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/recipient", "requests")}
               >
                 My Requests
               </Link>
@@ -146,33 +179,28 @@ export function SiteNav() {
               <Link
                 to="/hospital"
                 search={{ tab: "dashboard" }}
-                activeOptions={{ exact: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/hospital", "dashboard", true)}
               >
                 Dashboard
               </Link>
               <Link
                 to="/hospital"
                 search={{ tab: "inventory" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/hospital", "inventory")}
               >
                 Blood Inventory
               </Link>
               <Link
                 to="/hospital"
                 search={{ tab: "transactions" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/hospital", "transactions")}
               >
                 Transactions
               </Link>
               <Link
                 to="/hospital"
                 search={{ tab: "appointments" }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/hospital", "appointments")}
               >
                 Appointments
               </Link>
@@ -185,29 +213,25 @@ export function SiteNav() {
               <Link
                 to="/admin"
                 activeOptions={{ exact: true }}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/admin")}
               >
                 Dashboard
               </Link>
               <Link
                 to="/admin/users"
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/admin/users")}
               >
                 Users
               </Link>
               <Link
                 to="/admin/logs"
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/admin/logs")}
               >
                 Audit Logs
               </Link>
               <Link
                 to="/admin/notices"
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
-                activeProps={{ className: "bg-primary-glow/60 opacity-100 font-semibold" }}
+                className={getLinkClass("/admin/notices")}
               >
                 Campaign Notices
               </Link>
@@ -245,7 +269,7 @@ export function SiteNav() {
             </Link>
           )}
 
-          {/* Guest Actions: Login & Register buttons */}
+          {/* Unauthenticated Guest Actions: Login & Register buttons */}
           {!user ? (
             <div className="flex items-center gap-2">
               <AuthDialog
@@ -274,210 +298,282 @@ export function SiteNav() {
               />
             </div>
           ) : (
-            <AuthDialog />
+            /* Authenticated User Actions: Identity Chip & Immediate Logout Button */
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                {isHospitalAdmin ? (
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-emerald-300" />
+                    <span className="font-semibold max-w-[210px] truncate">
+                      {user.hospital_name || "Dhaka Medical College & Hospital"}
+                    </span>
+                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide">
+                      Authority
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <User className="size-3.5 text-white/80" />
+                    <span className="font-semibold max-w-[150px] truncate">{user.full_name}</span>
+                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide">
+                      {isDonor ? "Donor" : isRecipient ? "Recipient" : "Admin"}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Direct, high-visibility Logout button */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleLogout}
+                className="border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40 gap-1.5"
+                title="Logout of current session"
+              >
+                <LogOut className="size-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </div>
           )}
 
           {(isDonor || isRecipient) && <NotificationHub />}
 
-          {/* Mobile hamburger toggle */}
+          {/* Mobile Navigation Trigger Button */}
           <button
-            aria-label="Toggle menu"
-            onClick={() => setOpen((o) => !o)}
-            className="rounded-md p-2 transition-colors hover:bg-primary-glow/40 md:hidden"
+            onClick={() => setOpen(!open)}
+            className="flex size-9 items-center justify-center rounded-md border border-primary-glow/60 bg-primary-glow/20 md:hidden"
+            aria-label="Toggle navigation menu"
           >
             <Menu className="size-5" />
           </button>
         </div>
       </nav>
 
-      {/* Mobile Drawer Navigation */}
-      <div className={cn("border-t border-primary-glow/40 md:hidden", open ? "block" : "hidden")}>
-        <div className="flex flex-col px-4 pb-3 pt-2 space-y-1">
-          {/* Donor Mobile Switch */}
-          {isDonor && (
-            <div className="flex items-center justify-between rounded-md bg-primary-glow/30 px-3 py-2 text-xs mb-2">
-              <span className="font-semibold">
-                Donor Status: {isDonorAvailable ? "Available to Donate" : "Unavailable"}
-              </span>
-              <Switch
-                checked={isDonorAvailable}
-                onCheckedChange={handleAvailabilityToggle}
-                disabled={toggleAvailabilityMutation.isPending}
-                className="scale-90 data-[state=checked]:bg-emerald-500"
-              />
-            </div>
-          )}
+      {/* Mobile Drawer Dropdown */}
+      {open && (
+        <div className="border-t border-border/40 bg-primary px-4 py-3 md:hidden">
+          <div className="flex flex-col gap-1">
+            {/* Donor Mobile Switch */}
+            {isDonor && (
+              <div className="flex items-center justify-between rounded-md bg-primary-glow/30 px-3 py-2 text-xs mb-2">
+                <span className="font-semibold">
+                  Donor Status: {isDonorAvailable ? "Available to Donate" : "Unavailable"}
+                </span>
+                <Switch
+                  checked={isDonorAvailable}
+                  onCheckedChange={handleAvailabilityToggle}
+                  disabled={toggleAvailabilityMutation.isPending}
+                  className="scale-90 data-[state=checked]:bg-emerald-500"
+                />
+              </div>
+            )}
 
-          {/* Recipient Emergency Mobile CTA */}
-          {isRecipient && (
-            <Link to="/requests/emergency" onClick={() => setOpen(false)} className="mb-2">
-              <Button size="sm" variant="destructive" className="w-full text-xs font-semibold">
-                <AlertCircle className="mr-1.5 size-3.5" />
-                Emergency Blood Request
-              </Button>
-            </Link>
-          )}
+            {/* Recipient Emergency Mobile CTA */}
+            {isRecipient && (
+              <Link to="/request-blood" onClick={() => setOpen(false)} className="mb-2">
+                <Button size="sm" variant="destructive" className="w-full text-xs font-semibold">
+                  <AlertCircle className="mr-1.5 size-3.5" />
+                  Emergency Blood Request
+                </Button>
+              </Link>
+            )}
 
-          {!user ? (
-            <>
-              <Link
-                to="/"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Home
-              </Link>
-              <a
-                href="/#eligibility"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Eligibility Calculator
-              </a>
-              <a
-                href="/#events"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Campaigns
-              </a>
-              <a
-                href="/#about"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                About
-              </a>
-            </>
-          ) : isDonor ? (
-            <>
-              <Link
-                to="/donor"
-                search={{ tab: "overview" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/donor"
-                search={{ tab: "appointments" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                My Appointments
-              </Link>
-              <Link
-                to="/donor"
-                search={{ tab: "history" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Donation History
-              </Link>
-              <Link
-                to="/events"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Events
-              </Link>
-            </>
-          ) : isRecipient ? (
-            <>
-              <Link
-                to="/recipient"
-                search={{ tab: "overview" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/requests/new"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Create Request
-              </Link>
-              <Link
-                to="/recipient"
-                search={{ tab: "requests" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                My Requests
-              </Link>
-            </>
-          ) : isHospitalAdmin ? (
-            <>
-              <Link
-                to="/hospital"
-                search={{ tab: "dashboard" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "inventory" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Blood Inventory
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "transactions" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Transactions
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "appointments" }}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Appointments
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/admin"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/admin/users"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Users
-              </Link>
-              <Link
-                to="/admin/logs"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Audit Logs
-              </Link>
-              <Link
-                to="/admin/notices"
-                onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
-              >
-                Campaign Notices
-              </Link>
-            </>
-          )}
+            {!user ? (
+              <>
+                <Link
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/", undefined, true)}
+                >
+                  Home
+                </Link>
+                <a
+                  href="/#eligibility"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
+                >
+                  Eligibility Calculator
+                </a>
+                <a
+                  href="/#events"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
+                >
+                  Campaigns
+                </a>
+                <a
+                  href="/#about"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
+                >
+                  About
+                </a>
+              </>
+            ) : isDonor ? (
+              <>
+                <Link
+                  to="/donor"
+                  search={{ tab: "overview" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/donor", "overview", true)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/donor"
+                  search={{ tab: "appointments" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/donor", "appointments")}
+                >
+                  My Appointments
+                </Link>
+                <Link
+                  to="/donor"
+                  search={{ tab: "history" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/donor", "history")}
+                >
+                  Donation History
+                </Link>
+                <Link
+                  to="/events"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/events")}
+                >
+                  Events
+                </Link>
+              </>
+            ) : isRecipient ? (
+              <>
+                <Link
+                  to="/recipient"
+                  search={{ tab: "overview" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/recipient", "overview", true)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/recipient"
+                  search={{ tab: "map" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/recipient", "map")}
+                >
+                  Nearby Donors
+                </Link>
+                <Link
+                  to="/request-blood"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/request-blood")}
+                >
+                  Create Request
+                </Link>
+                <Link
+                  to="/recipient"
+                  search={{ tab: "requests" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/recipient", "requests")}
+                >
+                  My Requests
+                </Link>
+              </>
+            ) : isHospitalAdmin ? (
+              <>
+                <Link
+                  to="/hospital"
+                  search={{ tab: "dashboard" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital", "dashboard", true)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/hospital"
+                  search={{ tab: "inventory" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital", "inventory")}
+                >
+                  Blood Inventory
+                </Link>
+                <Link
+                  to="/hospital"
+                  search={{ tab: "transactions" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital", "transactions")}
+                >
+                  Transactions
+                </Link>
+                <Link
+                  to="/hospital"
+                  search={{ tab: "appointments" }}
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital", "appointments")}
+                >
+                  Appointments
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/admin"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/admin")}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/admin/users"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/admin/users")}
+                >
+                  Users
+                </Link>
+                <Link
+                  to="/admin/logs"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/admin/logs")}
+                >
+                  Audit Logs
+                </Link>
+                <Link
+                  to="/admin/notices"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/admin/notices")}
+                >
+                  Campaign Notices
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Authenticated Identity & Logout */}
+            {user && (
+              <div className="mt-3 border-t border-primary-glow/40 pt-3 flex flex-col gap-2">
+                <div className="flex items-center gap-2 px-2 text-xs font-medium">
+                  <span className="size-2 rounded-full bg-emerald-400" />
+                  <span className="truncate font-semibold">
+                    {isHospitalAdmin
+                      ? (user.hospital_name || "Dhaka Medical College & Hospital")
+                      : user.full_name}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40 gap-1.5"
+                >
+                  <LogOut className="size-3.5" />
+                  <span>Logout</span>
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
