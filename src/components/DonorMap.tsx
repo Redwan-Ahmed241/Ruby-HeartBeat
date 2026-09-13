@@ -1,11 +1,7 @@
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
-import {
-  CITY_CENTER,
-  HOSPITALS,
-  type MapDonor,
-} from "@/lib/donor-data";
+import { CITY_CENTER, HOSPITALS, type MapDonor } from "@/lib/donor-data";
 
 type Props = {
   donors: MapDonor[];

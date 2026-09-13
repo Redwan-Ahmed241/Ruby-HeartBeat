@@ -182,7 +182,7 @@ function RequestBlood() {
     // Refresh local match status
     if (createdRequest?.matches) {
       const updated = createdRequest.matches.map((m) =>
-        m.match_id === matchId ? { ...m, response_status: status } : m
+        m.match_id === matchId ? { ...m, response_status: status } : m,
       );
       setCreatedRequest({ ...createdRequest, matches: updated });
     }
@@ -213,9 +213,23 @@ function RequestBlood() {
       <main className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Request Blood</h1>
         <p className="mt-2 text-muted-foreground">
-          Submit your request to trigger the Intelligent Real-Time Matching Engine, ranking donors by
-          compatibility, distance, and reliability with Contact Privacy enforced.
+          Submit your request to trigger the Intelligent Real-Time Matching Engine, ranking donors
+          by compatibility, distance, and reliability with Contact Privacy enforced.
         </p>
+
+        {!currentUser && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="size-5 shrink-0 text-amber-600" />
+              <div>
+                <span className="font-semibold">Authentication Notice:</span> You are submitting as
+                a guest. To track your request in real time and initiate direct donor contact, sign
+                in as a <strong>Recipient</strong>.
+              </div>
+            </div>
+            <AuthDialog defaultRole="RECIPIENT" defaultTab="login" />
+          </div>
+        )}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           {/* Request Form */}
@@ -360,14 +374,15 @@ function RequestBlood() {
 
             <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="size-4 text-primary shrink-0" />
-              <strong>Contact Reveal Safeguard Active:</strong> Donor details remain masked until the
-              donor explicitly approves the match in accordance with security specifications.
+              <strong>Contact Reveal Safeguard Active:</strong> Donor details remain masked until
+              the donor explicitly approves the match in accordance with security specifications.
             </p>
 
             {!createdRequest && (
               <Card className="mt-4 border-dashed">
                 <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                  Submit the request form to execute the matching algorithm against registered donors.
+                  Submit the request form to execute the matching algorithm against registered
+                  donors.
                 </CardContent>
               </Card>
             )}
@@ -398,11 +413,7 @@ function RequestBlood() {
                         </Badge>
                         <Badge
                           variant={
-                            isAccepted
-                              ? "default"
-                              : isDeclined
-                              ? "destructive"
-                              : "secondary"
+                            isAccepted ? "default" : isDeclined ? "destructive" : "secondary"
                           }
                           className="text-[11px]"
                         >
@@ -466,7 +477,8 @@ function RequestBlood() {
             {createdRequest && matches.length === 0 && (
               <Card className="mt-4 border-dashed">
                 <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                  No eligible donors found within the current radius for {form.group} ({form.component}).
+                  No eligible donors found within the current radius for {form.group} (
+                  {form.component}).
                 </CardContent>
               </Card>
             )}
@@ -483,13 +495,16 @@ function RequestBlood() {
               Contact Revealed (Safeguard Approved)
             </DialogTitle>
             <DialogDescription>
-              The donor has explicitly ACCEPTED this request. You are authorized to contact them directly.
+              The donor has explicitly ACCEPTED this request. You are authorized to contact them
+              directly.
             </DialogDescription>
           </DialogHeader>
           {revealedContact && (
             <div className="space-y-3 py-2 text-sm">
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2">
-                <p className="font-semibold text-foreground text-base">{revealedContact.full_name}</p>
+                <p className="font-semibold text-foreground text-base">
+                  {revealedContact.full_name}
+                </p>
                 <p className="flex items-center gap-2 text-muted-foreground font-mono">
                   <Phone className="size-4 text-primary" /> {revealedContact.phone}
                 </p>

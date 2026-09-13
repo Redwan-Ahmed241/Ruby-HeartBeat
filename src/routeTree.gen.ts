@@ -11,9 +11,26 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DonorRouteImport } from './routes/donor'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as FindDonorsRouteImport } from './routes/find-donors'
+import { Route as HospitalRouteImport } from './routes/hospital'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RecipientRouteImport } from './routes/recipient'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RequestBloodRouteImport } from './routes/request-blood'
+import { Route as AdminLogsRouteImport } from './routes/admin.logs'
+import { Route as AdminNoticesRouteImport } from './routes/admin.notices'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as DonorAppointmentsRouteImport } from './routes/donor.appointments'
+import { Route as DonorHistoryRouteImport } from './routes/donor.history'
+import { Route as HospitalAppointmentsRouteImport } from './routes/hospital.appointments'
+import { Route as HospitalInventoryRouteImport } from './routes/hospital.inventory'
+import { Route as HospitalTransactionsRouteImport } from './routes/hospital.transactions'
+import { Route as RecipientRequestsRouteImport } from './routes/recipient.requests'
+import { Route as RequestsEmergencyRouteImport } from './routes/requests.emergency'
+import { Route as RequestsNewRouteImport } from './routes/requests.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -25,9 +42,24 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DonorRoute = DonorRouteImport.update({
+  id: '/donor',
+  path: '/donor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FindDonorsRoute = FindDonorsRouteImport.update({
   id: '/find-donors',
   path: '/find-donors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospitalRoute = HospitalRouteImport.update({
+  id: '/hospital',
+  path: '/hospital',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -35,54 +67,244 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecipientRoute = RecipientRouteImport.update({
+  id: '/recipient',
+  path: '/recipient',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestBloodRoute = RequestBloodRouteImport.update({
   id: '/request-blood',
   path: '/request-blood',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLogsRoute = AdminLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminNoticesRoute = AdminNoticesRouteImport.update({
+  id: '/notices',
+  path: '/notices',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const DonorAppointmentsRoute = DonorAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => DonorRoute,
+} as any)
+const DonorHistoryRoute = DonorHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => DonorRoute,
+} as any)
+const HospitalAppointmentsRoute = HospitalAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => HospitalRoute,
+} as any)
+const HospitalInventoryRoute = HospitalInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => HospitalRoute,
+} as any)
+const HospitalTransactionsRoute = HospitalTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => HospitalRoute,
+} as any)
+const RecipientRequestsRoute = RecipientRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => RecipientRoute,
+} as any)
+const RequestsEmergencyRoute = RequestsEmergencyRouteImport.update({
+  id: '/requests/emergency',
+  path: '/requests/emergency',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsNewRoute = RequestsNewRouteImport.update({
+  id: '/requests/new',
+  path: '/requests/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/donor': typeof DonorRouteWithChildren
+  '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
+  '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/recipient': typeof RecipientRouteWithChildren
+  '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/notices': typeof AdminNoticesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/donor/appointments': typeof DonorAppointmentsRoute
+  '/donor/history': typeof DonorHistoryRoute
+  '/hospital/appointments': typeof HospitalAppointmentsRoute
+  '/hospital/inventory': typeof HospitalInventoryRoute
+  '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/recipient/requests': typeof RecipientRequestsRoute
+  '/requests/emergency': typeof RequestsEmergencyRoute
+  '/requests/new': typeof RequestsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/donor': typeof DonorRouteWithChildren
+  '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
+  '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/recipient': typeof RecipientRouteWithChildren
+  '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/notices': typeof AdminNoticesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/donor/appointments': typeof DonorAppointmentsRoute
+  '/donor/history': typeof DonorHistoryRoute
+  '/hospital/appointments': typeof HospitalAppointmentsRoute
+  '/hospital/inventory': typeof HospitalInventoryRoute
+  '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/recipient/requests': typeof RecipientRequestsRoute
+  '/requests/emergency': typeof RequestsEmergencyRoute
+  '/requests/new': typeof RequestsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/donor': typeof DonorRouteWithChildren
+  '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
+  '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
+  '/login': typeof LoginRoute
+  '/recipient': typeof RecipientRouteWithChildren
+  '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/notices': typeof AdminNoticesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/donor/appointments': typeof DonorAppointmentsRoute
+  '/donor/history': typeof DonorHistoryRoute
+  '/hospital/appointments': typeof HospitalAppointmentsRoute
+  '/hospital/inventory': typeof HospitalInventoryRoute
+  '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/recipient/requests': typeof RecipientRequestsRoute
+  '/requests/emergency': typeof RequestsEmergencyRoute
+  '/requests/new': typeof RequestsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/find-donors' | '/inventory' | '/request-blood'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/donor'
+    | '/events'
+    | '/find-donors'
+    | '/hospital'
+    | '/inventory'
+    | '/login'
+    | '/recipient'
+    | '/register'
+    | '/request-blood'
+    | '/admin/logs'
+    | '/admin/notices'
+    | '/admin/users'
+    | '/donor/appointments'
+    | '/donor/history'
+    | '/hospital/appointments'
+    | '/hospital/inventory'
+    | '/hospital/transactions'
+    | '/recipient/requests'
+    | '/requests/emergency'
+    | '/requests/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/find-donors' | '/inventory' | '/request-blood'
+  to:
+    | '/'
+    | '/admin'
+    | '/donor'
+    | '/events'
+    | '/find-donors'
+    | '/hospital'
+    | '/inventory'
+    | '/login'
+    | '/recipient'
+    | '/register'
+    | '/request-blood'
+    | '/admin/logs'
+    | '/admin/notices'
+    | '/admin/users'
+    | '/donor/appointments'
+    | '/donor/history'
+    | '/hospital/appointments'
+    | '/hospital/inventory'
+    | '/hospital/transactions'
+    | '/recipient/requests'
+    | '/requests/emergency'
+    | '/requests/new'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/donor'
+    | '/events'
     | '/find-donors'
+    | '/hospital'
     | '/inventory'
+    | '/login'
+    | '/recipient'
+    | '/register'
     | '/request-blood'
+    | '/admin/logs'
+    | '/admin/notices'
+    | '/admin/users'
+    | '/donor/appointments'
+    | '/donor/history'
+    | '/hospital/appointments'
+    | '/hospital/inventory'
+    | '/hospital/transactions'
+    | '/recipient/requests'
+    | '/requests/emergency'
+    | '/requests/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  DonorRoute: typeof DonorRouteWithChildren
+  EventsRoute: typeof EventsRoute
   FindDonorsRoute: typeof FindDonorsRoute
+  HospitalRoute: typeof HospitalRouteWithChildren
   InventoryRoute: typeof InventoryRoute
+  LoginRoute: typeof LoginRoute
+  RecipientRoute: typeof RecipientRouteWithChildren
+  RegisterRoute: typeof RegisterRoute
   RequestBloodRoute: typeof RequestBloodRoute
+  RequestsEmergencyRoute: typeof RequestsEmergencyRoute
+  RequestsNewRoute: typeof RequestsNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -101,11 +323,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/donor': {
+      id: '/donor'
+      path: '/donor'
+      fullPath: '/donor'
+      preLoaderRoute: typeof DonorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/find-donors': {
       id: '/find-donors'
       path: '/find-donors'
       fullPath: '/find-donors'
       preLoaderRoute: typeof FindDonorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospital': {
+      id: '/hospital'
+      path: '/hospital'
+      fullPath: '/hospital'
+      preLoaderRoute: typeof HospitalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -115,6 +358,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recipient': {
+      id: '/recipient'
+      path: '/recipient'
+      fullPath: '/recipient'
+      preLoaderRoute: typeof RecipientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/request-blood': {
       id: '/request-blood'
       path: '/request-blood'
@@ -122,15 +386,154 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestBloodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/logs': {
+      id: '/admin/logs'
+      path: '/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AdminLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/notices': {
+      id: '/admin/notices'
+      path: '/notices'
+      fullPath: '/admin/notices'
+      preLoaderRoute: typeof AdminNoticesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/donor/appointments': {
+      id: '/donor/appointments'
+      path: '/appointments'
+      fullPath: '/donor/appointments'
+      preLoaderRoute: typeof DonorAppointmentsRouteImport
+      parentRoute: typeof DonorRoute
+    }
+    '/donor/history': {
+      id: '/donor/history'
+      path: '/history'
+      fullPath: '/donor/history'
+      preLoaderRoute: typeof DonorHistoryRouteImport
+      parentRoute: typeof DonorRoute
+    }
+    '/hospital/appointments': {
+      id: '/hospital/appointments'
+      path: '/appointments'
+      fullPath: '/hospital/appointments'
+      preLoaderRoute: typeof HospitalAppointmentsRouteImport
+      parentRoute: typeof HospitalRoute
+    }
+    '/hospital/inventory': {
+      id: '/hospital/inventory'
+      path: '/inventory'
+      fullPath: '/hospital/inventory'
+      preLoaderRoute: typeof HospitalInventoryRouteImport
+      parentRoute: typeof HospitalRoute
+    }
+    '/hospital/transactions': {
+      id: '/hospital/transactions'
+      path: '/transactions'
+      fullPath: '/hospital/transactions'
+      preLoaderRoute: typeof HospitalTransactionsRouteImport
+      parentRoute: typeof HospitalRoute
+    }
+    '/recipient/requests': {
+      id: '/recipient/requests'
+      path: '/requests'
+      fullPath: '/recipient/requests'
+      preLoaderRoute: typeof RecipientRequestsRouteImport
+      parentRoute: typeof RecipientRoute
+    }
+    '/requests/emergency': {
+      id: '/requests/emergency'
+      path: '/requests/emergency'
+      fullPath: '/requests/emergency'
+      preLoaderRoute: typeof RequestsEmergencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests/new': {
+      id: '/requests/new'
+      path: '/requests/new'
+      fullPath: '/requests/new'
+      preLoaderRoute: typeof RequestsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminLogsRoute: typeof AdminLogsRoute
+  AdminNoticesRoute: typeof AdminNoticesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminLogsRoute: AdminLogsRoute,
+  AdminNoticesRoute: AdminNoticesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface DonorRouteChildren {
+  DonorAppointmentsRoute: typeof DonorAppointmentsRoute
+  DonorHistoryRoute: typeof DonorHistoryRoute
+}
+
+const DonorRouteChildren: DonorRouteChildren = {
+  DonorAppointmentsRoute: DonorAppointmentsRoute,
+  DonorHistoryRoute: DonorHistoryRoute,
+}
+
+const DonorRouteWithChildren = DonorRoute._addFileChildren(DonorRouteChildren)
+
+interface HospitalRouteChildren {
+  HospitalAppointmentsRoute: typeof HospitalAppointmentsRoute
+  HospitalInventoryRoute: typeof HospitalInventoryRoute
+  HospitalTransactionsRoute: typeof HospitalTransactionsRoute
+}
+
+const HospitalRouteChildren: HospitalRouteChildren = {
+  HospitalAppointmentsRoute: HospitalAppointmentsRoute,
+  HospitalInventoryRoute: HospitalInventoryRoute,
+  HospitalTransactionsRoute: HospitalTransactionsRoute,
+}
+
+const HospitalRouteWithChildren = HospitalRoute._addFileChildren(
+  HospitalRouteChildren,
+)
+
+interface RecipientRouteChildren {
+  RecipientRequestsRoute: typeof RecipientRequestsRoute
+}
+
+const RecipientRouteChildren: RecipientRouteChildren = {
+  RecipientRequestsRoute: RecipientRequestsRoute,
+}
+
+const RecipientRouteWithChildren = RecipientRoute._addFileChildren(
+  RecipientRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
+  DonorRoute: DonorRouteWithChildren,
+  EventsRoute: EventsRoute,
   FindDonorsRoute: FindDonorsRoute,
+  HospitalRoute: HospitalRouteWithChildren,
   InventoryRoute: InventoryRoute,
+  LoginRoute: LoginRoute,
+  RecipientRoute: RecipientRouteWithChildren,
+  RegisterRoute: RegisterRoute,
   RequestBloodRoute: RequestBloodRoute,
+  RequestsEmergencyRoute: RequestsEmergencyRoute,
+  RequestsNewRoute: RequestsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

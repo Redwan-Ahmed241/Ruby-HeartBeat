@@ -58,7 +58,7 @@ export function useToggleAvailability() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
       toast.success(
-        `Availability status set to ${data.availability_status === "AVAILABLE" ? "Available" : "Unavailable"}.`
+        `Availability status set to ${data.availability_status === "AVAILABLE" ? "Available" : "Unavailable"}.`,
       );
     },
     onError: (error: Error) => {

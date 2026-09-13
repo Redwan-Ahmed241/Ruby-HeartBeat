@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
-import { List, MapIcon, MapPin, Phone } from "lucide-react";
+import { List, MapIcon, MapPin, Phone, Lock, ShieldAlert, Users } from "lucide-react";
 import { toast } from "sonner";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCurrentUser } from "@/hooks/useAuth";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const DonorMap = lazy(() => import("@/components/DonorMap"));
 
@@ -35,7 +37,8 @@ export const Route = createFileRoute("/find-donors")({
       { property: "og:title", content: "Find Blood Donors Near You — LifeDrop" },
       {
         property: "og:description",
-        content: "Search available donors by blood group, location and distance on an interactive map.",
+        content:
+          "Search available donors by blood group, location and distance on an interactive map.",
       },
     ],
   }),
@@ -46,6 +49,9 @@ const GROUPS = ["All", ...BLOOD_GROUPS];
 const RADII = [5, 10, 25, 50];
 
 function FindDonors() {
+  const { data: user } = useCurrentUser();
+  const isAuthorizedRecipient = user?.role === "RECIPIENT" || user?.role === "SYSTEM_ADMIN";
+
   const [group, setGroup] = useState("All");
   const [city, setCity] = useState("");
   const [view, setView] = useState<"list" | "map">("list");
@@ -63,8 +69,7 @@ function FindDonors() {
   const mapDonors = useMemo(
     () =>
       MAP_DONORS.filter(
-        (d) =>
-          d.distanceKm <= radiusKm && (mapGroups.length === 0 || mapGroups.includes(d.group)),
+        (d) => d.distanceKm <= radiusKm && (mapGroups.length === 0 || mapGroups.includes(d.group)),
       ),
     [radiusKm, mapGroups],
   );
@@ -72,8 +77,13 @@ function FindDonors() {
   const toggleGroup = (g: string) =>
     setMapGroups((gs) => (gs.includes(g) ? gs.filter((x) => x !== g) : [...gs, g]));
 
-  const requestContact = (d: MapDonor) =>
+  const requestContact = (d: MapDonor) => {
+    if (!isAuthorizedRecipient) {
+      toast.error("You must be logged in as a Recipient to request direct donor contact.");
+      return;
+    }
     toast.success(`Contact approval requested from ${d.name}`);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,6 +121,20 @@ function FindDonors() {
             ))}
           </div>
         </div>
+
+        {!isAuthorizedRecipient && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="size-5 shrink-0 text-amber-600" />
+              <div>
+                <span className="font-semibold">Recipient Privacy Clearance:</span> Direct donor
+                contact and live GPS coordinates are protected. Sign in as a{" "}
+                <strong>Recipient</strong> to dispatch emergency matching.
+              </div>
+            </div>
+            <AuthDialog defaultRole="RECIPIENT" defaultTab="login" />
+          </div>
+        )}
 
         {view === "list" ? (
           <>
@@ -238,17 +262,47 @@ function FindDonors() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden shadow-[var(--shadow-elegant)]">
+            <Card className="relative overflow-hidden shadow-[var(--shadow-elegant)]">
               <CardContent className="p-0">
-                <ClientOnly fallback={<Skeleton className="h-[520px] w-full" />}>
-                  <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>
-                    <DonorMap
-                      donors={mapDonors}
-                      radiusKm={radiusKm}
-                      onRequestContact={requestContact}
-                    />
-                  </Suspense>
-                </ClientOnly>
+                {isAuthorizedRecipient ? (
+                  <ClientOnly fallback={<Skeleton className="h-[520px] w-full" />}>
+                    <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>
+                      <DonorMap
+                        donors={mapDonors}
+                        radiusKm={radiusKm}
+                        onRequestContact={requestContact}
+                      />
+                    </Suspense>
+                  </ClientOnly>
+                ) : (
+                  <div className="relative h-[520px] w-full flex items-center justify-center p-6 bg-muted/20">
+                    <div className="absolute inset-0 select-none pointer-events-none filter blur-[3px] opacity-40 bg-slate-900/90" />
+                    <div className="relative max-w-md rounded-xl border border-border bg-card/95 p-6 text-center shadow-xl space-y-4">
+                      <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Lock className="size-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">
+                          Geospatial Privacy Safeguard
+                        </h3>
+                        <p className="mt-1 text-xs text-foreground/80 font-medium">
+                          Log in as a Recipient to view and search real-time donors nearby (Privacy
+                          Protected)
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Real-time donor proximity queries are restricted to authorized recipients
+                          and hospital blood dispatchers.
+                        </p>
+                      </div>
+                      <div className="flex justify-center gap-2 pt-1">
+                        <AuthDialog
+                          defaultRole="RECIPIENT"
+                          trigger={<Button size="sm">Sign In as Recipient</Button>}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

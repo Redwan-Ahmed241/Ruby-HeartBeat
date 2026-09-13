@@ -6,8 +6,7 @@
  * 4. Token storage (localStorage)
  */
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 const ACCESS_TOKEN_KEY = "sbdms_access_token";
 const REFRESH_TOKEN_KEY = "sbdms_refresh_token";
@@ -49,10 +48,7 @@ interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
 }
 
-export async function apiClient<T>(
-  endpoint: string,
-  options: RequestOptions = {}
-): Promise<T> {
+export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { requiresAuth = true, headers = {}, ...rest } = options;
 
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;

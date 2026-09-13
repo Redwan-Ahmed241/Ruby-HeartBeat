@@ -62,10 +62,7 @@ function AdminDashboard() {
     refetch: refetchRequests,
   } = useBloodRequests();
 
-  const {
-    data: inventory,
-    isLoading: inventoryLoading,
-  } = useBloodInventory();
+  const { data: inventory, isLoading: inventoryLoading } = useBloodInventory();
 
   const {
     data: auditLogs,
@@ -76,12 +73,15 @@ function AdminDashboard() {
   // Compute live system stats
   const totalStock = useMemo(
     () => (inventory ? inventory.reduce((sum, item) => sum + Number(item.quantity), 0) : 0),
-    [inventory]
+    [inventory],
   );
 
   const pendingRequestsCount = useMemo(
-    () => (bloodRequests ? bloodRequests.filter((r) => r.status === "PENDING" || r.status === "MATCHED").length : 0),
-    [bloodRequests]
+    () =>
+      bloodRequests
+        ? bloodRequests.filter((r) => r.status === "PENDING" || r.status === "MATCHED").length
+        : 0,
+    [bloodRequests],
   );
 
   const stats = [
@@ -145,8 +145,8 @@ function AdminDashboard() {
             <div className="flex-1">
               <span className="font-semibold">Restricted View:</span> You are currently viewing as{" "}
               <strong>{currentUser?.role || "Guest"}</strong>. To view live audit logs and manage
-              system queues, click <strong>Sign In</strong> and select the <strong>Hospital Admin</strong> or{" "}
-              <strong>System Admin</strong> 1-Click test role.
+              system queues, click <strong>Sign In</strong> and select the{" "}
+              <strong>Hospital Admin</strong> or <strong>System Admin</strong> 1-Click test role.
             </div>
           </div>
         )}
@@ -253,7 +253,8 @@ function AdminDashboard() {
             <CardContent className="overflow-x-auto">
               {logsLoading ? (
                 <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-                  <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading audit logs...
+                  <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading audit
+                  logs...
                 </div>
               ) : auditLogs && auditLogs.length > 0 ? (
                 <Table>

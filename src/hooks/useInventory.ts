@@ -9,8 +9,7 @@ import { toast } from "sonner";
 
 export const INVENTORY_KEYS = {
   all: ["inventory"] as const,
-  list: (filters?: Record<string, string | undefined>) =>
-    ["inventory", "list", filters] as const,
+  list: (filters?: Record<string, string | undefined>) => ["inventory", "list", filters] as const,
 };
 
 export function useBloodInventory(filters?: {
@@ -32,9 +31,7 @@ export function useRecordInventoryTransaction() {
       inventoryService.recordTransaction(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
-      toast.success(
-        `Stock ${data.type} transaction recorded: ${data.quantity} units updated.`
-      );
+      toast.success(`Stock ${data.type} transaction recorded: ${data.quantity} units updated.`);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to record stock transaction.");
@@ -51,11 +48,11 @@ export function useTriggerExpiryScan() {
       queryClient.invalidateQueries({ queryKey: INVENTORY_KEYS.all });
       if (data.expiring_soon_count > 0) {
         toast.warning(
-          `Expiry Sweep Alert: ${data.expiring_soon_count} of ${data.scanned_count} units expiring within 72 hours.`
+          `Expiry Sweep Alert: ${data.expiring_soon_count} of ${data.scanned_count} units expiring within 72 hours.`,
         );
       } else {
         toast.success(
-          `Expiry Sweep Complete: All ${data.scanned_count} units are within safe validity periods.`
+          `Expiry Sweep Complete: All ${data.scanned_count} units are within safe validity periods.`,
         );
       }
     },

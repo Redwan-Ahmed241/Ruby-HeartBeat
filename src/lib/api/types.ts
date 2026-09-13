@@ -12,14 +12,7 @@ export type UserRole = "DONOR" | "RECIPIENT" | "HOSPITAL_ADMIN" | "SYSTEM_ADMIN"
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 export type BloodGroup =
-  | "A_PLUS"
-  | "A_MINUS"
-  | "B_PLUS"
-  | "B_MINUS"
-  | "AB_PLUS"
-  | "AB_MINUS"
-  | "O_PLUS"
-  | "O_MINUS";
+  "A_PLUS" | "A_MINUS" | "B_PLUS" | "B_MINUS" | "AB_PLUS" | "AB_MINUS" | "O_PLUS" | "O_MINUS";
 
 export type ComponentType = "WHOLE_BLOOD" | "PLASMA" | "PLATELETS";
 

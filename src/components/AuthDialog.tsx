@@ -6,7 +6,16 @@
  */
 
 import { useState } from "react";
-import { User, LogIn, LogOut, ShieldCheck, UserCheck, Building2, UserCog, Loader2 } from "lucide-react";
+import {
+  User,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  UserCheck,
+  Building2,
+  UserCog,
+  Loader2,
+} from "lucide-react";
 import { useCurrentUser, useLogin, useLogout, useRegister } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +38,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { UserRole } from "@/lib/api/types";
 import { toast } from "sonner";
 
@@ -72,9 +87,26 @@ const RBAC_TEST_ACCOUNTS: Record<
   },
 };
 
-export function AuthDialog() {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+export interface AuthDialogProps {
+  trigger?: React.ReactNode;
+  defaultTab?: "login" | "register";
+  defaultRole?: UserRole;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function AuthDialog({
+  trigger,
+  defaultTab = "login",
+  defaultRole = "DONOR",
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: AuthDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = setControlledOpen || setInternalOpen;
+
+  const [activeTab, setActiveTab] = useState<"login" | "register">(defaultTab);
   const [isSwitching, setIsSwitching] = useState(false);
 
   // Form states
@@ -82,7 +114,7 @@ export function AuthDialog() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+8801700000000");
-  const [selectedRole, setSelectedRole] = useState<UserRole>("DONOR");
+  const [selectedRole, setSelectedRole] = useState<UserRole>(defaultRole);
 
   const { data: currentUser, isLoading } = useCurrentUser();
   const loginMutation = useLogin();
@@ -232,7 +264,10 @@ export function AuthDialog() {
           >
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="max-w-[100px] truncate sm:max-w-none">{currentUser.full_name}</span>
-            <Badge variant="outline" className={`ml-1 border-0 text-[10px] uppercase ${roleColors[currentUser.role]}`}>
+            <Badge
+              variant="outline"
+              className={`ml-1 border-0 text-[10px] uppercase ${roleColors[currentUser.role]}`}
+            >
               {currentUser.role.replace("_", " ")}
             </Badge>
           </button>
@@ -242,7 +277,9 @@ export function AuthDialog() {
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">{currentUser.full_name}</p>
               <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
-              <p className="pt-1 text-[11px] font-semibold text-primary">Role: {currentUser.role}</p>
+              <p className="pt-1 text-[11px] font-semibold text-primary">
+                Role: {currentUser.role}
+              </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -265,7 +302,11 @@ export function AuthDialog() {
                   <Icon className="size-4 text-primary" />
                   <span>{acc.label}</span>
                 </div>
-                {isCurrent && <Badge variant="secondary" className="text-[10px]">Active</Badge>}
+                {isCurrent && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    Active
+                  </Badge>
+                )}
               </DropdownMenuItem>
             );
           })}
@@ -280,24 +321,29 @@ export function AuthDialog() {
     );
   }
 
-  // Logged out: Show Sign in button
+  // Logged out: Show Sign in button or custom trigger
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          size="sm"
-          variant="outline"
-          className="border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40"
-        >
-          <LogIn className="mr-1.5 size-3.5" />
-          Sign In
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40"
+          >
+            <LogIn className="mr-1.5 size-3.5" />
+            Sign In
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Account & RBAC Access</DialogTitle>
           <DialogDescription>
-            Sign in, create a profile, or use the 1-Click Role Switcher to test as any role against the live backend.
+            Sign in, create a profile, or use the 1-Click Role Switcher to test as any role against
+            the live backend.
           </DialogDescription>
         </DialogHeader>
 
@@ -418,7 +464,10 @@ export function AuthDialog() {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="reg-role">Role</Label>
-                  <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as UserRole)}>
+                  <Select
+                    value={selectedRole}
+                    onValueChange={(v) => setSelectedRole(v as UserRole)}
+                  >
                     <SelectTrigger id="reg-role">
                       <SelectValue placeholder="Role" />
                     </SelectTrigger>

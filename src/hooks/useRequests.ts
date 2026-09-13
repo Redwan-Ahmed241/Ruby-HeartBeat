@@ -4,17 +4,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { requestService } from "@/lib/api/services";
-import type {
-  BloodRequestCreate,
-  MatchRespondRequest,
-  DonorContactReveal,
-} from "@/lib/api/types";
+import type { BloodRequestCreate, MatchRespondRequest, DonorContactReveal } from "@/lib/api/types";
 import { toast } from "sonner";
 
 export const REQUEST_KEYS = {
   all: ["requests"] as const,
-  list: (filters?: Record<string, string | undefined>) =>
-    ["requests", "list", filters] as const,
+  list: (filters?: Record<string, string | undefined>) => ["requests", "list", filters] as const,
   detail: (id: string) => ["requests", "detail", id] as const,
   matches: (id: string) => ["requests", "matches", id] as const,
 };
@@ -47,7 +42,7 @@ export function useCreateBloodRequest() {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       const matchCount = data.matches?.length || 0;
       toast.success(
-        `Blood request created! Matching engine identified ${matchCount} eligible nearby donor(s).`
+        `Blood request created! Matching engine identified ${matchCount} eligible nearby donor(s).`,
       );
     },
     onError: (error: Error) => {
@@ -60,13 +55,12 @@ export function useCreateEmergencyRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: BloodRequestCreate) =>
-      requestService.createEmergencyRequest(payload),
+    mutationFn: (payload: BloodRequestCreate) => requestService.createEmergencyRequest(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       const matchCount = data.matches?.length || 0;
       toast.error(
-        `EMERGENCY broadcast dispatched across 50km! ${matchCount} compatible donor(s) notified.`
+        `EMERGENCY broadcast dispatched across 50km! ${matchCount} compatible donor(s) notified.`,
       );
     },
     onError: (error: Error) => {
@@ -79,13 +73,8 @@ export function useRespondToMatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      matchId,
-      payload,
-    }: {
-      matchId: string;
-      payload: MatchRespondRequest;
-    }) => requestService.respondToMatch(matchId, payload),
+    mutationFn: ({ matchId, payload }: { matchId: string; payload: MatchRespondRequest }) =>
+      requestService.respondToMatch(matchId, payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       toast.success(`Match response updated to ${data.response_status}.`);

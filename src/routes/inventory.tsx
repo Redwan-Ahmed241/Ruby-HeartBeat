@@ -102,7 +102,12 @@ function Inventory() {
   const groupedInventory = useMemo(() => {
     const map: Record<
       string,
-      { total: number; status: StockStatus; byComponent: Record<ComponentType, number>; ids: string[] }
+      {
+        total: number;
+        status: StockStatus;
+        byComponent: Record<ComponentType, number>;
+        ids: string[];
+      }
     > = {};
 
     GROUPS.forEach((g) => {
@@ -147,7 +152,7 @@ function Inventory() {
   }, [inventoryItems]);
 
   const shortages = groupedInventory.filter(
-    (r) => r.status === "CRITICAL" || r.status === "OUT_OF_STOCK"
+    (r) => r.status === "CRITICAL" || r.status === "OUT_OF_STOCK",
   );
 
   const visible = groupedInventory.filter((r) => {
@@ -211,8 +216,8 @@ function Inventory() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blood Inventory</h1>
             <p className="mt-2 text-muted-foreground">
-              {isLoading ? "Fetching real-time stock..." : `${totalUnits} units in stock`}{" "}
-              connected to Supabase PostgreSQL.
+              {isLoading ? "Fetching real-time stock..." : `${totalUnits} units in stock`} connected
+              to Supabase PostgreSQL.
             </p>
           </div>
 
@@ -250,10 +255,7 @@ function Inventory() {
                   <form onSubmit={handleCreateTransaction} className="space-y-4 pt-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="inv-sel">Select Inventory Unit</Label>
-                      <Select
-                        value={selectedInventoryId}
-                        onValueChange={setSelectedInventoryId}
-                      >
+                      <Select value={selectedInventoryId} onValueChange={setSelectedInventoryId}>
                         <SelectTrigger id="inv-sel">
                           <SelectValue placeholder="Choose inventory unit" />
                         </SelectTrigger>
@@ -271,7 +273,10 @@ function Inventory() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="tx-t">Transaction Type</Label>
-                        <Select value={txType} onValueChange={(v) => setTxType(v as TransactionType)}>
+                        <Select
+                          value={txType}
+                          onValueChange={(v) => setTxType(v as TransactionType)}
+                        >
                           <SelectTrigger id="tx-t">
                             <SelectValue />
                           </SelectTrigger>
@@ -314,7 +319,9 @@ function Inventory() {
 
                     <DialogFooter>
                       <Button type="submit" disabled={recordTransactionMutation.isPending}>
-                        {recordTransactionMutation.isPending ? "Recording..." : "Submit Transaction"}
+                        {recordTransactionMutation.isPending
+                          ? "Recording..."
+                          : "Submit Transaction"}
                       </Button>
                     </DialogFooter>
                   </form>

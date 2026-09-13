@@ -166,7 +166,7 @@ export const requestService = {
 
   respondToMatch: async (
     matchId: string,
-    payload: MatchRespondRequest
+    payload: MatchRespondRequest,
   ): Promise<{ message: string; match_id: string; response_status: string }> => {
     return apiClient(`/matches/${matchId}/respond`, {
       method: "POST",
@@ -200,7 +200,7 @@ export const inventoryService = {
   },
 
   recordTransaction: async (
-    payload: InventoryTransactionCreate
+    payload: InventoryTransactionCreate,
   ): Promise<InventoryTransactionResponse> => {
     return apiClient<InventoryTransactionResponse>("/inventory/transaction", {
       method: "POST",
@@ -233,7 +233,7 @@ export const appointmentService = {
 
   updateStatus: async (
     appointmentId: string,
-    payload: AppointmentStatusUpdate
+    payload: AppointmentStatusUpdate,
   ): Promise<AppointmentResponse> => {
     return apiClient<AppointmentResponse>(`/appointments/${appointmentId}/status`, {
       method: "PATCH",
@@ -256,7 +256,7 @@ export const eventService = {
 
   registerForEvent: async (
     eventId: string,
-    payload: EventParticipantCreate
+    payload: EventParticipantCreate,
   ): Promise<EventParticipantResponse> => {
     return apiClient<EventParticipantResponse>(`/events/${eventId}/register`, {
       method: "POST",
@@ -266,12 +266,11 @@ export const eventService = {
 
   checkinParticipant: async (
     eventId: string,
-    userId: string
+    userId: string,
   ): Promise<EventParticipantResponse> => {
-    return apiClient<EventParticipantResponse>(
-      `/events/${eventId}/checkin?user_id=${userId}`,
-      { method: "POST" }
-    );
+    return apiClient<EventParticipantResponse>(`/events/${eventId}/checkin?user_id=${userId}`, {
+      method: "POST",
+    });
   },
 };
 
@@ -292,17 +291,12 @@ export const noticeService = {
 
 export const auditService = {
   getLogs: async (limit = 50, offset = 0): Promise<SystemLogResponse[]> => {
-    return apiClient<SystemLogResponse[]>(
-      `/system-logs/?limit=${limit}&offset=${offset}`
-    );
+    return apiClient<SystemLogResponse[]>(`/system-logs/?limit=${limit}&offset=${offset}`);
   },
 };
 
 export const communicationService = {
-  send: async (
-    matchId: string,
-    payload: CommunicationCreate
-  ): Promise<CommunicationResponse> => {
+  send: async (matchId: string, payload: CommunicationCreate): Promise<CommunicationResponse> => {
     return apiClient<CommunicationResponse>(`/communications/${matchId}`, {
       method: "POST",
       body: JSON.stringify(payload),
