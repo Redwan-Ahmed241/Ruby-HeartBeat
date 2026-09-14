@@ -11,6 +11,9 @@ import {
   ShieldAlert,
   Loader2,
   RefreshCw,
+  Megaphone,
+  ExternalLink,
+  PlusCircle,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,10 +27,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodRequests } from "@/hooks/useRequests";
 import { useBloodInventory } from "@/hooks/useInventory";
-import { useSystemLogs } from "@/hooks/useAdmin";
+import { useSystemLogs, useCampaignNotices } from "@/hooks/useAdmin";
+import { useCreateCampaignNotice } from "@/hooks/useAppointmentsEventsNotices";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 
 export const Route = createFileRoute("/admin")({
@@ -69,6 +76,49 @@ function AdminDashboard() {
     isLoading: logsLoading,
     refetch: refetchLogs,
   } = useSystemLogs(50, 0, isSysAdmin);
+
+  // Campaign Notices
+  const {
+    data: notices,
+    isLoading: noticesLoading,
+    refetch: refetchNotices,
+  } = useCampaignNotices();
+  const createNoticeMutation = useCreateCampaignNotice();
+  const [showNoticeForm, setShowNoticeForm] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeDesc, setNoticeDesc] = useState("");
+  const [noticeSource, setNoticeSource] = useState("");
+  const [noticePublishDate, setNoticePublishDate] = useState("");
+  const [noticeExpiryDate, setNoticeExpiryDate] = useState("");
+  const [noticeLink, setNoticeLink] = useState("");
+
+  const handleCreateNotice = () => {
+    if (!noticeTitle || !noticeDesc || !noticeSource || !noticePublishDate || !noticeExpiryDate) {
+      toast.error("Please fill all required notice fields.");
+      return;
+    }
+    createNoticeMutation.mutate(
+      {
+        title: noticeTitle,
+        description: noticeDesc,
+        source: noticeSource,
+        publish_date: noticePublishDate,
+        expiry_date: noticeExpiryDate,
+        link: noticeLink || null,
+      },
+      {
+        onSuccess: () => {
+          setShowNoticeForm(false);
+          setNoticeTitle("");
+          setNoticeDesc("");
+          setNoticeSource("");
+          setNoticePublishDate("");
+          setNoticeExpiryDate("");
+          setNoticeLink("");
+        },
+      },
+    );
+  };
 
   // Compute live system stats
   const totalStock = useMemo(
@@ -129,6 +179,7 @@ function AdminDashboard() {
               size="sm"
               onClick={() => {
                 refetchRequests();
+                refetchNotices();
                 if (isSysAdmin) refetchLogs();
               }}
             >
@@ -291,6 +342,151 @@ function AdminDashboard() {
               ) : (
                 <div className="p-6 text-center text-sm text-muted-foreground">
                   No audit logs recorded yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Campaign Notice Management (Admin Only) */}
+        {hasAdminAccess && (
+          <Card className="mt-8 shadow-[var(--shadow-elegant)]">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Megaphone className="size-5 text-primary" /> Campaign Notice Management
+                  </CardTitle>
+                  <CardDescription>
+                    Publish and manage external campaign notices and public bulletins
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setShowNoticeForm((s) => !s)}
+                >
+                  <PlusCircle className="mr-1.5 size-3.5" />
+                  {showNoticeForm ? "Cancel" : "New Notice"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Create Notice Form */}
+              {showNoticeForm && (
+                <div className="mb-6 space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm font-semibold">Publish New Campaign Notice</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-xs">Title *</Label>
+                      <Input
+                        placeholder="e.g. National Blood Donation Day"
+                        value={noticeTitle}
+                        onChange={(e) => setNoticeTitle(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Source / Organization *</Label>
+                      <Input
+                        placeholder="e.g. Bangladesh Red Crescent Society"
+                        value={noticeSource}
+                        onChange={(e) => setNoticeSource(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Description *</Label>
+                    <Textarea
+                      placeholder="Notice description..."
+                      value={noticeDesc}
+                      onChange={(e) => setNoticeDesc(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <Label className="text-xs">Publish Date *</Label>
+                      <Input
+                        type="date"
+                        value={noticePublishDate}
+                        onChange={(e) => setNoticePublishDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Expiry Date *</Label>
+                      <Input
+                        type="date"
+                        value={noticeExpiryDate}
+                        onChange={(e) => setNoticeExpiryDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">External Link (optional)</Label>
+                      <Input
+                        placeholder="https://..."
+                        value={noticeLink}
+                        onChange={(e) => setNoticeLink(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={createNoticeMutation.isPending}
+                    onClick={handleCreateNotice}
+                  >
+                    {createNoticeMutation.isPending ? (
+                      <><Loader2 className="mr-1.5 size-3.5 animate-spin" /> Publishing...</>
+                    ) : (
+                      "Publish Notice"
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Notices List */}
+              {noticesLoading ? (
+                <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading notices...
+                </div>
+              ) : notices && notices.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Published</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead>Link</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {notices.map((n) => (
+                      <TableRow key={n.notice_id}>
+                        <TableCell className="font-medium text-sm">{n.title}</TableCell>
+                        <TableCell className="text-xs">{n.source}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(n.publish_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(n.expiry_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {n.link ? (
+                            <a href={n.link} target="_blank" rel="noopener noreferrer">
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                <ExternalLink className="mr-1 size-3" /> Open
+                              </Button>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  No campaign notices published yet.
                 </div>
               )}
             </CardContent>

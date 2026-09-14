@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Megaphone,
   Calendar,
@@ -9,12 +10,15 @@ import {
   ShieldCheck,
   Loader2,
   Share2,
+  ExternalLink,
+  CheckCircle2,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCampaignNotices } from "@/hooks/useAdmin";
+import { useCampaignNotices, useDonationEvents } from "@/hooks/useAdmin";
+import { useRegisterForEvent } from "@/hooks/useAppointmentsEventsNotices";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -34,6 +38,9 @@ export const Route = createFileRoute("/events")({
 function EventsPage() {
   const { data: user } = useCurrentUser();
   const { data: notices, isLoading: noticesLoading } = useCampaignNotices();
+  const { data: events, isLoading: eventsLoading } = useDonationEvents();
+  const registerMutation = useRegisterForEvent();
+  const [registeredEvents, setRegisteredEvents] = useState<Set<string>>(new Set());
 
   const handleShare = (title: string) => {
     if (navigator.clipboard) {
@@ -42,8 +49,20 @@ function EventsPage() {
     }
   };
 
-  const handleRsvp = (title: string) => {
-    toast.success(`RSVP confirmed for "${title}"! We look forward to seeing you.`);
+  const handleRsvp = (eventId: string, title: string) => {
+    if (!user) {
+      toast.error("Please sign in to register for events.");
+      return;
+    }
+    registerMutation.mutate(
+      { eventId, payload: { role: "PARTICIPANT" } },
+      {
+        onSuccess: () => {
+          setRegisteredEvents((prev) => new Set(prev).add(eventId));
+          toast.success(`Successfully registered for "${title}"!`);
+        },
+      },
+    );
   };
 
   return (
@@ -156,7 +175,7 @@ function EventsPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-2">
-                      <Button size="sm" onClick={() => handleRsvp(campaign.title)}>
+                      <Button size="sm" onClick={() => handleRsvp("", campaign.title)}>
                         RSVP / Pledge Donation
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleShare(campaign.title)}>
@@ -168,30 +187,108 @@ function EventsPage() {
               ))}
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {notices.map((n) => (
-                <Card key={n.notice_id} className="shadow-[var(--shadow-elegant)]">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Badge variant="default" className="mb-2">
-                          {n.category || "CAMPAIGN"}
-                        </Badge>
-                        <CardTitle className="text-xl">{n.title}</CardTitle>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{n.content}</p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-                      <span>Published on {new Date(n.created_at).toLocaleDateString()}</span>
-                      <Button size="sm" onClick={() => handleRsvp(n.title)}>
-                        RSVP
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-8">
+              {/* Live Events from GET /api/v1/events/ */}
+              {events && events.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Calendar className="size-5 text-primary" /> Donation Events
+                  </h2>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {events.map((ev) => {
+                      const isRegistered = registeredEvents.has(ev.event_id);
+                      return (
+                        <Card key={ev.event_id} className="shadow-[var(--shadow-elegant)] hover:border-primary/50 transition-colors">
+                          <CardHeader>
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <Badge variant="outline" className="mb-2 text-xs font-semibold text-primary border-primary">
+                                  {ev.status}
+                                </Badge>
+                                <CardTitle className="text-xl font-bold">{ev.title}</CardTitle>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">{ev.description}</p>
+                            <div className="space-y-2 text-xs text-muted-foreground border-t border-border/60 pt-3">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="size-4 text-primary" />
+                                <span className="font-medium text-foreground">
+                                  {new Date(ev.start_date).toLocaleDateString()} — {new Date(ev.end_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="size-4 text-primary" />
+                                <span>{ev.location}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-2">
+                              <Button
+                                size="sm"
+                                disabled={isRegistered || registerMutation.isPending}
+                                onClick={() => handleRsvp(ev.event_id, ev.title)}
+                              >
+                                {isRegistered ? (
+                                  <><CheckCircle2 className="mr-1.5 size-3.5" /> Registered</>
+                                ) : registerMutation.isPending ? (
+                                  <><Loader2 className="mr-1.5 size-3.5 animate-spin" /> Registering...</>
+                                ) : (
+                                  "Register Now"
+                                )}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleShare(ev.title)}>
+                                <Share2 className="mr-1.5 size-3.5" /> Share
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Campaign Notices with Source Attribution */}
+              {notices && notices.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Megaphone className="size-5 text-primary" /> Campaign Notices
+                  </h2>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {notices.map((n) => (
+                      <Card key={n.notice_id} className="shadow-[var(--shadow-elegant)]">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <Badge variant="default" className="mb-2">NOTICE</Badge>
+                              <CardTitle className="text-xl">{n.title}</CardTitle>
+                              <CardDescription className="font-medium text-foreground/80 mt-1">
+                                {n.source}
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-sm text-muted-foreground">{n.description}</p>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
+                            <span>Published: {new Date(n.publish_date).toLocaleDateString()}</span>
+                            <div className="flex gap-2">
+                              {n.link && (
+                                <a href={n.link} target="_blank" rel="noopener noreferrer">
+                                  <Button size="sm" variant="outline">
+                                    <ExternalLink className="mr-1.5 size-3.5" /> View Source
+                                  </Button>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -43,6 +43,7 @@ import {
   type BloodGroup,
 } from "@/lib/api/types";
 import { toast } from "sonner";
+import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
 
 export const Route = createFileRoute("/donor")({
   validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "appointments" | "history" } => ({
@@ -475,56 +476,7 @@ function DonorDashboardPage() {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="mt-6">
-            <Card className="shadow-[var(--shadow-elegant)]">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="size-5 text-primary" /> My Appointments
-                    </CardTitle>
-                    <CardDescription>
-                      Scheduled hospital visits and blood donation slots
-                    </CardDescription>
-                  </div>
-                  <Link to="/events">
-                    <Button size="sm">Browse Donation Drives</Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between rounded-lg border border-border bg-card p-4 shadow-sm">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default">CONFIRMED</Badge>
-                        <span className="text-sm font-semibold">
-                          Dhaka Medical College Hospital
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="size-3" /> Secretariate Road, Ramna, Dhaka
-                      </p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="size-3" /> September 18, 2026 at 10:30 AM (Slot #B-14)
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => toast.info("Appointment reschedule requested.")}
-                    >
-                      Reschedule
-                    </Button>
-                  </div>
-
-                  <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    No further pending appointments. You can walk into any affiliated hospital blood
-                    bank with your LifeDrop QR code.
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AppointmentsTab />
           </TabsContent>
 
           {/* History Tab */}
@@ -583,5 +535,132 @@ function DonorDashboardPage() {
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function AppointmentsTab() {
+  const { data: user } = useCurrentUser();
+  const isDonor = user?.role === "DONOR";
+  const { data: appointments, isLoading } = useMyAppointments(isDonor);
+  const bookMutation = useBookAppointment();
+  const updateStatusMutation = useUpdateAppointmentStatus();
+
+  const [showBooking, setShowBooking] = useState(false);
+  const [centerId, setCenterId] = useState("");
+  const [apptDate, setApptDate] = useState("");
+  const [apptTime, setApptTime] = useState("");
+
+  const handleBook = () => {
+    if (!centerId || !apptDate || !apptTime) {
+      toast.error("Please fill all booking fields.");
+      return;
+    }
+    bookMutation.mutate(
+      { center_id: centerId, appointment_date: apptDate, appointment_time: apptTime + ":00" },
+      { onSuccess: () => setShowBooking(false) },
+    );
+  };
+
+  return (
+    <Card className="shadow-[var(--shadow-elegant)]">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="size-5 text-primary" /> My Appointments
+            </CardTitle>
+            <CardDescription>
+              Scheduled hospital visits and blood donation slots
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Link to="/events">
+              <Button size="sm" variant="outline">Browse Donation Drives</Button>
+            </Link>
+            <Button size="sm" onClick={() => setShowBooking((s) => !s)}>
+              {showBooking ? "Cancel" : "Book Appointment"}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {showBooking && (
+          <div className="mb-6 space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+            <p className="text-sm font-semibold">Book New Appointment</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <Label className="text-xs">Hospital / Center ID</Label>
+                <Input
+                  placeholder="Paste hospital UUID"
+                  value={centerId}
+                  onChange={(e) => setCenterId(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Date</Label>
+                <Input type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Time</Label>
+                <Input type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
+              </div>
+            </div>
+            <Button size="sm" disabled={bookMutation.isPending} onClick={handleBook}>
+              {bookMutation.isPending ? "Booking..." : "Confirm Booking"}
+            </Button>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading appointments...
+          </div>
+        ) : appointments && appointments.length > 0 ? (
+          <div className="space-y-3">
+            {appointments.map((appt) => (
+              <div
+                key={appt.appointment_id}
+                className="flex items-start justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={appt.status === "COMPLETED" ? "default" : appt.status === "CANCELLED" ? "destructive" : "secondary"}>
+                      {appt.status}
+                    </Badge>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Center: {appt.center_id.slice(0, 8)}...
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {new Date(appt.appointment_date).toLocaleDateString()} at {appt.appointment_time}
+                  </p>
+                </div>
+                {appt.status === "SCHEDULED" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    disabled={updateStatusMutation.isPending}
+                    onClick={() =>
+                      updateStatusMutation.mutate({
+                        appointmentId: appt.appointment_id,
+                        payload: { status: "CANCELLED" },
+                      })
+                    }
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No appointments found. Book one above or walk into any affiliated hospital blood bank.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

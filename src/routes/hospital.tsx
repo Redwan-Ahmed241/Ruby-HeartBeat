@@ -53,6 +53,7 @@ import {
   type TransactionType,
 } from "@/lib/api/types";
 import { toast } from "sonner";
+import { useMyAppointments, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
 
 export const Route = createFileRoute("/hospital")({
   validateSearch: (
@@ -568,50 +569,80 @@ function HospitalPortalPage() {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="mt-6">
-            <Card className="shadow-[var(--shadow-elegant)]">
-              <CardHeader>
-                <CardTitle className="text-lg">Hospital Donor Appointments</CardTitle>
-                <CardDescription>
-                  Booked slots for blood intake at the hospital facility
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    {
-                      donor: "Rahim Chowdhury",
-                      group: "O+",
-                      slot: "10:30 AM",
-                      status: "Checked In",
-                    },
-                    {
-                      donor: "Tasmia Islam",
-                      group: "A+",
-                      slot: "11:15 AM",
-                      status: "In Phlebotomy",
-                    },
-                    { donor: "Farhan Ahmed", group: "B+", slot: "02:00 PM", status: "Confirmed" },
-                    { donor: "Nusrat Jahan", group: "AB-", slot: "03:30 PM", status: "Confirmed" },
-                  ].map((app, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-lg border border-border p-3 text-sm"
-                    >
-                      <div>
-                        <p className="font-semibold text-foreground">{app.donor}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Blood Group: {app.group} · Scheduled Slot: {app.slot}
-                        </p>
-                      </div>
-                      <Badge variant="outline">{app.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <HospitalAppointmentsTab />
           </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function HospitalAppointmentsTab() {
+  const { data: user } = useCurrentUser();
+  const isHospital = user?.role === "HOSPITAL_ADMIN";
+  const { data: appointments, isLoading } = useMyAppointments(isHospital);
+  const updateStatusMutation = useUpdateAppointmentStatus();
+
+  return (
+    <Card className="shadow-[var(--shadow-elegant)]">
+      <CardHeader>
+        <CardTitle className="text-lg">Hospital Donor Appointments</CardTitle>
+        <CardDescription>
+          Live booked slots for blood intake at the hospital facility
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading appointments...
+          </div>
+        ) : appointments && appointments.length > 0 ? (
+          <div className="space-y-3">
+            {appointments.map((appt) => (
+              <div
+                key={appt.appointment_id}
+                className="flex items-center justify-between rounded-lg border border-border p-3 text-sm"
+              >
+                <div>
+                  <p className="font-semibold text-foreground">
+                    Donor: <span className="font-mono text-xs">{appt.donor_id.slice(0, 8)}...</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Date: {new Date(appt.appointment_date).toLocaleDateString()} · Slot: {appt.appointment_time}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={appt.status === "COMPLETED" ? "default" : appt.status === "CANCELLED" ? "destructive" : "outline"}
+                  >
+                    {appt.status}
+                  </Badge>
+                  {appt.status === "SCHEDULED" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() =>
+                        updateStatusMutation.mutate({
+                          appointmentId: appt.appointment_id,
+                          payload: { status: "COMPLETED" },
+                        })
+                      }
+                    >
+                      Mark Complete
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No donor appointments found for this hospital.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

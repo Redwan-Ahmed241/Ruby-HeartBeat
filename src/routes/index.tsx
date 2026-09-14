@@ -716,86 +716,151 @@ export function LandingPage() {
           </div>
 
           {/* Campaigns Grid */}
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                title: "Monsoon Emergency Blood Drive",
-                org: "Central Red Crescent Hospital",
-                date: "Sept 20-22, 2026",
-                venue: "Dhaka University Gymnasium",
-                badge: "CRITICAL DRIVE",
-                units: "500 Bags Target",
-              },
-              {
-                title: "BRAC Campus LifeDrop Camp",
-                org: "BRAC University Health Club",
-                date: "Sept 28, 2026",
-                venue: "Merul Badda Campus, Dhaka",
-                badge: "COMMUNITY",
-                units: "250 Bags Target",
-              },
-              {
-                title: "Thalassemia Support Drive",
-                org: "Bangladesh Thalassemia Foundation",
-                date: "Oct 05, 2026",
-                venue: "Square Hospital Panthapath",
-                badge: "PEDIATRIC",
-                units: "150 Bags Target",
-              },
-            ].map((camp, idx) => (
-              <Card
-                key={idx}
-                className="shadow-[var(--shadow-elegant)] hover:border-primary/50 transition-colors"
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-bold text-primary border-primary"
-                    >
-                      {camp.badge}
-                    </Badge>
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {camp.units}
-                    </span>
-                  </div>
-                  <CardTitle className="text-lg font-bold mt-2">{camp.title}</CardTitle>
-                  <CardDescription>{camp.org}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="size-3.5 text-primary" />
-                      <span>{camp.date}</span>
+          {campaignsLoading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="mx-auto size-8 animate-spin text-primary" />
+              <p className="mt-3 text-sm text-muted-foreground">Loading campaigns...</p>
+            </div>
+          ) : campaigns && campaigns.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-3">
+              {campaigns.map((camp) => (
+                <Card
+                  key={camp.notice_id}
+                  className="shadow-[var(--shadow-elegant)] hover:border-primary/50 transition-colors"
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold text-primary border-primary"
+                      >
+                        CAMPAIGN
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="size-3.5 text-primary" />
-                      <span>{camp.venue}</span>
+                    <CardTitle className="text-lg font-bold mt-2">{camp.title}</CardTitle>
+                    <CardDescription>{camp.source}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-3">{camp.description}</p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="size-3.5 text-primary" />
+                        <span>Published: {new Date(camp.publish_date).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="text-xs"
-                      onClick={() => handleRsvpCampaign(camp.title)}
-                    >
-                      RSVP Now
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() => handleShareCampaign(camp.title)}
-                    >
-                      <Share2 className="mr-1 size-3" /> Share
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      {camp.link ? (
+                        <a href={camp.link} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="default" className="text-xs">
+                            View Details
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="text-xs"
+                          onClick={() => handleRsvpCampaign(camp.title)}
+                        >
+                          RSVP Now
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs"
+                        onClick={() => handleShareCampaign(camp.title)}
+                      >
+                        <Share2 className="mr-1 size-3" /> Share
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              {[
+                {
+                  title: "Monsoon Emergency Blood Drive",
+                  org: "Central Red Crescent Hospital",
+                  date: "Sept 20-22, 2026",
+                  venue: "Dhaka University Gymnasium",
+                  badge: "CRITICAL DRIVE",
+                  units: "500 Bags Target",
+                },
+                {
+                  title: "BRAC Campus LifeDrop Camp",
+                  org: "BRAC University Health Club",
+                  date: "Sept 28, 2026",
+                  venue: "Merul Badda Campus, Dhaka",
+                  badge: "COMMUNITY",
+                  units: "250 Bags Target",
+                },
+                {
+                  title: "Thalassemia Support Drive",
+                  org: "Bangladesh Thalassemia Foundation",
+                  date: "Oct 05, 2026",
+                  venue: "Square Hospital Panthapath",
+                  badge: "PEDIATRIC",
+                  units: "150 Bags Target",
+                },
+              ].map((camp, idx) => (
+                <Card
+                  key={idx}
+                  className="shadow-[var(--shadow-elegant)] hover:border-primary/50 transition-colors"
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold text-primary border-primary"
+                      >
+                        {camp.badge}
+                      </Badge>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {camp.units}
+                      </span>
+                    </div>
+                    <CardTitle className="text-lg font-bold mt-2">{camp.title}</CardTitle>
+                    <CardDescription>{camp.org}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="size-3.5 text-primary" />
+                        <span>{camp.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="size-3.5 text-primary" />
+                        <span>{camp.venue}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="text-xs"
+                        onClick={() => handleRsvpCampaign(camp.title)}
+                      >
+                        RSVP Now
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs"
+                        onClick={() => handleShareCampaign(camp.title)}
+                      >
+                        <Share2 className="mr-1 size-3" /> Share
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
