@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Loader2,
   CheckCircle2,
-  Sparkles,
   Phone,
   Mail,
   Home,
@@ -43,6 +42,7 @@ import {
   useRevealDonorContact,
 } from "@/hooks/useRequests";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { AuthDialog } from "@/components/AuthDialog";
 import {
   BLOOD_GROUP_UI_MAP,
   toApiBloodGroup,
@@ -203,18 +203,17 @@ function RequestBlood() {
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
-              EMERGENCY BROADCAST — Alerting all compatible donors across a 50 km radius via the
-              Intelligent Matching Engine.
+              Emergency request — notifying all compatible donors within 50 km.
             </p>
           </div>
         </div>
       )}
 
       <main className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Request Blood</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Request blood</h1>
         <p className="mt-2 text-muted-foreground">
-          Submit your request to trigger the Intelligent Real-Time Matching Engine, ranking donors
-          by compatibility, distance, and reliability with Contact Privacy enforced.
+          We'll match your request with compatible donors nearby, ranked by blood group, distance,
+          and availability. Donor contact details stay private until they accept.
         </p>
 
         {!currentUser && (
@@ -222,9 +221,8 @@ function RequestBlood() {
             <div className="flex items-center gap-3">
               <ShieldCheck className="size-5 shrink-0 text-amber-600" />
               <div>
-                <span className="font-semibold">Authentication Notice:</span> You are submitting as
-                a guest. To track your request in real time and initiate direct donor contact, sign
-                in as a <strong>Recipient</strong>.
+                <span className="font-semibold">You're submitting as a guest.</span> Sign in as a{" "}
+                <strong>recipient</strong> to track your request and contact matched donors.
               </div>
             </div>
             <AuthDialog defaultRole="RECIPIENT" defaultTab="login" />
@@ -235,10 +233,8 @@ function RequestBlood() {
           {/* Request Form */}
           <Card className="h-fit shadow-[var(--shadow-elegant)]">
             <CardHeader>
-              <CardTitle>Blood Request Form</CardTitle>
-              <CardDescription>
-                Dispatches directly to verified donors and affiliated blood banks
-              </CardDescription>
+              <CardTitle>Blood request</CardTitle>
+              <CardDescription>Sent to compatible donors and partner blood banks.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
@@ -351,12 +347,12 @@ function RequestBlood() {
                   {createRequestMutation.isPending || createEmergencyMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
-                      Running Matching Engine...
+                      Finding donors...
                     </>
                   ) : form.urgency === "EMERGENCY" ? (
-                    "Dispatch Emergency Request (50km Sweep)"
+                    "Send emergency request (50 km)"
                   ) : (
-                    "Find Matching Donors"
+                    "Find matching donors"
                   )}
                 </Button>
               </form>
@@ -366,25 +362,24 @@ function RequestBlood() {
           {/* Matches & Contact Safeguard View */}
           <section>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xl font-semibold">Matched Donors</h2>
+              <h2 className="text-xl font-semibold">Matched donors</h2>
               {createdRequest && (
                 <Badge variant={isEmergency ? "destructive" : "secondary"}>
-                  {matches.length} Dispatched · {createdRequest.status}
+                  {matches.length} matched · {createdRequest.status}
                 </Badge>
               )}
             </div>
 
             <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <ShieldCheck className="size-4 text-primary shrink-0" />
-              <strong>Contact Reveal Safeguard Active:</strong> Donor details remain masked until
-              the donor explicitly approves the match in accordance with security specifications.
+              <ShieldCheck className="size-4 shrink-0 text-primary" />
+              <strong>Contact stays private:</strong> donor details are masked until the donor
+              accepts your request.
             </p>
 
             {!createdRequest && (
               <Card className="mt-4 border-dashed">
                 <CardContent className="p-8 text-center text-muted-foreground text-sm">
-                  Submit the request form to execute the matching algorithm against registered
-                  donors.
+                  Submit the form to find compatible donors.
                 </CardContent>
               </Card>
             )}
@@ -427,11 +422,9 @@ function RequestBlood() {
                       <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs">
                         <div className="flex items-center justify-between text-muted-foreground mb-1">
                           <span className="flex items-center gap-1.5">
-                            <Lock className="size-3.5" /> Contact Privacy
+                            <Lock className="size-3.5" /> Contact
                           </span>
-                          <span className="text-[10px]">
-                            {isAccepted ? "Verified & Revealed" : "Safeguard Protected"}
-                          </span>
+                          <span className="text-[10px]">{isAccepted ? "Unlocked" : "Private"}</span>
                         </div>
                         <p className="font-mono text-muted-foreground">
                           {isAccepted ? "Ready for reveal" : "Phone: +88017••••••• (Masked)"}
@@ -445,7 +438,7 @@ function RequestBlood() {
                           onClick={() => handleViewContact(match)}
                           disabled={revealContactMutation.isPending}
                         >
-                          {isAccepted ? "View Revealed Contact" : "Attempt Contact Reveal"}
+                          {isAccepted ? "View contact" : "Contact locked"}
                         </Button>
 
                         {/* Testing helper: simulate donor acceptance */}
@@ -492,13 +485,12 @@ function RequestBlood() {
       <Dialog open={!!revealedContact} onOpenChange={(o) => !o && setRevealedContact(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+            <DialogTitle className="flex items-center gap-2 text-success">
               <CheckCircle2 className="size-5" />
-              Contact Revealed (Safeguard Approved)
+              Contact unlocked
             </DialogTitle>
             <DialogDescription>
-              The donor has explicitly ACCEPTED this request. You are authorized to contact them
-              directly.
+              This donor accepted your request. You can now contact them directly.
             </DialogDescription>
           </DialogHeader>
           {revealedContact && (

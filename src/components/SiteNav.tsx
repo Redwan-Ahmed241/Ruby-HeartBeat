@@ -26,7 +26,7 @@ export function SiteNav() {
 
   const currentPath = location.pathname;
   const searchParams = (location.search as Record<string, string>) || {};
-  const currentTab = searchParams.tab;
+  const currentTab = searchParams["tab"];
 
   const isLinkActive = (path: string, tab?: string, isDefault?: boolean) => {
     if (currentPath !== path) return false;
@@ -145,10 +145,10 @@ export function SiteNav() {
               </Link>
               <Link
                 to="/recipient"
-                search={{ tab: "map" }}
-                className={getLinkClass("/recipient", "map")}
+                search={{ tab: "requests" }}
+                className={getLinkClass("/recipient", "requests")}
               >
-                Nearby Donors
+                My Requests
               </Link>
               <Link
                 to="/request-blood"
@@ -428,11 +428,11 @@ export function SiteNav() {
                 </Link>
                 <Link
                   to="/recipient"
-                  search={{ tab: "map" }}
+                  search={{ tab: "requests" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/recipient", "map")}
+                  className={getMobileLinkClass("/recipient", "requests")}
                 >
-                  Nearby Donors
+                  My Requests
                 </Link>
                 <Link
                   to="/request-blood"

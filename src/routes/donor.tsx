@@ -374,10 +374,10 @@ function DonorDashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <HeartPulse className="size-5 text-primary" />
-                    Live Clinical Engine
+                    Eligibility check
                   </CardTitle>
                   <CardDescription>
-                    Validated against clinical transfusion safety guidelines
+                    Based on standard blood donation guidelines
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

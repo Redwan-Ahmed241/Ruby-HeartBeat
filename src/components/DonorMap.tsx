@@ -1,15 +1,30 @@
-import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
+import { useEffect } from "react";
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { CITY_CENTER, HOSPITALS, type MapDonor } from "@/lib/donor-data";
 
 type Props = {
-  donors: MapDonor[];
+  donors?: MapDonor[];
   radiusKm: number;
-  onRequestContact: (donor: MapDonor) => void;
+  onRequestContact?: (donor: MapDonor) => void;
 };
 
-export default function DonorMap({ donors, radiusKm, onRequestContact }: Props) {
+/**
+ * Leaflet renders gray/half-drawn tiles when it mounts before its container has
+ * a known size (common inside grid/flex + lazy Suspense). Force a resize once
+ * mounted and whenever the radius (zoom) changes.
+ */
+function InvalidateOnMount({ dep }: { dep: number }) {
+  const map = useMap();
+  useEffect(() => {
+    const id = window.setTimeout(() => map.invalidateSize(), 0);
+    return () => window.clearTimeout(id);
+  }, [map, dep]);
+  return null;
+}
+
+export default function DonorMap({ donors = [], radiusKm, onRequestContact }: Props) {
   const zoom = radiusKm <= 5 ? 13 : radiusKm <= 10 ? 12 : radiusKm <= 25 ? 11 : 10;
 
   return (
@@ -17,8 +32,9 @@ export default function DonorMap({ donors, radiusKm, onRequestContact }: Props) 
       center={CITY_CENTER}
       zoom={zoom}
       scrollWheelZoom={false}
-      className="h-[520px] w-full rounded-xl"
+      className="h-[520px] w-full"
     >
+      <InvalidateOnMount dep={radiusKm} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -27,7 +43,7 @@ export default function DonorMap({ donors, radiusKm, onRequestContact }: Props) 
       <Circle
         center={CITY_CENTER}
         radius={radiusKm * 1000}
-        pathOptions={{ color: "#8B0000", fillColor: "#8B0000", fillOpacity: 0.06, weight: 1 }}
+        pathOptions={{ color: "#8B0000", fillColor: "#8B0000", fillOpacity: 0.05, weight: 1 }}
       />
 
       {HOSPITALS.map((h) => (
@@ -39,7 +55,7 @@ export default function DonorMap({ donors, radiusKm, onRequestContact }: Props) 
         >
           <Popup>
             <p className="font-semibold">{h.name}</p>
-            <p className="text-xs">Hospital · {h.area}</p>
+            <p className="text-xs">Blood bank · {h.area}</p>
           </Popup>
         </CircleMarker>
       ))}
@@ -63,9 +79,11 @@ export default function DonorMap({ donors, radiusKm, onRequestContact }: Props) 
                 Blood group <strong>{d.group}</strong> · {d.distanceKm} km away
               </p>
               <p className="text-xs">{d.area}</p>
-              <Button size="sm" disabled={!d.available} onClick={() => onRequestContact(d)}>
-                Request Contact
-              </Button>
+              {onRequestContact && (
+                <Button size="sm" disabled={!d.available} onClick={() => onRequestContact(d)}>
+                  Request contact
+                </Button>
+              )}
             </div>
           </Popup>
         </CircleMarker>

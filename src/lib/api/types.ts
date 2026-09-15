@@ -483,8 +483,5 @@ export function toDisplayBloodGroup(group: BloodGroup | string): string {
 }
 
 export function toApiBloodGroup(display: string): BloodGroup {
-  if (display in UI_TO_BLOOD_GROUP_MAP) {
-    return UI_TO_BLOOD_GROUP_MAP[display];
-  }
-  return display as BloodGroup;
+  return UI_TO_BLOOD_GROUP_MAP[display] ?? (display as BloodGroup);
 }

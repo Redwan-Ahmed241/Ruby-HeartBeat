@@ -15,7 +15,6 @@ import {
   Building2,
   Lock,
   ChevronDown,
-  Sparkles,
   LayoutDashboard,
   Eye,
   EyeOff,
@@ -69,39 +68,39 @@ const DEMO_CREDENTIALS: Array<{
   icon: typeof User;
   description: string;
 }> = [
-  {
-    role: "DONOR",
-    label: "Blood Donor",
-    email: "donor.demo@lifedrop.org",
-    pass: "DemoPass123!",
-    icon: UserCheck,
-    description: "Verified O+ volunteer donor (Banani, Dhaka)",
-  },
-  {
-    role: "RECIPIENT",
-    label: "Recipient / Patient Family",
-    email: "recipient.demo@lifedrop.org",
-    pass: "DemoPass123!",
-    icon: User,
-    description: "Active emergency blood recipient",
-  },
-  {
-    role: "HOSPITAL_ADMIN",
-    label: "Hospital Authority",
-    email: "hospital.demo@lifedrop.org",
-    pass: "DemoPass123!",
-    icon: Building2,
-    description: "Evercare Hospital Blood Bank administrator",
-  },
-  {
-    role: "SYSTEM_ADMIN",
-    label: "System Admin",
-    email: "admin.demo@lifedrop.org",
-    pass: "DemoPass123!",
-    icon: ShieldCheck,
-    description: "Full platform auditor & system supervisor",
-  },
-];
+    {
+      role: "DONOR",
+      label: "Blood Donor",
+      email: "donor.demo@lifedrop.org",
+      pass: "DemoPass123!",
+      icon: UserCheck,
+      description: "Verified O+ volunteer donor (Banani, Dhaka)",
+    },
+    {
+      role: "RECIPIENT",
+      label: "Recipient / Patient Family",
+      email: "recipient.demo@lifedrop.org",
+      pass: "DemoPass123!",
+      icon: User,
+      description: "Active emergency blood recipient",
+    },
+    {
+      role: "HOSPITAL_ADMIN",
+      label: "Hospital Authority",
+      email: "hospital.demo@lifedrop.org",
+      pass: "DemoPass123!",
+      icon: Building2,
+      description: "Evercare Hospital Blood Bank administrator",
+    },
+    {
+      role: "SYSTEM_ADMIN",
+      label: "System Admin",
+      email: "admin.demo@lifedrop.org",
+      pass: "DemoPass123!",
+      icon: ShieldCheck,
+      description: "Full platform auditor & system supervisor",
+    },
+  ];
 
 export interface AuthDialogProps {
   trigger?: React.ReactNode;
@@ -148,9 +147,9 @@ export function AuthDialog({
       const me = await authService.getMe();
       const dest =
         me.role === "DONOR" ? "/donor"
-        : me.role === "RECIPIENT" ? "/recipient"
-        : me.role === "HOSPITAL_ADMIN" ? "/hospital"
-        : "/admin";
+          : me.role === "RECIPIENT" ? "/recipient"
+            : me.role === "HOSPITAL_ADMIN" ? "/hospital"
+              : "/admin";
       navigate({ to: dest });
     } catch {
       // Error handled by mutation toast
@@ -169,34 +168,34 @@ export function AuthDialog({
         donor_profile:
           selectedRole === "DONOR"
             ? {
-                blood_group: "O_PLUS",
-                date_of_birth: "1998-05-20",
-                gender: "Male",
-                weight: 68.0,
-                address: "Banani, Dhaka",
-                latitude: 23.7937,
-                longitude: 90.4066,
-                hemoglobin_level: 14.0,
-              }
+              blood_group: "O_PLUS",
+              date_of_birth: "1998-05-20",
+              gender: "Male",
+              weight: 68.0,
+              address: "Banani, Dhaka",
+              latitude: 23.7937,
+              longitude: 90.4066,
+              hemoglobin_level: 14.0,
+            }
             : null,
         recipient_profile:
           selectedRole === "RECIPIENT"
             ? {
-                nid_passport_no: "NID-882716291",
-                address: "Gulshan, Dhaka",
-                relationship_to_patient: "Family",
-                patient_name: "Patient Family Member",
-              }
+              nid_passport_no: "NID-882716291",
+              address: "Gulshan, Dhaka",
+              relationship_to_patient: "Family",
+              patient_name: "Patient Family Member",
+            }
             : null,
         hospital_profile:
           selectedRole === "HOSPITAL_ADMIN"
             ? {
-                hospital_name: "Affiliated Hospital Blood Center",
-                address: "Dhaka Central, Bangladesh",
-                latitude: 23.7925,
-                longitude: 90.4078,
-                contact_number: "+88028401661",
-              }
+              hospital_name: "Affiliated Hospital Blood Center",
+              address: "Dhaka Central, Bangladesh",
+              latitude: 23.7925,
+              longitude: 90.4078,
+              contact_number: "+88028401661",
+            }
             : null,
       });
       toast.success("Account created! You may now sign in.");

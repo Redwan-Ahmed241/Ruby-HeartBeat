@@ -1,120 +1,206 @@
 import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
-import { useState, lazy, Suspense } from "react";
-import { ClientOnly } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   AlertCircle,
   PlusCircle,
-  MapPin,
   ClipboardList,
   ShieldAlert,
   Loader2,
-  Phone,
   CheckCircle2,
   Clock,
   Droplet,
+  Phone,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useBloodRequests } from "@/hooks/useRequests";
-import { BLOOD_GROUPS, HOSPITALS, MAP_DONORS, type MapDonor } from "@/lib/donor-data";
+import { useBloodRequests, useBloodRequest, useRevealDonorContact } from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
+import type { BloodRequestResponse, DonorContactReveal } from "@/lib/api/types";
 import { toast } from "sonner";
 
-const DonorMap = lazy(() => import("@/components/DonorMap"));
-
 export const Route = createFileRoute("/recipient")({
-  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "requests" | "map" } => ({
-    tab: (search.tab as "overview" | "requests" | "map") || "overview",
+  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "requests" } => ({
+    tab: (search["tab"] as "overview" | "requests") || "overview",
   }),
   head: () => ({
     meta: [
       { title: "Recipient Dashboard — LifeDrop" },
-      {
-        name: "description",
-        content: "Track blood requests and find matching donors in real time.",
-      },
+      { name: "description", content: "Track your blood requests and view matched donors." },
     ],
   }),
   component: RecipientDashboardPage,
 });
 
-const RADII = [5, 10, 25, 50];
+const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> = {
+  EMERGENCY: "destructive",
+  URGENT: "secondary",
+  NORMAL: "outline",
+};
+
+function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold text-primary">{toDisplayBloodGroup(req.blood_group)}</span>
+          <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
+          <Badge variant="outline">{req.status}</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {req.quantity} unit(s) · {req.component_type.replace("_", " ")} · {req.required_location}
+        </p>
+        {req.request_date && (
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3" /> {new Date(req.request_date).toLocaleString()}
+          </p>
+        )}
+      </div>
+      <Button variant="outline" size="sm" className="text-xs" onClick={() => onViewMatches(req.request_id)}>
+        View matches
+      </Button>
+    </div>
+  );
+}
+
+function MatchesDialog({ requestId, onClose }: { requestId: string | null; onClose: () => void }) {
+  const { data: request, isLoading } = useBloodRequest(requestId ?? "", !!requestId);
+  const revealMutation = useRevealDonorContact();
+  const [revealed, setRevealed] = useState<Record<string, DonorContactReveal>>({});
+
+  const handleReveal = async (matchId: string) => {
+    try {
+      const contact = await revealMutation.mutateAsync(matchId);
+      setRevealed((prev) => ({ ...prev, [matchId]: contact }));
+      toast.success("Contact details unlocked.");
+    } catch {
+      // handled by mutation toast
+    }
+  };
+
+  const matches = request?.matches ?? [];
+
+  return (
+    <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Matched donors</DialogTitle>
+          <DialogDescription>
+            Donor identities stay masked until a donor accepts and you unlock their contact.
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-8 text-center">
+            <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          </div>
+        ) : matches.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No donors matched yet. We'll notify you when an eligible donor responds.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {matches.map((m) => {
+              const contact = revealed[m.match_id];
+              return (
+                <div key={m.match_id} className="rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+                        {toDisplayBloodGroup(m.blood_group)}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {contact ? contact.full_name : `Donor ${m.donor_name_initial}.`}
+                      </span>
+                    </div>
+                    <Badge variant={m.response_status === "ACCEPTED" ? "default" : "outline"} className="text-[10px]">
+                      {m.response_status}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {m.distance_km.toFixed(1)} km away · match score {Math.round(m.match_score)}
+                  </p>
+                  {contact ? (
+                    <div className="mt-2 space-y-0.5 text-xs">
+                      <p className="flex items-center gap-1 font-medium">
+                        <Phone className="size-3" /> {contact.phone}
+                      </p>
+                      <p className="text-muted-foreground">{contact.email}</p>
+                      <p className="text-muted-foreground">{contact.address}</p>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 text-xs"
+                      disabled={m.response_status !== "ACCEPTED" || revealMutation.isPending}
+                      onClick={() => handleReveal(m.match_id)}
+                    >
+                      {m.response_status === "ACCEPTED" ? "Unlock contact" : "Awaiting donor response"}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function RecipientDashboardPage() {
   const search = useSearch({ from: "/recipient" });
   const navigate = useNavigate();
-  const activeTab = search["tab"] || "overview";
+  const activeTab = search.tab || "overview";
+  const [matchesRequestId, setMatchesRequestId] = useState<string | null>(null);
 
-  const handleTabChange = (newTab: string) => {
-    navigate({
-      to: "/recipient",
-      search: { tab: newTab as "overview" | "requests" | "map" },
-    });
-  };
+  const handleTabChange = (newTab: string) =>
+    navigate({ to: "/recipient", search: { tab: newTab as "overview" | "requests" } });
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
-
-  // Requests query
-  const {
-    data: requests,
-    isLoading: requestsLoading,
-    refetch: refetchRequests,
-  } = useBloodRequests();
-
-  // Nearby Donor Map states
-  const [radiusIndex, setRadiusIndex] = useState(1);
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const radiusKm = RADII[radiusIndex] ?? 10;
-
-  const filteredMapDonors = MAP_DONORS.filter(
-    (d) =>
-      d.distanceKm <= radiusKm && (selectedGroups.length === 0 || selectedGroups.includes(d.group)),
-  );
-
-  const toggleGroup = (g: string) =>
-    setSelectedGroups((gs) => (gs.includes(g) ? gs.filter((x) => x !== g) : [...gs, g]));
-
-  const requestContact = (d: MapDonor) =>
-    toast.success(`Direct contact request sent to ${d.name} (${d.group})`);
+  const { data: requests, isLoading: requestsLoading, refetch: refetchRequests } = useBloodRequests();
 
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex min-h-screen flex-col bg-background">
         <SiteNav />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-1 items-center justify-center">
           <Loader2 className="size-8 animate-spin text-primary" />
         </div>
       </div>
     );
   }
 
-  // Route Guard check
   if (!user || (user.role !== "RECIPIENT" && user.role !== "SYSTEM_ADMIN")) {
     return (
       <div className="min-h-screen bg-background">
         <SiteNav />
         <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
+          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
             <ShieldAlert className="size-8" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Recipient Access Required</h1>
-          <p className="mt-2 text-muted-foreground text-sm">
+          <h1 className="text-2xl font-bold tracking-tight">Recipient access required</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             {user
-              ? `You are logged in as ${user.role}. This portal is reserved for registered blood recipients and emergency seekers.`
-              : "Log in as a Recipient to view your active blood requests, access real-time nearby donors, and request urgent blood dispatch."}
+              ? `You're signed in as ${user.role}. This dashboard is for blood recipients.`
+              : "Sign in as a recipient to track your blood requests and view matched donors."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <AuthDialog defaultTab="login" defaultRole="RECIPIENT" />
             <Link to="/">
-              <Button variant="outline">Back to Home</Button>
+              <Button variant="outline">Back to home</Button>
             </Link>
           </div>
         </main>
@@ -122,101 +208,67 @@ function RecipientDashboardPage() {
     );
   }
 
+  const list = requests ?? [];
+  const activeCount = list.filter((r) => r.status === "PENDING" || r.status === "MATCHED").length;
+  const matchedCount = list.filter((r) => r.status === "MATCHED").length;
+  const completedCount = list.filter((r) => r.status === "COMPLETED").length;
+
+  const stats = [
+    { label: "Active requests", value: activeCount, icon: ClipboardList, tone: "text-primary bg-primary/10" },
+    { label: "Matched", value: matchedCount, icon: CheckCircle2, tone: "text-success bg-success/10" },
+    { label: "Completed", value: completedCount, icon: Droplet, tone: "text-muted-foreground bg-muted" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
       <main className="mx-auto max-w-6xl px-4 py-10">
-        {/* Top Header with Emergency CTA */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient Dashboard</h1>
-              <Badge
-                variant="outline"
-                className="text-xs font-semibold text-primary border-primary bg-primary/5"
-              >
-                Verified Recipient
-              </Badge>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Track your blood requests, dispatch matched donors, and access real-time proximity
-              map.
+              Track your blood requests and view matched donors.
             </p>
           </div>
-
           <div className="flex items-center gap-3">
             <Link to="/requests/new">
               <Button variant="outline" size="sm" className="text-xs">
-                <PlusCircle className="mr-1.5 size-4" /> Create Standard Request
+                <PlusCircle className="mr-1.5 size-4" /> New request
               </Button>
             </Link>
             <Link to="/requests/emergency">
-              <Button size="sm" variant="destructive" className="text-xs font-semibold shadow-sm">
-                <AlertCircle className="mr-1.5 size-4" /> Emergency Request
+              <Button size="sm" variant="destructive" className="text-xs font-semibold">
+                <AlertCircle className="mr-1.5 size-4" /> Emergency request
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Quick Metrics */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ClipboardList className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Active Requests</p>
-                <p className="text-2xl font-bold">{requests?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                <CheckCircle2 className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Verified Donors Nearby</p>
-                <p className="text-2xl font-bold">
-                  {filteredMapDonors.length} in {radiusKm}km
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600">
-                <AlertCircle className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Emergency Response Time</p>
-                <p className="text-2xl font-bold">&lt; 15 mins</p>
-              </div>
-            </CardContent>
-          </Card>
+          {stats.map((s) => (
+            <Card key={s.label}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={`flex size-10 items-center justify-center rounded-lg ${s.tone}`}>
+                  <s.icon className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+                  <p className="text-2xl font-bold">{s.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Views: Overview, Requests, Map driven by URL Search Params */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <Card className="shadow-[var(--shadow-elegant)]">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Recent Blood Requests</CardTitle>
-                  <CardDescription>
-                    Your live requests registered in the emergency dispatch queue
-                  </CardDescription>
+                  <CardTitle className="text-lg">Recent requests</CardTitle>
+                  <CardDescription>Your most recent blood requests.</CardDescription>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchRequests()}
-                  className="text-xs"
-                >
+                <Button variant="ghost" size="sm" onClick={() => refetchRequests()} className="text-xs">
                   Refresh
                 </Button>
               </CardHeader>
@@ -224,215 +276,59 @@ function RecipientDashboardPage() {
                 {requestsLoading ? (
                   <div className="py-8 text-center">
                     <Loader2 className="mx-auto size-6 animate-spin text-primary" />
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Loading requests from backend...
-                    </p>
                   </div>
-                ) : !requests || requests.length === 0 ? (
+                ) : list.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                    <Droplet className="mx-auto size-8 text-muted-foreground/60" />
-                    <p className="mt-2 text-sm font-semibold">No active blood requests</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Need blood units for a patient? Create a request to trigger donor
-                      notification.
+                    <Droplet className="mx-auto size-8 text-muted-foreground/50" />
+                    <p className="mt-2 text-sm font-semibold">No blood requests yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Create a request to notify eligible donors nearby.
                     </p>
                     <Link to="/requests/new" className="mt-4 inline-block">
-                      <Button size="sm">Create Request</Button>
+                      <Button size="sm">Create request</Button>
                     </Link>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {requests.slice(0, 3).map((r) => (
-                      <div
-                        key={r.request_id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-primary">
-                              {toDisplayBloodGroup(r.blood_group)}
-                            </span>
-                            <Badge variant={r.urgency === "CRITICAL" ? "destructive" : "secondary"}>
-                              {r.urgency}
-                            </Badge>
-                            <Badge variant="outline">{r.status}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {r.units_needed} units required ·{" "}
-                            {r.hospital_name || "Hospital Assigned"}
-                          </p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="size-3" /> Created:{" "}
-                            {new Date(r.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button variant="outline" size="sm" className="text-xs">
-                          View Matches
-                        </Button>
-                      </div>
+                    {list.slice(0, 3).map((r) => (
+                      <RequestRow key={r.request_id} req={r} onViewMatches={setMatchesRequestId} />
                     ))}
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            {/* Quick Map Snippet */}
-            <Card className="shadow-[var(--shadow-elegant)]">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MapPin className="size-5 text-primary" /> Verified Donors Within {radiusKm}km
-                  </CardTitle>
-                  <CardDescription>
-                    Privacy-Protected GPS locations of active registered donors
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveTab("map")}
-                  className="text-xs"
-                >
-                  Full Map View
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ClientOnly fallback={<Skeleton className="h-[360px] w-full" />}>
-                  <Suspense fallback={<Skeleton className="h-[360px] w-full" />}>
-                    <DonorMap
-                      donors={filteredMapDonors.slice(0, 10)}
-                      radiusKm={radiusKm}
-                      onRequestContact={requestContact}
-                    />
-                  </Suspense>
-                </ClientOnly>
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* Requests Tab */}
           <TabsContent value="requests" className="mt-6">
-            <Card className="shadow-[var(--shadow-elegant)]">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">All Blood Requests</CardTitle>
-                  <CardDescription>Full history and live status tracking</CardDescription>
+                  <CardTitle className="text-lg">All requests</CardTitle>
+                  <CardDescription>Full history and live status.</CardDescription>
                 </div>
                 <Link to="/requests/new">
                   <Button size="sm">
-                    <PlusCircle className="mr-1.5 size-4" /> New Request
+                    <PlusCircle className="mr-1.5 size-4" /> New request
                   </Button>
                 </Link>
               </CardHeader>
               <CardContent>
-                {!requests || requests.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No blood requests found.
-                  </p>
+                {list.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">No blood requests found.</p>
                 ) : (
                   <div className="space-y-3">
-                    {requests.map((r) => (
-                      <div
-                        key={r.request_id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-primary">
-                              {toDisplayBloodGroup(r.blood_group)}
-                            </span>
-                            <Badge variant={r.urgency === "CRITICAL" ? "destructive" : "secondary"}>
-                              {r.urgency}
-                            </Badge>
-                            <Badge variant="outline">{r.status}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {r.units_needed} units required ·{" "}
-                            {r.hospital_name || "General Facility"}
-                          </p>
-                        </div>
-                        <div className="text-xs text-muted-foreground text-right">
-                          <p>ID: {r.request_id.slice(0, 8)}...</p>
-                          <p>{new Date(r.created_at).toLocaleString()}</p>
-                        </div>
-                      </div>
+                    {list.map((r) => (
+                      <RequestRow key={r.request_id} req={r} onViewMatches={setMatchesRequestId} />
                     ))}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Full Map Tab */}
-          <TabsContent value="map" className="mt-6">
-            <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-              <Card className="h-fit shadow-[var(--shadow-elegant)]">
-                <CardHeader>
-                  <CardTitle className="text-base">Proximity Controls</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>Search Radius</Label>
-                      <span className="text-sm font-semibold text-primary">{radiusKm} km</span>
-                    </div>
-                    <Slider
-                      value={[radiusIndex]}
-                      onValueChange={([v]) => setRadiusIndex(v ?? 1)}
-                      min={0}
-                      max={3}
-                      step={1}
-                      aria-label="Radius slider"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      {RADII.map((r) => (
-                        <span key={r}>{r}km</span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Blood Group Filter</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {BLOOD_GROUPS.map((g) => {
-                        const on = selectedGroups.includes(g);
-                        return (
-                          <button key={g} onClick={() => toggleGroup(g)} aria-pressed={on}>
-                            <Badge variant={on ? "default" : "outline"} className="cursor-pointer">
-                              {g}
-                            </Badge>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border pt-4 text-xs text-muted-foreground space-y-1">
-                    <p className="font-semibold text-foreground">
-                      {filteredMapDonors.length} active donors in range
-                    </p>
-                    <p>Hospitals connected: {HOSPITALS.length}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden shadow-[var(--shadow-elegant)]">
-                <CardContent className="p-0">
-                  <ClientOnly fallback={<Skeleton className="h-[520px] w-full" />}>
-                    <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>
-                      <DonorMap
-                        donors={filteredMapDonors}
-                        radiusKm={radiusKm}
-                        onRequestContact={requestContact}
-                      />
-                    </Suspense>
-                  </ClientOnly>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
+
+      <MatchesDialog requestId={matchesRequestId} onClose={() => setMatchesRequestId(null)} />
     </div>
   );
 }

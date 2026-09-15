@@ -7,7 +7,7 @@
  */
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env["VITE_API_BASE_URL"] ||
   "https://ruby-heartbeat-backend.vercel.app/api/v1";
 
 const ACCESS_TOKEN_KEY = "sbdms_access_token";

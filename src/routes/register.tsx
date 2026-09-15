@@ -9,7 +9,7 @@ import { HeartPulse } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>) => ({
-    role: (search.role as UserRole) || "DONOR",
+    role: (search["role"] as UserRole) || "DONOR",
   }),
   head: () => ({
     meta: [

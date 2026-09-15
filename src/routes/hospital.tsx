@@ -60,7 +60,7 @@ export const Route = createFileRoute("/hospital")({
     search: Record<string, unknown>,
   ): { tab?: "dashboard" | "inventory" | "transactions" | "appointments" } => ({
     tab:
-      (search.tab as "dashboard" | "inventory" | "transactions" | "appointments") || "dashboard",
+      (search["tab"] as "dashboard" | "inventory" | "transactions" | "appointments") || "dashboard",
   }),
   head: () => ({
     meta: [
@@ -412,7 +412,7 @@ function HospitalPortalPage() {
               <Card className="shadow-[var(--shadow-elegant)]">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <ClipboardList className="size-5 text-primary" /> Urgent Clinical Dispatches
+                    <ClipboardList className="size-5 text-primary" /> Urgent requests
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -428,13 +428,11 @@ function HospitalPortalPage() {
                       >
                         <div>
                           <p className="font-bold text-foreground">
-                            {toDisplayBloodGroup(r.blood_group)} · {r.units_needed} units
+                            {toDisplayBloodGroup(r.blood_group)} · {r.quantity} units
                           </p>
-                          <p className="text-muted-foreground">
-                            {r.hospital_name || "Assigned Facility"}
-                          </p>
+                          <p className="text-muted-foreground">{r.required_location}</p>
                         </div>
-                        <Badge variant={r.urgency === "CRITICAL" ? "destructive" : "secondary"}>
+                        <Badge variant={r.urgency === "EMERGENCY" ? "destructive" : "secondary"}>
                           {r.urgency}
                         </Badge>
                       </div>
@@ -450,7 +448,7 @@ function HospitalPortalPage() {
             <Card className="shadow-[var(--shadow-elegant)]">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Real-Time Blood Bank Inventory</CardTitle>
+                  <CardTitle className="text-lg">Blood bank inventory</CardTitle>
                   <CardDescription>
                     Live stock levels across Whole Blood, Plasma, and Platelets
                   </CardDescription>
@@ -502,7 +500,7 @@ function HospitalPortalPage() {
             <Card className="shadow-[var(--shadow-elegant)]">
               <CardHeader>
                 <CardTitle className="text-lg">Inventory Audit Log</CardTitle>
-                <CardDescription>Record of verified intake and hospital dispatches</CardDescription>
+                <CardDescription>Intake and outgoing transactions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

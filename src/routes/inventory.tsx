@@ -216,7 +216,7 @@ function Inventory() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blood Inventory</h1>
             <p className="mt-2 text-muted-foreground">
-              {isLoading ? "Fetching real-time stock..." : `${totalUnits} units in stock`} across
+              {isLoading ? "Loading stock..." : `${totalUnits} units in stock`} across
               connected hospital blood banks.
             </p>
           </div>

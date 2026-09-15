@@ -8,7 +8,7 @@ import { Droplet } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>) => ({
-    redirect: (search.redirect as string) || "/",
+    redirect: (search["redirect"] as string) || "/",
   }),
   head: () => ({
     meta: [
