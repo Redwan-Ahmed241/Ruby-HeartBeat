@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Droplet, Menu, AlertCircle, Sparkles, LogOut, Building2, User } from "lucide-react";
+import { Droplet, Menu, AlertCircle, LogOut, Building2, User } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
@@ -75,22 +75,15 @@ export function SiteNav() {
         </Link>
 
         {/* Dynamic Desktop Navigation Links */}
-        <div className="hidden items-center gap-1 md:flex">
-          {/* 1. GUEST Navigation (Not Logged In) */}
+        <div className="hidden items-center gap-2 md:flex">
+          {/* 1. GUEST Navigation (Not Logged In) — Logo already links to "/" */}
           {!user && (
             <>
-              <Link
-                to="/"
-                activeOptions={{ exact: true }}
-                className={getLinkClass("/", undefined, true)}
-              >
-                Home
-              </Link>
               <a
                 href="/#eligibility"
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
               >
-                Eligibility Calculator
+                Eligibility
               </a>
               <a
                 href="/#events"
@@ -240,7 +233,7 @@ export function SiteNav() {
         </div>
 
         {/* Right Actions Toolbar */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-3">
           {/* Donor Availability Toggle Switch */}
           {isDonor && (
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1 text-xs">
@@ -268,6 +261,8 @@ export function SiteNav() {
               </Button>
             </Link>
           )}
+
+          {(isDonor || isRecipient) && <NotificationHub />}
 
           {/* Unauthenticated Guest Actions: Login & Register buttons */}
           {!user ? (
@@ -298,32 +293,18 @@ export function SiteNav() {
               />
             </div>
           ) : (
-            /* Authenticated User Actions: Identity Chip & Immediate Logout Button */
+            /* Authenticated User Actions: compact identity + logout */
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground">
-                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                {isHospitalAdmin ? (
-                  <div className="flex items-center gap-1.5">
-                    <Building2 className="size-3.5 text-emerald-300" />
-                    <span className="font-semibold max-w-[210px] truncate">
-                      {user.hospital_name || "Dhaka Medical College & Hospital"}
-                    </span>
-                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide">
-                      Authority
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <User className="size-3.5 text-white/80" />
-                    <span className="font-semibold max-w-[150px] truncate">{user.full_name}</span>
-                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide">
-                      {isDonor ? "Donor" : isRecipient ? "Recipient" : "Admin"}
-                    </span>
-                  </div>
-                )}
+              <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="font-semibold max-w-[120px] truncate">
+                  {user.full_name.split(" ")[0]}
+                </span>
+                <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
+                  {isDonor ? "Donor" : isRecipient ? "Recipient" : isHospitalAdmin ? "Hospital" : "Admin"}
+                </span>
               </div>
 
-              {/* Direct, high-visibility Logout button */}
               <Button
                 size="sm"
                 variant="outline"
@@ -336,8 +317,6 @@ export function SiteNav() {
               </Button>
             </div>
           )}
-
-          {(isDonor || isRecipient) && <NotificationHub />}
 
           {/* Mobile Navigation Trigger Button */}
           <button
@@ -381,19 +360,12 @@ export function SiteNav() {
 
             {!user ? (
               <>
-                <Link
-                  to="/"
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/", undefined, true)}
-                >
-                  Home
-                </Link>
                 <a
                   href="/#eligibility"
                   onClick={() => setOpen(false)}
                   className="rounded-md px-3 py-2 text-sm font-medium opacity-90 hover:bg-primary-glow/40"
                 >
-                  Eligibility Calculator
+                  Eligibility
                 </a>
                 <a
                   href="/#events"
@@ -553,7 +525,7 @@ export function SiteNav() {
                   <span className="size-2 rounded-full bg-emerald-400" />
                   <span className="truncate font-semibold">
                     {isHospitalAdmin
-                      ? (user.hospital_name || "Dhaka Medical College & Hospital")
+                      ? (user.hospital?.hospital_name || user.full_name)
                       : user.full_name}
                   </span>
                 </div>

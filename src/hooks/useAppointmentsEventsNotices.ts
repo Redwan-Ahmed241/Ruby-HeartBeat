@@ -82,6 +82,8 @@ export function useRegisterForEvent() {
     }) => eventService.registerForEvent(eventId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.events });
+      queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.myRegistrations });
+      queryClient.invalidateQueries({ queryKey: APPOINTMENT_KEYS.myAppointments });
       toast.success("Successfully registered for the event!");
     },
     onError: (error: Error) => {

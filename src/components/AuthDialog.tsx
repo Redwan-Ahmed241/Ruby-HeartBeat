@@ -17,9 +17,12 @@ import {
   ChevronDown,
   Sparkles,
   LayoutDashboard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useCurrentUser, useLogin, useLogout, useRegister } from "@/hooks/useAuth";
+import { authService } from "@/lib/api/services";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -127,11 +130,14 @@ export function AuthDialog({
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+8801700000000");
   const [selectedRole, setSelectedRole] = useState<UserRole>(defaultRole);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const { data: currentUser, isLoading } = useCurrentUser();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
   const logout = useLogout();
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +145,13 @@ export function AuthDialog({
       await loginMutation.mutateAsync({ email, password });
       toast.success("Signed in successfully.");
       setOpen(false);
+      const me = await authService.getMe();
+      const dest =
+        me.role === "DONOR" ? "/donor"
+        : me.role === "RECIPIENT" ? "/recipient"
+        : me.role === "HOSPITAL_ADMIN" ? "/hospital"
+        : "/admin";
+      navigate({ to: dest });
     } catch {
       // Error handled by mutation toast
     }
@@ -311,14 +324,26 @@ export function AuthDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="login-password">Password</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showLoginPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowLoginPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                  >
+                    {showLoginPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? "Authenticating..." : "Sign In"}
@@ -412,14 +437,26 @@ export function AuthDialog({
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="reg-pass">Password</Label>
-                  <Input
-                    id="reg-pass"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reg-pass"
+                      type={showRegisterPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowRegisterPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                    >
+                      {showRegisterPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="reg-role">Register as</Label>

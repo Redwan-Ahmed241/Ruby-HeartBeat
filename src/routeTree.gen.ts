@@ -20,6 +20,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RecipientRouteImport } from './routes/recipient'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RequestBloodRouteImport } from './routes/request-blood'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminLogsRouteImport } from './routes/admin.logs'
 import { Route as AdminNoticesRouteImport } from './routes/admin.notices'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -86,6 +87,11 @@ const RequestBloodRoute = RequestBloodRouteImport.update({
   id: '/request-blood',
   path: '/request-blood',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminLogsRoute = AdminLogsRouteImport.update({
   id: '/logs',
@@ -166,10 +172,10 @@ export interface FileRoutesByFullPath {
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
   '/donor': typeof DonorRouteWithChildren
   '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
@@ -190,6 +196,7 @@ export interface FileRoutesByTo {
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +222,7 @@ export interface FileRoutesById {
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,10 +249,10 @@ export interface FileRouteTypes {
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/donor'
     | '/events'
     | '/find-donors'
@@ -265,6 +273,7 @@ export interface FileRouteTypes {
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -386,6 +396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestBloodRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/logs': {
       id: '/admin/logs'
       path: '/logs'
@@ -470,12 +487,14 @@ interface AdminRouteChildren {
   AdminLogsRoute: typeof AdminLogsRoute
   AdminNoticesRoute: typeof AdminNoticesRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminLogsRoute: AdminLogsRoute,
   AdminNoticesRoute: AdminNoticesRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

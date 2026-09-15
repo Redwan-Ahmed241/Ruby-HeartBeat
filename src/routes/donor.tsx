@@ -11,14 +11,12 @@ import {
   Loader2,
   Save,
   MapPin,
-  Sparkles,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,17 +31,16 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import {
   useDonorEligibility,
   useUpdateDonorProfile,
-  useToggleAvailability,
   useUpsertMedicalInfo,
 } from "@/hooks/useDonor";
 import {
-  toApiBloodGroup,
   toDisplayBloodGroup,
   BLOOD_GROUP_UI_MAP,
-  type BloodGroup,
 } from "@/lib/api/types";
 import { toast } from "sonner";
 import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
+import { useDonorHistory } from "@/hooks/useDonor";
+import { useMyRegisteredEvents } from "@/hooks/useAdmin";
 
 export const Route = createFileRoute("/donor")({
   validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "appointments" | "history" } => ({
@@ -85,8 +82,6 @@ function DonorDashboardPage() {
   const [gender, setGender] = useState("Male");
   const [lastDonation, setLastDonation] = useState("");
   const [hemoglobin, setHemoglobin] = useState("14.0");
-  const [available, setAvailable] = useState(true);
-
   useEffect(() => {
     if (donor) {
       setBloodGroup(toDisplayBloodGroup(donor.blood_group));
@@ -94,7 +89,6 @@ function DonorDashboardPage() {
       setAddress(donor.address || "Banani, Dhaka");
       setGender(donor.gender || "Male");
       setLastDonation(donor.last_donation_date || "");
-      setAvailable(donor.availability_status === "AVAILABLE");
     }
   }, [donor]);
 
@@ -105,8 +99,16 @@ function DonorDashboardPage() {
   } = useDonorEligibility(!!user && user.role === "DONOR");
 
   const updateProfileMutation = useUpdateDonorProfile();
-  const toggleAvailabilityMutation = useToggleAvailability();
   const upsertMedicalMutation = useUpsertMedicalInfo();
+
+  const { data: appointments } = useMyAppointments(!!user && user.role === "DONOR");
+  const { data: registeredEvents } = useMyRegisteredEvents(!!user && user.role === "DONOR");
+  const { data: donationHistory } = useDonorHistory(!!user && user.role === "DONOR");
+
+  const scheduledCount =
+    (appointments?.filter((a) => a.status === "SCHEDULED").length || 0) +
+    (registeredEvents?.length || 0);
+  const lifetimeCount = donationHistory?.length || 0;
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -127,15 +129,6 @@ function DonorDashboardPage() {
       await refetchEligibility();
     } catch {
       // handled in hook
-    }
-  };
-
-  const handleToggleAvailability = async (checked: boolean) => {
-    setAvailable(checked);
-    if (user && user.role === "DONOR") {
-      await toggleAvailabilityMutation.mutateAsync({
-        availability_status: checked ? "AVAILABLE" : "UNAVAILABLE",
-      });
     }
   };
 
@@ -201,18 +194,6 @@ function DonorDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-sm">
-              <span className="font-semibold">Dispatch Status:</span>
-              <span className={available ? "text-emerald-600 font-bold" : "text-muted-foreground"}>
-                {available ? "Available" : "Unavailable"}
-              </span>
-              <Switch
-                checked={available}
-                onCheckedChange={handleToggleAvailability}
-                disabled={toggleAvailabilityMutation.isPending}
-                className="scale-90 data-[state=checked]:bg-emerald-500"
-              />
-            </div>
             <Button
               onClick={handleSaveProfile}
               disabled={updateProfileMutation.isPending || upsertMedicalMutation.isPending}
@@ -271,7 +252,7 @@ function DonorDashboardPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Scheduled Appointments</p>
-                <p className="text-xl font-bold">1 Upcoming</p>
+                <p className="text-xl font-bold">{scheduledCount} Upcoming</p>
               </div>
             </CardContent>
           </Card>
@@ -285,7 +266,7 @@ function DonorDashboardPage() {
                 <p className="text-xs text-muted-foreground font-medium">
                   Total Lifetime Donations
                 </p>
-                <p className="text-xl font-bold">4 Times</p>
+                <p className="text-xl font-bold">{lifetimeCount} Times</p>
               </div>
             </CardContent>
           </Card>
@@ -481,56 +462,7 @@ function DonorDashboardPage() {
 
           {/* History Tab */}
           <TabsContent value="history" className="mt-6">
-            <Card className="shadow-[var(--shadow-elegant)]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="size-5 text-primary" /> Donation History
-                </CardTitle>
-                <CardDescription>
-                  Verified records of your blood units donated and lives impacted
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    {
-                      date: "May 12, 2026",
-                      hospital: "Square Hospital Blood Bank",
-                      type: "Whole Blood (450ml)",
-                      status: "Transfused to Patient",
-                      badge: "bg-emerald-600",
-                    },
-                    {
-                      date: "January 04, 2026",
-                      hospital: "United Hospital Blood Center",
-                      type: "Whole Blood (450ml)",
-                      status: "Transfused to Patient",
-                      badge: "bg-emerald-600",
-                    },
-                    {
-                      date: "August 19, 2025",
-                      hospital: "Apollo / Evercare Hospital",
-                      type: "Platelets Apheresis",
-                      status: "Completed",
-                      badge: "bg-blue-600",
-                    },
-                  ].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/80 bg-card p-3 text-sm"
-                    >
-                      <div>
-                        <p className="font-semibold text-foreground">{h.hospital}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {h.type} · Donated on {h.date}
-                        </p>
-                      </div>
-                      <Badge className={`${h.badge} text-white text-xs`}>{h.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <DonationHistoryTab />
           </TabsContent>
         </Tabs>
       </main>
@@ -542,6 +474,7 @@ function AppointmentsTab() {
   const { data: user } = useCurrentUser();
   const isDonor = user?.role === "DONOR";
   const { data: appointments, isLoading } = useMyAppointments(isDonor);
+  const { data: registeredEvents, isLoading: eventsLoading } = useMyRegisteredEvents(isDonor);
   const bookMutation = useBookAppointment();
   const updateStatusMutation = useUpdateAppointmentStatus();
 
@@ -561,16 +494,21 @@ function AppointmentsTab() {
     );
   };
 
+  const allLoading = isLoading || eventsLoading;
+  const hasAppointments = appointments && appointments.length > 0;
+  const hasEvents = registeredEvents && registeredEvents.length > 0;
+  const hasAnything = hasAppointments || hasEvents;
+
   return (
     <Card className="shadow-[var(--shadow-elegant)]">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="size-5 text-primary" /> My Appointments
+              <Calendar className="size-5 text-primary" /> My Schedule
             </CardTitle>
             <CardDescription>
-              Scheduled hospital visits and blood donation slots
+              Hospital appointments and registered campaign drives
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -611,29 +549,32 @@ function AppointmentsTab() {
           </div>
         )}
 
-        {isLoading ? (
+        {allLoading ? (
           <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading appointments...
+            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading schedule...
           </div>
-        ) : appointments && appointments.length > 0 ? (
+        ) : hasAnything ? (
           <div className="space-y-3">
-            {appointments.map((appt) => (
+            {appointments?.map((appt) => (
               <div
                 key={appt.appointment_id}
                 className="flex items-start justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] font-semibold border-blue-500 text-blue-600">
+                      Hospital Appointment
+                    </Badge>
                     <Badge variant={appt.status === "COMPLETED" ? "default" : appt.status === "CANCELLED" ? "destructive" : "secondary"}>
                       {appt.status}
                     </Badge>
-                    <span className="text-xs font-mono text-muted-foreground">
-                      Center: {appt.center_id.slice(0, 8)}...
-                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="size-3" />
                     {new Date(appt.appointment_date).toLocaleDateString()} at {appt.appointment_time}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Center: {appt.center_id.slice(0, 8)}...
                   </p>
                 </div>
                 {appt.status === "SCHEDULED" && (
@@ -654,10 +595,83 @@ function AppointmentsTab() {
                 )}
               </div>
             ))}
+
+            {registeredEvents?.map((ev) => (
+              <div
+                key={ev.event_id}
+                className="flex items-start justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] font-semibold border-emerald-500 text-emerald-600">
+                      Campaign Drive
+                    </Badge>
+                    <Badge variant="secondary">{ev.status}</Badge>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">{ev.title}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <MapPin className="size-3" />
+                    {ev.location}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {new Date(ev.start_date).toLocaleDateString()} — {new Date(ev.end_date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No appointments found. Book one above or walk into any affiliated hospital blood bank.
+            No appointments or registered drives found. Book one above or browse donation drives.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DonationHistoryTab() {
+  const { data: user } = useCurrentUser();
+  const isDonor = user?.role === "DONOR";
+  const { data: history, isLoading } = useDonorHistory(isDonor);
+
+  return (
+    <Card className="shadow-[var(--shadow-elegant)]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="size-5 text-primary" /> Donation History
+        </CardTitle>
+        <CardDescription>
+          Verified records of your blood units donated and lives impacted
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading history...
+          </div>
+        ) : history && history.length > 0 ? (
+          <div className="space-y-3">
+            {history.map((h) => (
+              <div
+                key={h.history_id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/80 bg-card p-3 text-sm"
+              >
+                <div>
+                  <p className="font-semibold text-foreground">{h.center_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {h.component_type.replace("_", " ")} · {h.quantity} unit(s) · Donated on{" "}
+                    {new Date(h.donation_date).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge className="bg-emerald-600 text-white text-xs">Completed</Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No donation history recorded yet.
           </div>
         )}
       </CardContent>

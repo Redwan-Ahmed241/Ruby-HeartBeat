@@ -272,6 +272,10 @@ export const eventService = {
       method: "POST",
     });
   },
+
+  getMyRegistrations: async (): Promise<EventResponse[]> => {
+    return apiClient<EventResponse[]>("/events/my-registrations");
+  },
 };
 
 export const noticeService = {
@@ -284,6 +288,34 @@ export const noticeService = {
   createNotice: async (payload: CampaignNoticeCreate): Promise<CampaignNoticeResponse> => {
     return apiClient<CampaignNoticeResponse>("/campaign-notices/", {
       method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+// ============================================================================
+// 6. USER MANAGEMENT (/api/v1/users) — System Admin Only
+// ============================================================================
+
+export const userService = {
+  listUsers: async (filters?: {
+    role?: string;
+    search?: string;
+  }): Promise<UserResponse[]> => {
+    const params = new URLSearchParams();
+    if (filters?.role) params.append("role", filters.role);
+    if (filters?.search) params.append("search", filters.search);
+
+    const qs = params.toString();
+    return apiClient<UserResponse[]>(`/users/${qs ? `?${qs}` : ""}`);
+  },
+
+  updateStatus: async (
+    userId: string,
+    payload: { status: "ACTIVE" | "BLOCKED" },
+  ): Promise<UserResponse> => {
+    return apiClient<UserResponse>(`/users/${userId}/status`, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
   },

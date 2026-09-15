@@ -202,7 +202,7 @@ export interface DonationHistoryResponse {
 }
 
 export interface EligibilityCheckResponse {
-  is_eligible: bool;
+  is_eligible: boolean;
   rejection_reasons: string[];
   age?: number | null;
   weight?: number | null;
