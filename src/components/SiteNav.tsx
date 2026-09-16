@@ -63,8 +63,8 @@ export function SiteNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]">
+      <nav className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12 py-3">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold tracking-tight text-lg">
           <div className="flex size-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
@@ -74,7 +74,7 @@ export function SiteNav() {
         </Link>
 
         {/* Dynamic Desktop Navigation Links */}
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-6 xl:gap-8 lg:flex">
           {/* 1. GUEST Navigation (Not Logged In) — Logo already links to "/" */}
           {!user && (
             <>
@@ -85,10 +85,10 @@ export function SiteNav() {
                 Eligibility
               </a>
               <Link
-                to="/hospital"
-                className={getLinkClass("/hospital")}
+                to="/centers"
+                className={getLinkClass("/centers")}
               >
-                Hospitals & Blood Banks
+                Hospital Centers
               </Link>
               <a
                 href="/#events"
@@ -130,8 +130,8 @@ export function SiteNav() {
                 Donation History
               </Link>
               <Link
-                to="/hospital"
-                className={getLinkClass("/hospital")}
+                to="/centers"
+                className={getLinkClass("/centers")}
               >
                 Hospital Centers
               </Link>
@@ -168,8 +168,8 @@ export function SiteNav() {
                 Create Request
               </Link>
               <Link
-                to="/hospital"
-                className={getLinkClass("/hospital")}
+                to="/centers"
+                className={getLinkClass("/centers")}
               >
                 Hospital Stock
               </Link>
@@ -187,8 +187,8 @@ export function SiteNav() {
                 Dashboard
               </Link>
               <Link
-                to="/hospital"
-                className={getLinkClass("/hospital")}
+                to="/centers"
+                className={getLinkClass("/centers")}
               >
                 Hospital Network
               </Link>
@@ -246,31 +246,30 @@ export function SiteNav() {
 
           {(isDonor || isRecipient) && <NotificationHub />}
 
-          {/* Unauthenticated Guest Actions: Login & Register buttons */}
+          {/* Unauthenticated Guest Actions: Login & Register buttons with High Contrast */}
           {!user ? (
             <div className="flex items-center gap-2">
               <AuthDialog
                 defaultTab="login"
                 trigger={
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40"
+                  <button
+                    type="button"
+                    className="px-5 py-2 text-sm font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200"
                   >
                     Login
-                  </Button>
+                  </button>
                 }
               />
               <AuthDialog
                 defaultTab="register"
                 defaultRole="DONOR"
                 trigger={
-                  <Button
-                    size="sm"
-                    className="bg-background text-primary hover:bg-background/90 text-xs font-bold shadow-sm"
+                  <button
+                    type="button"
+                    className="px-5 py-2 text-sm font-semibold text-[#800000] bg-white rounded-full hover:bg-red-50 shadow-sm transition-all duration-200"
                   >
                     Register
-                  </Button>
+                  </button>
                 }
               />
             </div>
@@ -283,7 +282,7 @@ export function SiteNav() {
                   {user.full_name.split(" ")[0]}
                 </span>
                 <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
-                  {isDonor ? "Donor" : isRecipient ? "Recipient" : isHospitalAdmin ? "Hospital" : "Admin"}
+                  {isDonor ? "Donor" : isRecipient ? "Recipient" : "Admin"}
                 </span>
               </div>
 
@@ -303,7 +302,7 @@ export function SiteNav() {
           {/* Mobile Navigation Trigger Button */}
           <button
             onClick={() => setOpen(!open)}
-            className="flex size-9 items-center justify-center rounded-md border border-primary-glow/60 bg-primary-glow/20 md:hidden"
+            className="flex size-9 items-center justify-center rounded-md border border-white/40 bg-white/10 text-white lg:hidden"
             aria-label="Toggle navigation menu"
           >
             <Menu className="size-5" />
@@ -313,7 +312,7 @@ export function SiteNav() {
 
       {/* Mobile Drawer Dropdown */}
       {open && (
-        <div className="border-t border-border/40 bg-primary px-4 py-3 md:hidden">
+        <div className="border-t border-border/40 bg-primary px-4 py-3 lg:hidden">
           <div className="flex flex-col gap-1">
             {/* Donor Mobile Switch */}
             {isDonor && (
@@ -350,11 +349,11 @@ export function SiteNav() {
                   Eligibility
                 </a>
                 <Link
-                  to="/hospital"
+                  to="/centers"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital")}
+                  className={getMobileLinkClass("/centers")}
                 >
-                  Hospitals & Blood Banks
+                  Hospital Centers
                 </Link>
                 <a
                   href="/#events"
@@ -398,9 +397,9 @@ export function SiteNav() {
                   Donation History
                 </Link>
                 <Link
-                  to="/hospital"
+                  to="/centers"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital")}
+                  className={getMobileLinkClass("/centers")}
                 >
                   Hospital Centers
                 </Link>
@@ -438,9 +437,9 @@ export function SiteNav() {
                   Create Request
                 </Link>
                 <Link
-                  to="/hospital"
+                  to="/centers"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital")}
+                  className={getMobileLinkClass("/centers")}
                 >
                   Hospital Stock
                 </Link>
@@ -455,9 +454,9 @@ export function SiteNav() {
                   Dashboard
                 </Link>
                 <Link
-                  to="/hospital"
+                  to="/centers"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital")}
+                  className={getMobileLinkClass("/centers")}
                 >
                   Hospital Network
                 </Link>

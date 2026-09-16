@@ -26,6 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
@@ -37,6 +45,7 @@ import {
   toDisplayBloodGroup,
   BLOOD_GROUP_UI_MAP,
 } from "@/lib/api/types";
+import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
 import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
 import { useDonorHistory } from "@/hooks/useDonor";
@@ -83,6 +92,16 @@ function DonorDashboardPage() {
   const [gender, setGender] = useState("Male");
   const [lastDonation, setLastDonation] = useState("");
   const [hemoglobin, setHemoglobin] = useState("14.0");
+
+  // Health Metrics Modal & Active Eligibility state
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [healthModalOpen, setHealthModalOpen] = useState(false);
+  const [modalHemoglobin, setModalHemoglobin] = useState("14.0");
+  const [modalSystolic, setModalSystolic] = useState("120");
+  const [modalDiastolic, setModalDiastolic] = useState("80");
+  const [modalPulse, setModalPulse] = useState("72");
+  const [modalNotes, setModalNotes] = useState("");
+
   useEffect(() => {
     if (donor) {
       setBloodGroup(toDisplayBloodGroup(donor.blood_group));
@@ -90,6 +109,10 @@ function DonorDashboardPage() {
       setAddress(donor.address || "Banani, Dhaka");
       setGender(donor.gender || "Male");
       setLastDonation(donor.last_donation_date || "");
+      if (donor.medical_info?.hemoglobin_level) {
+        setHemoglobin(String(donor.medical_info.hemoglobin_level));
+        setModalHemoglobin(String(donor.medical_info.hemoglobin_level));
+      }
     }
   }, [donor]);
 
@@ -133,7 +156,57 @@ function DonorDashboardPage() {
     }
   };
 
-  const isEligible = eligibility ? eligibility.is_eligible : Number(weight) >= 50;
+  // Clinical Eligibility Rule Engine
+  const numWeight = Number(weight) || 0;
+  const numHemoglobin = Number(hemoglobin) || 0;
+  const isWeightPassed = numWeight >= 50;
+  const isHemoglobinPassed = numHemoglobin >= 12.5;
+  const isClinicallyPassed = isWeightPassed && isHemoglobinPassed;
+
+  const isEligible = eligibility
+    ? eligibility.is_eligible && isClinicallyPassed
+    : isClinicallyPassed;
+
+  const handleRecheckEligibility = async () => {
+    setIsCheckingEligibility(true);
+    try {
+      if (numHemoglobin) {
+        await upsertMedicalMutation.mutateAsync({
+          hemoglobin_level: numHemoglobin,
+        });
+      }
+      const res = await refetchEligibility();
+      if (res.data) {
+        if (res.data.weight) setWeight(String(res.data.weight));
+        if (res.data.hemoglobin_level) setHemoglobin(String(res.data.hemoglobin_level));
+        if (res.data.last_donation_date) setLastDonation(res.data.last_donation_date);
+      }
+      toast.success("Eligibility status updated successfully.");
+    } catch {
+      toast.error("Failed to re-check eligibility with medical service.");
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  };
+
+  const handleSaveHealthMetrics = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await upsertMedicalMutation.mutateAsync({
+        hemoglobin_level: Number(modalHemoglobin),
+        systolic_bp: Number(modalSystolic) || undefined,
+        diastolic_bp: Number(modalDiastolic) || undefined,
+        pulse_rate: Number(modalPulse) || undefined,
+        medical_notes: modalNotes || undefined,
+      });
+      setHemoglobin(modalHemoglobin);
+      await refetchEligibility();
+      setHealthModalOpen(false);
+      toast.success("Health metrics submitted and eligibility updated!");
+    } catch {
+      // handled in mutation
+    }
+  };
 
   // Route Guard check
   if (userLoading) {
@@ -173,14 +246,14 @@ function DonorDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Donor Dashboard</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Donor Dashboard</h1>
               <Badge
                 variant="outline"
                 className="text-xs font-semibold text-primary border-primary bg-primary/5"
@@ -189,8 +262,7 @@ function DonorDashboardPage() {
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage clinical eligibility, appointments, donation records, and emergency
-              availability.
+              Manage clinical eligibility, appointments, donation records, and emergency availability.
             </p>
           </div>
 
@@ -211,7 +283,7 @@ function DonorDashboardPage() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <Card className="shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -219,7 +291,7 @@ function DonorDashboardPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Blood Group</p>
-                <p className="text-xl font-bold">{bloodGroup}</p>
+                <p className="text-xl font-bold text-primary">{formatBloodGroup(bloodGroup, "symbol")}</p>
               </div>
             </CardContent>
           </Card>
@@ -296,7 +368,7 @@ function DonorDashboardPage() {
                       <SelectContent>
                         {UI_GROUPS.map((g) => (
                           <SelectItem key={g} value={g}>
-                            {g}
+                            {formatBloodGroup(g, "symbol")} ({g})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -372,18 +444,31 @@ function DonorDashboardPage() {
                     : "border-destructive/40 bg-destructive/5 shadow-[var(--shadow-elegant)]"
                 }
               >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <HeartPulse className="size-5 text-primary" />
-                    Eligibility check
-                  </CardTitle>
-                  <CardDescription>
-                    Based on standard blood donation guidelines
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <HeartPulse className="size-5 text-primary" />
+                      Eligibility check
+                    </CardTitle>
+                    <CardDescription>
+                      Based on standard blood donation guidelines
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7 gap-1 text-primary border-primary/40 hover:bg-primary/10"
+                    onClick={() => {
+                      setModalHemoglobin(hemoglobin);
+                      setHealthModalOpen(true);
+                    }}
+                  >
+                    Update Health Metrics
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
-                    {eligLoading ? (
+                    {eligLoading || isCheckingEligibility ? (
                       <Loader2 className="size-8 animate-spin text-primary" />
                     ) : isEligible ? (
                       <CheckCircle2 className="size-8 text-emerald-600" />
@@ -403,7 +488,11 @@ function DonorDashboardPage() {
                       <p className="text-xs text-muted-foreground">
                         {isEligible
                           ? "All safety protocols and cooldown windows satisfied."
-                          : "Please review requirements below before scheduling an appointment."}
+                          : !isWeightPassed
+                            ? "Weight below minimum 50 kg requirement."
+                            : !isHemoglobinPassed
+                              ? "Hemoglobin level below clinical 12.5 g/dL threshold."
+                              : "Active cooldown window since last donation (90 days required)."}
                       </p>
                     </div>
                   </div>
@@ -413,12 +502,12 @@ function DonorDashboardPage() {
                       <span className="text-muted-foreground">Weight Standard (&ge; 50 kg)</span>
                       <span
                         className={
-                          Number(weight) >= 50
+                          isWeightPassed
                             ? "text-emerald-600 font-semibold"
                             : "text-destructive font-semibold"
                         }
                       >
-                        {weight} kg ({Number(weight) >= 50 ? "Passed" : "Underweight"})
+                        {weight} kg ({isWeightPassed ? "Passed" : "Underweight"})
                       </span>
                     </div>
                     <div className="flex items-center justify-between border-b border-border/40 py-2">
@@ -427,18 +516,18 @@ function DonorDashboardPage() {
                       </span>
                       <span
                         className={
-                          Number(hemoglobin) >= 12.5
+                          isHemoglobinPassed
                             ? "text-emerald-600 font-semibold"
                             : "text-destructive font-semibold"
                         }
                       >
-                        {hemoglobin} g/dL ({Number(hemoglobin) >= 12.5 ? "Passed" : "Low"})
+                        {hemoglobin} g/dL ({isHemoglobinPassed ? "Passed" : "Low"})
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-2">
                       <span className="text-muted-foreground">Cooldown Window</span>
                       <span className="text-foreground font-medium">
-                        {lastDonation ? `${lastDonation}` : "No recorded donation"}
+                        {lastDonation ? `${lastDonation}` : "No recorded donation (Eligible)"}
                       </span>
                     </div>
                   </div>
@@ -446,10 +535,18 @@ function DonorDashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs"
-                    onClick={() => refetchEligibility()}
+                    className="w-full text-xs font-semibold gap-1.5"
+                    disabled={isCheckingEligibility || eligLoading}
+                    onClick={handleRecheckEligibility}
                   >
-                    Re-check Eligibility
+                    {isCheckingEligibility ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" />
+                        Re-checking Clinical Data...
+                      </>
+                    ) : (
+                      "Re-check Eligibility"
+                    )}
                   </Button>
                 </CardContent>
               </Card>
@@ -458,14 +555,108 @@ function DonorDashboardPage() {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="mt-6">
-            <AppointmentsTab />
+            <div className="w-full overflow-x-auto">
+              <AppointmentsTab />
+            </div>
           </TabsContent>
 
           {/* History Tab */}
           <TabsContent value="history" className="mt-6">
-            <DonationHistoryTab />
+            <div className="w-full overflow-x-auto">
+              <DonationHistoryTab />
+            </div>
           </TabsContent>
         </Tabs>
+
+        {/* Update Health Metrics Modal Dialog */}
+        <Dialog open={healthModalOpen} onOpenChange={setHealthModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <form onSubmit={handleSaveHealthMetrics}>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <HeartPulse className="size-5 text-primary" /> Update Health Metrics
+                </DialogTitle>
+                <DialogDescription>
+                  Submit updated clinical vitals directly to the LifeDrop medical verification engine.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="metric-hb">Hemoglobin Level (g/dL)</Label>
+                  <Input
+                    id="metric-hb"
+                    type="number"
+                    step="0.1"
+                    min={5}
+                    max={25}
+                    value={modalHemoglobin}
+                    onChange={(e) => setModalHemoglobin(e.target.value)}
+                    placeholder="e.g. 13.5"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground">Standard clinical threshold is &ge; 12.5 g/dL.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="metric-sbp">Systolic BP (mmHg)</Label>
+                    <Input
+                      id="metric-sbp"
+                      type="number"
+                      value={modalSystolic}
+                      onChange={(e) => setModalSystolic(e.target.value)}
+                      placeholder="120"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="metric-dbp">Diastolic BP (mmHg)</Label>
+                    <Input
+                      id="metric-dbp"
+                      type="number"
+                      value={modalDiastolic}
+                      onChange={(e) => setModalDiastolic(e.target.value)}
+                      placeholder="80"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="metric-pulse">Pulse Rate (bpm)</Label>
+                  <Input
+                    id="metric-pulse"
+                    type="number"
+                    value={modalPulse}
+                    onChange={(e) => setModalPulse(e.target.value)}
+                    placeholder="72"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="metric-notes">Clinical Notes (Optional)</Label>
+                  <Input
+                    id="metric-notes"
+                    value={modalNotes}
+                    onChange={(e) => setModalNotes(e.target.value)}
+                    placeholder="e.g. Routine pre-donation checkup"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setHealthModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={upsertMedicalMutation.isPending}>
+                  {upsertMedicalMutation.isPending && (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  )}
+                  Submit Health Readings
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

@@ -36,6 +36,7 @@ import { useCampaignNotices } from "@/hooks/useAdmin";
 import { useDonorEligibility, useUpdateDonorProfile, useUpsertMedicalInfo } from "@/hooks/useDonor";
 import { HOSPITALS } from "@/lib/donor-data";
 import { BLOOD_GROUP_UI_MAP, toApiBloodGroup } from "@/lib/api/types";
+import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
 
 const DonorMap = lazy(() => import("@/components/DonorMap"));
@@ -143,12 +144,12 @@ export function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-background flex flex-col">
       <SiteNav />
 
       {/* Hero */}
       <section className="border-b border-border/40 py-16 sm:py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 text-center">
           <h1 className="mx-auto max-w-4xl text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Find a blood donor when it matters most
           </h1>
@@ -197,7 +198,7 @@ export function LandingPage() {
 
       {/* Hospital blood bank network */}
       <section id="nearby-donors" className="border-b border-border/40 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="mb-8 max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Hospital blood bank network</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -251,10 +252,10 @@ export function LandingPage() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden relative isolate z-0 rounded-2xl">
               <CardContent className="p-0">
-                <ClientOnly fallback={<Skeleton className="h-[520px] w-full" />}>
-                  <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>
+                <ClientOnly fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>
+                  <Suspense fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>
                     <DonorMap radiusKm={radiusKm} />
                   </Suspense>
                 </ClientOnly>
@@ -266,7 +267,7 @@ export function LandingPage() {
 
       {/* Eligibility calculator */}
       <section id="eligibility" className="border-b border-border/40 bg-muted/20 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">Check your donation eligibility</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -308,7 +309,7 @@ export function LandingPage() {
                     <SelectContent>
                       {UI_GROUPS.map((g) => (
                         <SelectItem key={g} value={g}>
-                          {g} ({toApiBloodGroup(g)})
+                          {formatBloodGroup(g, "symbol")} ({toApiBloodGroup(g)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -363,7 +364,7 @@ export function LandingPage() {
                       {evaluation.isEligible ? "You're eligible to donate" : "Not eligible right now"}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Blood group: <strong className="text-foreground">{calcBloodGroup}</strong>
+                      Blood group: <strong className="text-foreground">{formatBloodGroup(calcBloodGroup, "symbol")}</strong>
                     </p>
                   </div>
                 </div>
@@ -420,7 +421,7 @@ export function LandingPage() {
 
       {/* Upcoming drives */}
       <section id="events" className="border-b border-border/40 py-14 sm:py-16">
-        <div id="campaigns" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div id="campaigns" className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Upcoming donation drives</h2>
@@ -484,7 +485,7 @@ export function LandingPage() {
 
       {/* How it works */}
       <section id="about" className="bg-muted/10 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">How LifeDrop works</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -519,9 +520,13 @@ export function LandingPage() {
             </div>
             <div className="flex items-center gap-3">
               <Link to="/register" search={{ role: "DONOR" }}>
-                <Button>Register now</Button>
+                <Button className="bg-primary text-primary-foreground font-semibold">Register now</Button>
               </Link>
-              <AuthDialog />
+              <AuthDialog
+                trigger={
+                  <Button variant="outline" className="font-semibold">Sign in</Button>
+                }
+              />
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useEffect } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { Droplet } from "lucide-react";
@@ -43,9 +44,9 @@ function LoginPage() {
   }, [user, redirect, navigate]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="mx-auto flex max-w-md flex-col items-center justify-center px-4 py-16">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 flex-1 flex flex-col items-center justify-center">
         <div className="mb-6 flex items-center gap-2 font-bold text-2xl text-primary">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Droplet className="size-6 fill-current" />
@@ -53,15 +54,22 @@ function LoginPage() {
           <span>LifeDrop Access Portal</span>
         </div>
 
-        <Card className="w-full shadow-[var(--shadow-elegant)]">
+        <Card className="w-full max-w-md shadow-[var(--shadow-elegant)] border border-border/80">
           <CardHeader className="text-center">
-            <CardTitle>Welcome Back</CardTitle>
+            <CardTitle className="text-xl font-bold">Welcome Back</CardTitle>
             <CardDescription>
               Sign in to your LifeDrop account to access your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">
-            <AuthDialog defaultTab="login" />
+            <AuthDialog
+              defaultTab="login"
+              trigger={
+                <Button className="w-full py-2.5 text-sm font-bold bg-[#800000] text-white hover:bg-[#600000] rounded-xl shadow-sm transition-all duration-200">
+                  Open Sign In Dialog
+                </Button>
+              }
+            />
           </CardContent>
         </Card>
       </main>

@@ -50,6 +50,7 @@ import {
   type StockStatus,
   type TransactionType,
 } from "@/lib/api/types";
+import { formatBloodGroup } from "@/lib/formatters";
 
 export const Route = createFileRoute("/inventory")({
   head: () => ({
@@ -199,10 +200,10 @@ function Inventory() {
           role="alert"
           className="animate-pulse-slow border-b border-destructive/40 bg-destructive text-destructive-foreground"
         >
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 py-3">
+          <div className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-12 py-3">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
-              CRITICAL SHORTAGE — {shortages.map((s) => s.group).join(", ")}{" "}
+              CRITICAL SHORTAGE — {shortages.map((s) => formatBloodGroup(s.group, "symbol")).join(", ")}{" "}
               {shortages.length === 1 ? "is" : "are"} critically low or out of stock in connected
               blood banks.
             </p>
@@ -210,11 +211,11 @@ function Inventory() {
         </div>
       )}
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blood Inventory</h1>
-            <p className="mt-2 text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Blood Inventory</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
               {isLoading ? "Loading stock..." : `${totalUnits} units in stock`} across
               connected hospital blood banks.
             </p>
@@ -261,7 +262,7 @@ function Inventory() {
                         <SelectContent>
                           {inventoryItems?.map((item) => (
                             <SelectItem key={item.inventory_id} value={item.inventory_id}>
-                              {toDisplayBloodGroup(item.blood_group)} · {item.component_type} (
+                              {formatBloodGroup(toDisplayBloodGroup(item.blood_group), "symbol")} · {item.component_type} (
                               {item.quantity} units)
                             </SelectItem>
                           ))}
@@ -302,25 +303,29 @@ function Inventory() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="tx-ref">Reference Type</Label>
-                      <Select value={txRefType} onValueChange={setTxRefType}>
-                        <SelectTrigger id="tx-ref">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="DONATION">DONATION</SelectItem>
-                          <SelectItem value="REQUEST">REQUEST</SelectItem>
-                          <SelectItem value="EVENT">EVENT</SelectItem>
-                          <SelectItem value="ADJUSTMENT">ADJUSTMENT</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="tx-ref">Reference</Label>
+                      <Input
+                        id="tx-ref"
+                        placeholder="e.g. Mobile Drive, Emergency Surgery"
+                        value={txRefType}
+                        onChange={(e) => setTxRefType(e.target.value)}
+                        required
+                      />
                     </div>
 
                     <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setTxDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
                       <Button type="submit" disabled={recordTransactionMutation.isPending}>
-                        {recordTransactionMutation.isPending
-                          ? "Recording..."
-                          : "Submit Transaction"}
+                        {recordTransactionMutation.isPending && (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        )}
+                        Commit Transaction
                       </Button>
                     </DialogFooter>
                   </form>
@@ -335,8 +340,8 @@ function Inventory() {
         </div>
 
         {/* Filters */}
-        <Card className="mt-6 shadow-[var(--shadow-elegant)]">
-          <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
+        <Card className="mt-6 shadow-xs border border-border/80">
+          <CardContent className="grid gap-4 p-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="grid gap-2">
               <Label htmlFor="q">Search Blood Group</Label>
               <div className="relative">
@@ -371,14 +376,14 @@ function Inventory() {
         </Card>
 
         {/* Stock Cards Grid */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
           {visible.map((row) => (
-            <Card key={row.group} className="shadow-[var(--shadow-elegant)]">
+            <Card key={row.group} className="shadow-[var(--shadow-elegant)] border border-border/80">
               <CardContent className="space-y-3 p-5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-2xl font-bold text-primary">
                     <Droplet className="size-5" />
-                    {row.group}
+                    {formatBloodGroup(row.group, "symbol")}
                   </span>
                   <Badge className={STATUS_DISPLAY[row.status].className}>
                     {STATUS_DISPLAY[row.status].label}

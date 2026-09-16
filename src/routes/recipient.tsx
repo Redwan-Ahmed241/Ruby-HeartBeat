@@ -27,6 +27,7 @@ import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodRequests, useBloodRequest, useRevealDonorContact } from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
+import { formatBloodGroup } from "@/lib/formatters";
 import type { BloodRequestResponse, DonorContactReveal } from "@/lib/api/types";
 import { toast } from "sonner";
 
@@ -54,7 +55,7 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
       <div className="space-y-1 min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-bold text-primary">{toDisplayBloodGroup(req.blood_group)}</span>
+          <span className="text-base font-bold text-primary">{formatBloodGroup(req.blood_group, "symbol")}</span>
           <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
           <Badge variant="outline">{req.status}</Badge>
         </div>
@@ -118,7 +119,7 @@ function MatchesDialog({ requestId, onClose }: { requestId: string | null; onClo
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
-                        {toDisplayBloodGroup(m.blood_group)}
+                        {formatBloodGroup(m.blood_group, "symbol")}
                       </span>
                       <span className="text-sm font-medium">
                         {contact ? contact.full_name : `Donor ${m.donor_name_initial}.`}
@@ -220,12 +221,12 @@ function RecipientDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient Dashboard</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Recipient Dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Track your blood requests and view matched donors.
             </p>
@@ -244,7 +245,7 @@ function RecipientDashboardPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3 md:gap-6">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           {stats.map((s) => (
             <Card key={s.label}>
               <CardContent className="flex items-center gap-3 p-4">

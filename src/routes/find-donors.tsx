@@ -41,18 +41,18 @@ function FindDonors() {
   const radiusKm = RADII[radiusIndex] ?? 10;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Find blood</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Nearby Blood Network</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             Browse hospital blood banks nearby, or create a request and let LifeDrop match you with
             eligible donors — privately.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           {STEPS.map((s, i) => (
             <Card key={s.title}>
               <CardContent className="p-5">
@@ -115,10 +115,10 @@ function FindDonors() {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden relative isolate z-0 rounded-2xl">
             <CardContent className="p-0">
-              <ClientOnly fallback={<Skeleton className="h-[520px] w-full" />}>
-                <Suspense fallback={<Skeleton className="h-[520px] w-full" />}>
+              <ClientOnly fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>
+                <Suspense fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>
                   <DonorMap radiusKm={radiusKm} />
                 </Suspense>
               </ClientOnly>

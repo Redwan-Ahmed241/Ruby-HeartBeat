@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CentersRouteImport } from './routes/centers'
 import { Route as DonorRouteImport } from './routes/donor'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FindDonorsRouteImport } from './routes/find-donors'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CentersRoute = CentersRouteImport.update({
+  id: '/centers',
+  path: '/centers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DonorRoute = DonorRouteImport.update({
@@ -152,6 +158,7 @@ const RequestsNewRoute = RequestsNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/centers': typeof CentersRoute
   '/donor': typeof DonorRouteWithChildren
   '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/centers': typeof CentersRoute
   '/donor': typeof DonorRouteWithChildren
   '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/centers': typeof CentersRoute
   '/donor': typeof DonorRouteWithChildren
   '/events': typeof EventsRoute
   '/find-donors': typeof FindDonorsRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/centers'
     | '/donor'
     | '/events'
     | '/find-donors'
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/centers'
     | '/donor'
     | '/events'
     | '/find-donors'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/centers'
     | '/donor'
     | '/events'
     | '/find-donors'
@@ -304,6 +316,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CentersRoute: typeof CentersRoute
   DonorRoute: typeof DonorRouteWithChildren
   EventsRoute: typeof EventsRoute
   FindDonorsRoute: typeof FindDonorsRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/centers': {
+      id: '/centers'
+      path: '/centers'
+      fullPath: '/centers'
+      preLoaderRoute: typeof CentersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/donor': {
@@ -542,6 +562,7 @@ const RecipientRouteWithChildren = RecipientRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CentersRoute: CentersRoute,
   DonorRoute: DonorRouteWithChildren,
   EventsRoute: EventsRoute,
   FindDonorsRoute: FindDonorsRoute,
