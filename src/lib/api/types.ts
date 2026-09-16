@@ -12,7 +12,22 @@ export type UserRole = "DONOR" | "RECIPIENT" | "HOSPITAL_ADMIN" | "SYSTEM_ADMIN"
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 export type BloodGroup =
-  "A_PLUS" | "A_MINUS" | "B_PLUS" | "B_MINUS" | "AB_PLUS" | "AB_MINUS" | "O_PLUS" | "O_MINUS";
+  | "A_POSITIVE"
+  | "A_NEGATIVE"
+  | "B_POSITIVE"
+  | "B_NEGATIVE"
+  | "AB_POSITIVE"
+  | "AB_NEGATIVE"
+  | "O_POSITIVE"
+  | "O_NEGATIVE"
+  | "A_PLUS"
+  | "A_MINUS"
+  | "B_PLUS"
+  | "B_MINUS"
+  | "AB_PLUS"
+  | "AB_MINUS"
+  | "O_PLUS"
+  | "O_MINUS";
 
 export type ComponentType = "WHOLE_BLOOD" | "PLASMA" | "PLATELETS";
 
@@ -454,6 +469,14 @@ export interface SystemLogResponse {
 // ============================================================================
 
 export const BLOOD_GROUP_UI_MAP: Record<BloodGroup, string> = {
+  A_POSITIVE: "A+",
+  A_NEGATIVE: "A-",
+  B_POSITIVE: "B+",
+  B_NEGATIVE: "B-",
+  AB_POSITIVE: "AB+",
+  AB_NEGATIVE: "AB-",
+  O_POSITIVE: "O+",
+  O_NEGATIVE: "O-",
   A_PLUS: "A+",
   A_MINUS: "A-",
   B_PLUS: "B+",
@@ -465,14 +488,14 @@ export const BLOOD_GROUP_UI_MAP: Record<BloodGroup, string> = {
 };
 
 export const UI_TO_BLOOD_GROUP_MAP: Record<string, BloodGroup> = {
-  "A+": "A_PLUS",
-  "A-": "A_MINUS",
-  "B+": "B_PLUS",
-  "B-": "B_MINUS",
-  "AB+": "AB_PLUS",
-  "AB-": "AB_MINUS",
-  "O+": "O_PLUS",
-  "O-": "O_MINUS",
+  "A+": "A_POSITIVE",
+  "A-": "A_NEGATIVE",
+  "B+": "B_POSITIVE",
+  "B-": "B_NEGATIVE",
+  "AB+": "AB_POSITIVE",
+  "AB-": "AB_NEGATIVE",
+  "O+": "O_POSITIVE",
+  "O-": "O_NEGATIVE",
 };
 
 export function toDisplayBloodGroup(group: BloodGroup | string): string {

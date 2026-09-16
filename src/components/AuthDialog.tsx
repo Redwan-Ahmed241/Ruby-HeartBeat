@@ -56,7 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { UserRole } from "@/lib/api/types";
+import type { UserRole, BloodGroup } from "@/lib/api/types";
 import { toast } from "sonner";
 
 // Pre-seeded production-grade evaluation credentials
@@ -121,6 +121,7 @@ export function AuthDialog({
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+8801700000000");
   const [selectedRole, setSelectedRole] = useState<UserRole>(defaultRole);
+  const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
@@ -159,7 +160,7 @@ export function AuthDialog({
         donor_profile:
           selectedRole === "DONOR"
             ? {
-              blood_group: "O_PLUS",
+              blood_group: selectedBloodGroup || "O_POSITIVE",
               date_of_birth: "1998-05-20",
               gender: "Male",
               weight: 68.0,
@@ -455,6 +456,30 @@ export function AuthDialog({
                   </Select>
                 </div>
               </div>
+
+              {selectedRole === "DONOR" && (
+                <div className="space-y-1">
+                  <Label htmlFor="reg-blood-group">Blood Group</Label>
+                  <Select
+                    value={selectedBloodGroup}
+                    onValueChange={(v) => setSelectedBloodGroup(v as BloodGroup)}
+                  >
+                    <SelectTrigger id="reg-blood-group">
+                      <SelectValue placeholder="Select blood group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="O_POSITIVE">O+ (O Positive)</SelectItem>
+                      <SelectItem value="O_NEGATIVE">O- (O Negative)</SelectItem>
+                      <SelectItem value="A_POSITIVE">A+ (A Positive)</SelectItem>
+                      <SelectItem value="A_NEGATIVE">A- (A Negative)</SelectItem>
+                      <SelectItem value="B_POSITIVE">B+ (B Positive)</SelectItem>
+                      <SelectItem value="B_NEGATIVE">B- (B Negative)</SelectItem>
+                      <SelectItem value="AB_POSITIVE">AB+ (AB Positive)</SelectItem>
+                      <SelectItem value="AB_NEGATIVE">AB- (AB Negative)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button type="submit" className="w-full mt-2" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? "Creating Account..." : "Create Account"}

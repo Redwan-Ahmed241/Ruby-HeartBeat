@@ -77,14 +77,14 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     let responseData: unknown = null;
     try {
       responseData = await response.json();
-      if (
-        responseData &&
-        typeof responseData === "object" &&
-        "detail" in responseData &&
-        typeof (responseData as { detail: unknown }).detail === "string"
-      ) {
-        errorDetail = (responseData as { detail: string }).detail;
-      }
+        if (responseData && typeof responseData === "object" && "detail" in responseData) {
+          const det = (responseData as { detail: unknown }).detail;
+          if (typeof det === "string") {
+            errorDetail = det;
+          } else if (Array.isArray(det)) {
+            errorDetail = det.map((d: { msg?: string }) => d.msg || JSON.stringify(d)).join(", ");
+          }
+        }
     } catch {
       // response is not JSON
     }
