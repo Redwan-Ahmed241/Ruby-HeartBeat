@@ -147,12 +147,12 @@ export function LandingPage() {
       <SiteNav />
 
       {/* Hero */}
-      <section className="border-b border-border/40 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl px-4 text-center">
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+      <section className="border-b border-border/40 py-16 sm:py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="mx-auto max-w-4xl text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Find a blood donor when it matters most
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base md:text-lg text-muted-foreground">
             LifeDrop connects volunteer donors, patients, and hospital blood banks across Dhaka.
             Check your eligibility, request blood, or join a donation drive.
           </p>
@@ -178,17 +178,17 @@ export function LandingPage() {
             </Link>
           </div>
 
-          <div className="mt-14 grid grid-cols-2 gap-4 text-left sm:grid-cols-4">
+          <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 text-left">
             {[
               { icon: ShieldCheck, title: "Private by default", body: "Your contact details are shared only when you accept a match." },
               { icon: HeartPulse, title: "Eligibility built in", body: "Checks for age, weight, hemoglobin, and donation interval." },
               { icon: Building2, title: "Hospital blood banks", body: "Live stock for whole blood, plasma, and platelets." },
               { icon: Activity, title: "Fast in emergencies", body: "Urgent requests reach nearby eligible donors right away." },
             ].map((f) => (
-              <div key={f.title} className="rounded-xl border border-border bg-card p-4">
+              <div key={f.title} className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs transition hover:border-primary/40">
                 <f.icon className="size-5 text-primary" />
                 <p className="mt-2 text-sm font-semibold">{f.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{f.body}</p>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>
@@ -196,8 +196,8 @@ export function LandingPage() {
       </section>
 
       {/* Hospital blood bank network */}
-      <section id="nearby-donors" className="border-b border-border/40 py-16">
-        <div className="mx-auto max-w-6xl px-4">
+      <section id="nearby-donors" className="border-b border-border/40 py-14 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Hospital blood bank network</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -207,7 +207,7 @@ export function LandingPage() {
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+          <div className="grid gap-6 lg:grid-cols-[300px_1fr] xl:grid-cols-[320px_1fr]">
             <Card className="h-fit">
               <CardHeader>
                 <CardTitle className="text-base">Map view</CardTitle>
@@ -265,8 +265,8 @@ export function LandingPage() {
       </section>
 
       {/* Eligibility calculator */}
-      <section id="eligibility" className="border-b border-border/40 bg-muted/20 py-16">
-        <div className="mx-auto max-w-6xl px-4">
+      <section id="eligibility" className="border-b border-border/40 bg-muted/20 py-14 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">Check your donation eligibility</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -419,8 +419,8 @@ export function LandingPage() {
       </section>
 
       {/* Upcoming drives */}
-      <section id="events" className="border-b border-border/40 py-16">
-        <div id="campaigns" className="mx-auto max-w-6xl px-4">
+      <section id="events" className="border-b border-border/40 py-14 sm:py-16">
+        <div id="campaigns" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Upcoming donation drives</h2>
@@ -483,8 +483,8 @@ export function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="about" className="bg-muted/10 py-16">
-        <div className="mx-auto max-w-6xl px-4">
+      <section id="about" className="bg-muted/10 py-14 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">How LifeDrop works</h2>
             <p className="mt-2 text-sm text-muted-foreground">

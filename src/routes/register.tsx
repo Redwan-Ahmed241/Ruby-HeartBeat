@@ -8,8 +8,8 @@ import type { UserRole } from "@/lib/api/types";
 import { HeartPulse } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    role: (search["role"] as UserRole) || "DONOR",
+  validateSearch: (search: Record<string, unknown>): { role: "DONOR" | "RECIPIENT" } => ({
+    role: (search["role"] as string) === "RECIPIENT" ? "RECIPIENT" : "DONOR",
   }),
   head: () => ({
     meta: [
@@ -29,7 +29,6 @@ function RegisterPage() {
     if (user) {
       if (user.role === "DONOR") navigate({ to: "/donor" });
       else if (user.role === "RECIPIENT") navigate({ to: "/recipient" });
-      else if (user.role === "HOSPITAL_ADMIN") navigate({ to: "/hospital" });
       else if (user.role === "SYSTEM_ADMIN") navigate({ to: "/admin" });
       else navigate({ to: "/" });
     }

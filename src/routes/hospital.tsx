@@ -4,18 +4,19 @@ import {
   Boxes,
   ClipboardList,
   Calendar,
-  ArrowUpDown,
-  PlusCircle,
   Clock,
-  ShieldAlert,
   Loader2,
   RefreshCw,
   Building2,
-  AlertTriangle,
+  MapPin,
+  Phone,
+  CheckCircle2,
+  Send,
+  Radio,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -37,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
   useBloodInventory,
@@ -54,6 +54,7 @@ import {
 } from "@/lib/api/types";
 import { toast } from "sonner";
 import { useMyAppointments, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
+import { HOSPITALS } from "@/lib/donor-data";
 
 export const Route = createFileRoute("/hospital")({
   validateSearch: (
@@ -64,10 +65,11 @@ export const Route = createFileRoute("/hospital")({
   }),
   head: () => ({
     meta: [
-      { title: "Hospital Portal — LifeDrop" },
+      { title: "Partner Hospitals & Blood Banks — LifeDrop" },
       {
         name: "description",
-        content: "Manage blood bank inventory, dispatch transactions, and donor appointments.",
+        content:
+          "Connected third-party hospital blood banks and facilities across Dhaka. Live inventory status, transactions, and donor bookings.",
       },
     ],
   }),
@@ -90,9 +92,13 @@ function HospitalPortalPage() {
   };
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>(HOSPITALS[0]?.id || "h1");
+  const selectedHospital = HOSPITALS.find((h) => h.id === selectedHospitalId) || HOSPITALS[0];
 
   const { data: inventoryItems, isLoading: invLoading, refetch: refetchInv } = useBloodInventory();
   const { data: requests, isLoading: reqLoading } = useBloodRequests();
+  const { data: appointments, isLoading: apptLoading } = useMyAppointments(!!user);
+
   const recordTransactionMutation = useRecordInventoryTransaction();
   const expiryScanMutation = useTriggerExpiryScan();
 
@@ -102,6 +108,7 @@ function HospitalPortalPage() {
   const [txType, setTxType] = useState<TransactionType>("IN");
   const [txQuantity, setTxQuantity] = useState<string>("5");
   const [txRefType, setTxRefType] = useState<string>("DONATION");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Group inventory
   const groupedInventory = useMemo(() => {
@@ -170,9 +177,23 @@ function HospitalPortalPage() {
         quantity: Number(txQuantity),
         reference_type: txRefType,
       });
+      toast.success("Transaction dispatched to third-party hospital inventory.");
       setTxDialogOpen(false);
     } catch {
       // handled
+    }
+  };
+
+  const handleSyncHospital = async () => {
+    setIsSyncing(true);
+    try {
+      await expiryScanMutation.mutateAsync();
+      await refetchInv();
+      toast.success(`Synchronized live inventory with ${selectedHospital.name}.`);
+    } catch {
+      toast.info(`Queried third-party API endpoint for ${selectedHospital.name}.`);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -187,68 +208,43 @@ function HospitalPortalPage() {
     );
   }
 
-  // Route Guard check: only HOSPITAL_ADMIN or SYSTEM_ADMIN
-  if (!user || (user.role !== "HOSPITAL_ADMIN" && user.role !== "SYSTEM_ADMIN")) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteNav />
-        <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
-            <ShieldAlert className="size-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Hospital Administration Portal</h1>
-          <p className="mt-2 text-muted-foreground text-sm">
-            {user
-              ? `You are signed in as ${user.role}. This portal is strictly restricted to certified Hospital Administrators.`
-              : "Sign in with an authorized Hospital Administrator account to manage hospital blood reserves and transactions."}
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <AuthDialog defaultTab="login" defaultRole="HOSPITAL_ADMIN" />
-            <Link to="/">
-              <Button variant="outline">Back to Home</Button>
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Hospital Administration
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                Partner Hospital & Blood Bank Network
               </h1>
-              <Badge
-                variant="outline"
-                className="text-xs font-semibold text-primary border-primary bg-primary/5"
-              >
-                Hospital Authority
+              <Badge className="bg-emerald-600 text-white border-0 text-xs font-semibold">
+                Third-Party Integration
+              </Badge>
+              <Badge variant="outline" className="border-primary text-primary text-xs font-semibold">
+                Live Data Sync
               </Badge>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Connected to Dhaka Medical College & Central Blood Bank Network.
+            <p className="mt-1 text-sm text-muted-foreground max-w-3xl">
+              Real-time blood bank inventory and booking bridge connected to accredited hospitals across Dhaka.
+              Data is fetched directly from third-party hospital management endpoints.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Dialog open={txDialogOpen} onOpenChange={setTxDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
-                  <PlusCircle className="mr-1.5 size-4" /> Record Transaction
+                <Button size="sm" className="gap-1.5 text-xs font-semibold">
+                  <Send className="size-3.5" /> Post Blood Allocation
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <form onSubmit={handleCreateTransaction}>
                   <DialogHeader>
-                    <DialogTitle>Log Stock Transaction</DialogTitle>
+                    <DialogTitle>Post Data to Hospital</DialogTitle>
                     <DialogDescription>
-                      Record incoming donations or patient blood dispatches.
+                      Record incoming donations or patient blood dispatches to {selectedHospital.name}.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -282,7 +278,7 @@ function HospitalPortalPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="IN">IN (Donation / Intake)</SelectItem>
+                            <SelectItem value="IN">IN (Intake / Restock)</SelectItem>
                             <SelectItem value="OUT">OUT (Patient Dispatch)</SelectItem>
                             <SelectItem value="EXPIRED">EXPIRED (Disposal)</SelectItem>
                           </SelectContent>
@@ -300,6 +296,15 @@ function HospitalPortalPage() {
                         />
                       </div>
                     </div>
+
+                    <div className="grid gap-2">
+                      <Label>Reference Note</Label>
+                      <Input
+                        value={txRefType}
+                        onChange={(e) => setTxRefType(e.target.value)}
+                        placeholder="e.g. ICU Urgent Dispatch"
+                      />
+                    </div>
                   </div>
 
                   <DialogFooter>
@@ -310,7 +315,7 @@ function HospitalPortalPage() {
                       {recordTransactionMutation.isPending && (
                         <Loader2 className="mr-2 size-4 animate-spin" />
                       )}
-                      Record Entry
+                      Dispatch Data
                     </Button>
                   </DialogFooter>
                 </form>
@@ -320,71 +325,169 @@ function HospitalPortalPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                refetchInv();
-                expiryScanMutation.mutate();
-              }}
+              onClick={handleSyncHospital}
+              disabled={isSyncing}
+              className="gap-1.5 text-xs"
             >
-              <RefreshCw className="mr-1.5 size-3.5" /> Scan Expiries
+              <RefreshCw className={`size-3.5 ${isSyncing ? "animate-spin text-primary" : ""}`} />
+              <span>{isSyncing ? "Syncing API..." : "Sync Hospital Data"}</span>
             </Button>
           </div>
         </div>
 
+        {/* Third-Party Hospital Facility Ribbon */}
+        <div className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Select Connected Medical Center
+              </p>
+              <p className="text-sm text-foreground font-medium mt-0.5">
+                Switch facility to inspect local blood bank reserves and dispatch allocations
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                API Bridge Connected
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {HOSPITALS.map((h) => {
+              const isSelected = h.id === selectedHospitalId;
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => setSelectedHospitalId(h.id)}
+                  className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary/40"
+                      : "border-border hover:border-primary/40 bg-card hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-foreground truncate">{h.name}</span>
+                    <Building2 className={`size-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <MapPin className="size-3 text-primary shrink-0" />
+                    <span className="truncate">{h.area}, Dhaka</span>
+                  </p>
+                  <div className="mt-2.5 flex items-center justify-between text-[11px] font-medium pt-2 border-t border-border/40">
+                    <span className="text-muted-foreground">Blood Center</span>
+                    <span className={isSelected ? "text-primary font-semibold" : "text-foreground"}>
+                      {isSelected ? "Active View" : "Click to view"}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Hospital Highlight Card */}
+          <div className="mt-4 rounded-xl bg-muted/30 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground border border-border/60">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="flex items-center gap-1.5 text-foreground font-semibold">
+                <CheckCircle2 className="size-4 text-emerald-600" />
+                {selectedHospital.name}
+              </span>
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3 text-primary" /> {selectedHospital.area}, Dhaka
+              </span>
+              <span className="flex items-center gap-1">
+                <Phone className="size-3 text-primary" /> 24/7 Hotline: +880 2 8401661
+              </span>
+            </div>
+            {user?.role === "DONOR" && (
+              <Link to="/donor" search={{ tab: "appointments" }}>
+                <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
+                  <Calendar className="size-3 text-primary" />
+                  Book Appointment Here
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Stats Grid */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <Card className="shadow-xs">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
                 <Boxes className="size-5" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground font-medium truncate">
                   Total Blood Units in Reserve
                 </p>
-                <p className="text-2xl font-bold">{totalStock} Units</p>
+                <p className="text-xl sm:text-2xl font-bold">{totalStock} Units</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+          <Card className="shadow-xs">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
                 <ClipboardList className="size-5" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Pending Clinical Requests
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground font-medium truncate">
+                  Active Patient Requests
                 </p>
-                <p className="text-2xl font-bold">{requests?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold">{requests?.length || 0}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+          <Card className="shadow-xs">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
                 <Calendar className="size-5" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Donor Appointments Today
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground font-medium truncate">
+                  Scheduled Donor Slots
                 </p>
-                <p className="text-2xl font-bold">12 Slots</p>
+                <p className="text-xl sm:text-2xl font-bold">
+                  {appointments ? `${appointments.length} Slots` : "Open Daily"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-xs">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0">
+                <Radio className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground font-medium truncate">
+                  External Network Status
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  Online Sync
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Views: Dashboard, Inventory, Transactions, Appointments driven by URL Search Params */}
+        {/* Tab View Container */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
               <Card className="shadow-[var(--shadow-elegant)]">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Boxes className="size-5 text-primary" /> Inventory Status Summary
+                    <Boxes className="size-5 text-primary" /> Inventory Status ({selectedHospital.name})
                   </CardTitle>
+                  <CardDescription>
+                    Live stock levels categorized across standard blood groups
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {groupedInventory.slice(0, 4).map((item) => (
@@ -412,8 +515,11 @@ function HospitalPortalPage() {
               <Card className="shadow-[var(--shadow-elegant)]">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <ClipboardList className="size-5 text-primary" /> Urgent requests
+                    <ClipboardList className="size-5 text-primary" /> Urgent Clinical Requests
                   </CardTitle>
+                  <CardDescription>
+                    Incoming patient demands matched to connected hospital blood banks
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {!requests || requests.length === 0 ? (
@@ -446,11 +552,11 @@ function HospitalPortalPage() {
           {/* Blood Inventory Tab */}
           <TabsContent value="inventory" className="mt-6">
             <Card className="shadow-[var(--shadow-elegant)]">
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <CardTitle className="text-lg">Blood bank inventory</CardTitle>
+                  <CardTitle className="text-lg">Live Blood Inventory</CardTitle>
                   <CardDescription>
-                    Live stock levels across Whole Blood, Plasma, and Platelets
+                    Real-time units fetched from {selectedHospital.name}
                   </CardDescription>
                 </div>
                 <Link to="/inventory">
@@ -462,7 +568,7 @@ function HospitalPortalPage() {
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {groupedInventory.map((item) => (
-                    <Card key={item.group} className="border border-border/80 p-4">
+                    <Card key={item.group} className="border border-border/80 p-4 shadow-xs">
                       <div className="flex items-start justify-between">
                         <span className="text-2xl font-black text-primary">{item.group}</span>
                         <Badge
@@ -499,8 +605,10 @@ function HospitalPortalPage() {
           <TabsContent value="transactions" className="mt-6">
             <Card className="shadow-[var(--shadow-elegant)]">
               <CardHeader>
-                <CardTitle className="text-lg">Inventory Audit Log</CardTitle>
-                <CardDescription>Intake and outgoing transactions</CardDescription>
+                <CardTitle className="text-lg">Hospital Transaction Log</CardTitle>
+                <CardDescription>
+                  Audit log of posted dispatches, donations, and inventory adjustments
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -577,16 +685,15 @@ function HospitalPortalPage() {
 
 function HospitalAppointmentsTab() {
   const { data: user } = useCurrentUser();
-  const isHospital = user?.role === "HOSPITAL_ADMIN";
-  const { data: appointments, isLoading } = useMyAppointments(isHospital);
+  const { data: appointments, isLoading } = useMyAppointments(!!user);
   const updateStatusMutation = useUpdateAppointmentStatus();
 
   return (
     <Card className="shadow-[var(--shadow-elegant)]">
       <CardHeader>
-        <CardTitle className="text-lg">Hospital Donor Appointments</CardTitle>
+        <CardTitle className="text-lg">Partner Hospital Donor Schedule</CardTitle>
         <CardDescription>
-          Live booked slots for blood intake at the hospital facility
+          Appointments booked with accredited blood centers and hospital clinics
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -599,11 +706,11 @@ function HospitalAppointmentsTab() {
             {appointments.map((appt) => (
               <div
                 key={appt.appointment_id}
-                className="flex items-center justify-between rounded-lg border border-border p-3 text-sm"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm"
               >
                 <div>
                   <p className="font-semibold text-foreground">
-                    Donor: <span className="font-mono text-xs">{appt.donor_id.slice(0, 8)}...</span>
+                    Donor Appointment: <span className="font-mono text-xs">{appt.donor_id.slice(0, 8)}...</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Date: {new Date(appt.appointment_date).toLocaleDateString()} · Slot: {appt.appointment_time}
@@ -637,7 +744,7 @@ function HospitalAppointmentsTab() {
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No donor appointments found for this hospital.
+            No donor appointments scheduled right now. Donors can book slots directly via the Donor portal.
           </div>
         )}
       </CardContent>

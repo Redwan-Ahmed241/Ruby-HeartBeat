@@ -85,14 +85,6 @@ const DEMO_CREDENTIALS: Array<{
       description: "Active emergency blood recipient",
     },
     {
-      role: "HOSPITAL_ADMIN",
-      label: "Hospital Authority",
-      email: "hospital.demo@lifedrop.org",
-      pass: "DemoPass123!",
-      icon: Building2,
-      description: "Evercare Hospital Blood Bank administrator",
-    },
-    {
       role: "SYSTEM_ADMIN",
       label: "System Admin",
       email: "admin.demo@lifedrop.org",
@@ -148,8 +140,7 @@ export function AuthDialog({
       const dest =
         me.role === "DONOR" ? "/donor"
           : me.role === "RECIPIENT" ? "/recipient"
-            : me.role === "HOSPITAL_ADMIN" ? "/hospital"
-              : "/admin";
+            : "/admin";
       navigate({ to: dest });
     } catch {
       // Error handled by mutation toast
@@ -187,16 +178,7 @@ export function AuthDialog({
               patient_name: "Patient Family Member",
             }
             : null,
-        hospital_profile:
-          selectedRole === "HOSPITAL_ADMIN"
-            ? {
-              hospital_name: "Affiliated Hospital Blood Center",
-              address: "Dhaka Central, Bangladesh",
-              latitude: 23.7925,
-              longitude: 90.4078,
-              contact_number: "+88028401661",
-            }
-            : null,
+        hospital_profile: null,
       });
       toast.success("Account created! You may now sign in.");
       setActiveTab("login");
@@ -469,7 +451,6 @@ export function AuthDialog({
                     <SelectContent>
                       <SelectItem value="DONOR">Blood Donor</SelectItem>
                       <SelectItem value="RECIPIENT">Recipient / Patient Family</SelectItem>
-                      <SelectItem value="HOSPITAL_ADMIN">Hospital Authority</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

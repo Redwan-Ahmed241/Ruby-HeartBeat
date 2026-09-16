@@ -188,8 +188,7 @@ function Inventory() {
     await expiryScanMutation.mutateAsync();
   };
 
-  const isHospitalOrAdmin =
-    currentUser && (currentUser.role === "HOSPITAL_ADMIN" || currentUser.role === "SYSTEM_ADMIN");
+  const isHospitalOrAdmin = !!currentUser;
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,7 +199,7 @@ function Inventory() {
           role="alert"
           className="animate-pulse-slow border-b border-destructive/40 bg-destructive text-destructive-foreground"
         >
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 py-3">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
               CRITICAL SHORTAGE — {shortages.map((s) => s.group).join(", ")}{" "}
@@ -211,8 +210,8 @@ function Inventory() {
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blood Inventory</h1>
             <p className="mt-2 text-muted-foreground">

@@ -19,7 +19,6 @@ export function SiteNav() {
 
   const isDonor = user?.role === "DONOR";
   const isRecipient = user?.role === "RECIPIENT";
-  const isHospitalAdmin = user?.role === "HOSPITAL_ADMIN";
   const isSysAdmin = user?.role === "SYSTEM_ADMIN";
 
   const isDonorAvailable = user?.donor?.availability_status === "AVAILABLE";
@@ -65,7 +64,7 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold tracking-tight text-lg">
           <div className="flex size-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
@@ -85,6 +84,12 @@ export function SiteNav() {
               >
                 Eligibility
               </a>
+              <Link
+                to="/hospital"
+                className={getLinkClass("/hospital")}
+              >
+                Hospitals & Blood Banks
+              </Link>
               <a
                 href="/#events"
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
@@ -115,7 +120,7 @@ export function SiteNav() {
                 search={{ tab: "appointments" }}
                 className={getLinkClass("/donor", "appointments")}
               >
-                My Appointments
+                My Schedule
               </Link>
               <Link
                 to="/donor"
@@ -123,6 +128,12 @@ export function SiteNav() {
                 className={getLinkClass("/donor", "history")}
               >
                 Donation History
+              </Link>
+              <Link
+                to="/hospital"
+                className={getLinkClass("/hospital")}
+              >
+                Hospital Centers
               </Link>
               <Link
                 to="/events"
@@ -157,50 +168,15 @@ export function SiteNav() {
                 Create Request
               </Link>
               <Link
-                to="/recipient"
-                search={{ tab: "requests" }}
-                className={getLinkClass("/recipient", "requests")}
+                to="/hospital"
+                className={getLinkClass("/hospital")}
               >
-                My Requests
+                Hospital Stock
               </Link>
             </>
           )}
 
-          {/* 4. HOSPITAL_ADMIN Navigation */}
-          {isHospitalAdmin && (
-            <>
-              <Link
-                to="/hospital"
-                search={{ tab: "dashboard" }}
-                className={getLinkClass("/hospital", "dashboard", true)}
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "inventory" }}
-                className={getLinkClass("/hospital", "inventory")}
-              >
-                Blood Inventory
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "transactions" }}
-                className={getLinkClass("/hospital", "transactions")}
-              >
-                Transactions
-              </Link>
-              <Link
-                to="/hospital"
-                search={{ tab: "appointments" }}
-                className={getLinkClass("/hospital", "appointments")}
-              >
-                Appointments
-              </Link>
-            </>
-          )}
-
-          {/* 5. SYSTEM_ADMIN Navigation */}
+          {/* 4. SYSTEM_ADMIN Navigation */}
           {isSysAdmin && (
             <>
               <Link
@@ -209,6 +185,12 @@ export function SiteNav() {
                 className={getLinkClass("/admin")}
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/hospital"
+                className={getLinkClass("/hospital")}
+              >
+                Hospital Network
               </Link>
               <Link
                 to="/admin/users"
@@ -367,6 +349,13 @@ export function SiteNav() {
                 >
                   Eligibility
                 </a>
+                <Link
+                  to="/hospital"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital")}
+                >
+                  Hospitals & Blood Banks
+                </Link>
                 <a
                   href="/#events"
                   onClick={() => setOpen(false)}
@@ -398,7 +387,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/donor", "appointments")}
                 >
-                  My Appointments
+                  My Schedule
                 </Link>
                 <Link
                   to="/donor"
@@ -407,6 +396,13 @@ export function SiteNav() {
                   className={getMobileLinkClass("/donor", "history")}
                 >
                   Donation History
+                </Link>
+                <Link
+                  to="/hospital"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital")}
+                >
+                  Hospital Centers
                 </Link>
                 <Link
                   to="/events"
@@ -442,47 +438,11 @@ export function SiteNav() {
                   Create Request
                 </Link>
                 <Link
-                  to="/recipient"
-                  search={{ tab: "requests" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/recipient", "requests")}
-                >
-                  My Requests
-                </Link>
-              </>
-            ) : isHospitalAdmin ? (
-              <>
-                <Link
                   to="/hospital"
-                  search={{ tab: "dashboard" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital", "dashboard", true)}
+                  className={getMobileLinkClass("/hospital")}
                 >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/hospital"
-                  search={{ tab: "inventory" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital", "inventory")}
-                >
-                  Blood Inventory
-                </Link>
-                <Link
-                  to="/hospital"
-                  search={{ tab: "transactions" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital", "transactions")}
-                >
-                  Transactions
-                </Link>
-                <Link
-                  to="/hospital"
-                  search={{ tab: "appointments" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/hospital", "appointments")}
-                >
-                  Appointments
+                  Hospital Stock
                 </Link>
               </>
             ) : (
@@ -493,6 +453,13 @@ export function SiteNav() {
                   className={getMobileLinkClass("/admin")}
                 >
                   Dashboard
+                </Link>
+                <Link
+                  to="/hospital"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/hospital")}
+                >
+                  Hospital Network
                 </Link>
                 <Link
                   to="/admin/users"
@@ -523,10 +490,8 @@ export function SiteNav() {
               <div className="mt-3 border-t border-primary-glow/40 pt-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2 px-2 text-xs font-medium">
                   <span className="size-2 rounded-full bg-emerald-400" />
-                  <span className="truncate font-semibold">
-                    {isHospitalAdmin
-                      ? (user.hospital?.hospital_name || user.full_name)
-                      : user.full_name}
+                  <span className="truncate font-semibold max-w-[200px]">
+                    {user.full_name}
                   </span>
                 </div>
                 <Button

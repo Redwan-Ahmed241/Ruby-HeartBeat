@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
 import { useDonorHistory } from "@/hooks/useDonor";
 import { useMyRegisteredEvents } from "@/hooks/useAdmin";
+import { HOSPITALS } from "@/lib/donor-data";
 
 export const Route = createFileRoute("/donor")({
   validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "appointments" | "history" } => ({
@@ -174,9 +175,9 @@ function DonorDashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        {/* Header with Title & Quick Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Donor Dashboard</h1>
@@ -210,7 +211,7 @@ function DonorDashboardPage() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6">
           <Card className="shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -479,7 +480,7 @@ function AppointmentsTab() {
   const updateStatusMutation = useUpdateAppointmentStatus();
 
   const [showBooking, setShowBooking] = useState(false);
-  const [centerId, setCenterId] = useState("");
+  const [centerId, setCenterId] = useState(HOSPITALS[0]?.id || "32a02b1c-cbf6-408e-ae28-c2fe3203a394");
   const [apptDate, setApptDate] = useState("");
   const [apptTime, setApptTime] = useState("");
 
@@ -502,7 +503,7 @@ function AppointmentsTab() {
   return (
     <Card className="shadow-[var(--shadow-elegant)]">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="size-5 text-primary" /> My Schedule
@@ -511,7 +512,7 @@ function AppointmentsTab() {
               Hospital appointments and registered campaign drives
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to="/events">
               <Button size="sm" variant="outline">Browse Donation Drives</Button>
             </Link>
@@ -523,24 +524,31 @@ function AppointmentsTab() {
       </CardHeader>
       <CardContent>
         {showBooking && (
-          <div className="mb-6 space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-            <p className="text-sm font-semibold">Book New Appointment</p>
+          <div className="mb-6 space-y-4 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
+            <p className="text-sm font-semibold text-foreground">Book Partner Hospital Appointment</p>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <Label className="text-xs">Hospital / Center ID</Label>
-                <Input
-                  placeholder="Paste hospital UUID"
-                  value={centerId}
-                  onChange={(e) => setCenterId(e.target.value)}
-                />
+                <Label className="text-xs font-medium">Partner Hospital Facility</Label>
+                <Select value={centerId} onValueChange={setCenterId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select hospital center" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HOSPITALS.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {h.name} ({h.area})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <Label className="text-xs">Date</Label>
-                <Input type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
+                <Label className="text-xs font-medium">Date</Label>
+                <Input className="mt-1" type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">Time</Label>
-                <Input type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
+                <Label className="text-xs font-medium">Time</Label>
+                <Input className="mt-1" type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
               </div>
             </div>
             <Button size="sm" disabled={bookMutation.isPending} onClick={handleBook}>

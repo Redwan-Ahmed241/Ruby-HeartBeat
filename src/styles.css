@@ -177,3 +177,48 @@
     opacity: 0.82;
   }
 }
+
+/* ==========================================================================
+   Leaflet.js z-index Isolation Bugfix
+   ========================================================================== */
+.leaflet-container {
+  isolation: isolate !important;
+  z-index: 0 !important;
+}
+
+.leaflet-pane {
+  z-index: 10 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 10 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 12 !important;
+}
+
+.leaflet-shadow-pane {
+  z-index: 14 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 16 !important;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 18 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 19 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
+}
+
+.leaflet-control {
+  z-index: 20 !important;
+}

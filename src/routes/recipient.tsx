@@ -51,14 +51,14 @@ const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> =
 
 function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+      <div className="space-y-1 min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-base font-bold text-primary">{toDisplayBloodGroup(req.blood_group)}</span>
           <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
           <Badge variant="outline">{req.status}</Badge>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground truncate">
           {req.quantity} unit(s) · {req.component_type.replace("_", " ")} · {req.required_location}
         </p>
         {req.request_date && (
@@ -67,7 +67,7 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
           </p>
         )}
       </div>
-      <Button variant="outline" size="sm" className="text-xs" onClick={() => onViewMatches(req.request_id)}>
+      <Button variant="outline" size="sm" className="text-xs self-start sm:self-auto shrink-0" onClick={() => onViewMatches(req.request_id)}>
         View matches
       </Button>
     </div>
@@ -222,15 +222,15 @@ function RecipientDashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Recipient Dashboard</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Track your blood requests and view matched donors.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Link to="/requests/new">
               <Button variant="outline" size="sm" className="text-xs">
                 <PlusCircle className="mr-1.5 size-4" /> New request
@@ -244,7 +244,7 @@ function RecipientDashboardPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3 md:gap-6">
           {stats.map((s) => (
             <Card key={s.label}>
               <CardContent className="flex items-center gap-3 p-4">

@@ -32,7 +32,7 @@ export default function DonorMap({ donors = [], radiusKm, onRequestContact }: Pr
       center={CITY_CENTER}
       zoom={zoom}
       scrollWheelZoom={false}
-      className="h-[520px] w-full"
+      className="h-[360px] sm:h-[440px] md:h-[520px] w-full relative isolate z-0 rounded-xl overflow-hidden"
     >
       <InvalidateOnMount dep={radiusKm} />
       <TileLayer
