@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -51,10 +51,12 @@ import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } fro
 import { useDonorHistory } from "@/hooks/useDonor";
 import { useMyRegisteredEvents } from "@/hooks/useAdmin";
 import { HOSPITALS } from "@/lib/donor-data";
+import { getDonorTier } from "@/lib/gamification";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/donor")({
-  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "appointments" | "history" } => ({
-    tab: (search["tab"] as "overview" | "appointments" | "history") || "overview",
+  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "history" } => ({
+    tab: search["tab"] === "history" ? "history" : "overview",
   }),
   head: () => ({
     meta: [
@@ -73,12 +75,12 @@ const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
 function DonorDashboardPage() {
   const search = useSearch({ from: "/donor" });
   const navigate = useNavigate();
-  const activeTab = search["tab"] || "overview";
+  const activeTab = search["tab"] === "history" ? "history" : "overview";
 
   const handleTabChange = (newTab: string) => {
     navigate({
       to: "/donor",
-      search: { tab: newTab as "overview" | "appointments" | "history" },
+      search: { tab: newTab as "overview" | "history" },
     });
   };
 
@@ -133,6 +135,7 @@ function DonorDashboardPage() {
     (appointments?.filter((a) => a.status === "SCHEDULED").length || 0) +
     (registeredEvents?.length || 0);
   const lifetimeCount = donationHistory?.length || 0;
+  const tierInfo = getDonorTier(lifetimeCount);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -248,25 +251,52 @@ function DonorDashboardPage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
+        {/* Header with Dynamic Gamification Tier & Progress */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Donor Dashboard</h1>
               <Badge
                 variant="outline"
-                className="text-xs font-semibold text-primary border-primary bg-primary/5"
+                className={cn(
+                  "text-xs font-bold px-3 py-1 flex items-center gap-1.5 shadow-sm border transition-all",
+                  tierInfo.badgeColor
+                )}
               >
-                Verified Blood Donor
+                <span>{tierInfo.icon}</span>
+                <span>{tierInfo.title} • {lifetimeCount} {lifetimeCount === 1 ? "Donation" : "Donations"} Completed</span>
               </Badge>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Manage clinical eligibility, appointments, donation records, and emergency availability.
             </p>
+
+            {/* Dynamic Tier Progress Bar */}
+            {tierInfo.nextTier && (
+              <div className="mt-2 max-w-md bg-card/70 border border-border/70 rounded-xl p-3 shadow-xs">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span className="font-medium text-foreground">
+                    Progress to <span className="font-semibold text-primary">{tierInfo.nextTier} Donor</span>
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {tierInfo.currentCount} / {tierInfo.nextTierThreshold} ({tierInfo.progressPercent}%)
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(0, tierInfo.progressPercent))}%` }}
+                  />
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground">{tierInfo.remainingToNext} more</span> {tierInfo.remainingToNext === 1 ? "donation" : "donations"} to reach {tierInfo.nextTier} Donor status
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <Button
               onClick={handleSaveProfile}
               disabled={updateProfileMutation.isPending || upsertMedicalMutation.isPending}
@@ -282,8 +312,8 @@ function DonorDashboardPage() {
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {/* Quick Stats Grid with Fluid Auto-fitting Columns */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
           <Card className="shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -324,7 +354,7 @@ function DonorDashboardPage() {
                 <Calendar className="size-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Scheduled Appointments</p>
+                <p className="text-xs text-muted-foreground font-medium">Active Commitments</p>
                 <p className="text-xl font-bold">{scheduledCount} Upcoming</p>
               </div>
             </CardContent>
@@ -339,14 +369,37 @@ function DonorDashboardPage() {
                 <p className="text-xs text-muted-foreground font-medium">
                   Total Lifetime Donations
                 </p>
-                <p className="text-xl font-bold">{lifetimeCount} Times</p>
+                <p className="text-xl font-bold flex items-center gap-1.5">
+                  <span>{lifetimeCount} Times</span>
+                  <span className="text-xs font-medium text-muted-foreground">({tierInfo.icon} {tierInfo.name})</span>
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Views: Profile & Eligibility, Appointments, Donation History driven by URL Search Params */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
+        {/* Dashboard Tab Switcher: Overview vs History */}
+        <div className="mt-8 flex items-center gap-2 border-b border-border/60 pb-3">
+          <Button
+            variant={activeTab === "overview" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("overview")}
+            className="text-xs font-semibold"
+          >
+            Dashboard Overview
+          </Button>
+          <Button
+            variant={activeTab === "history" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("history")}
+            className="text-xs font-semibold"
+          >
+            Donation History ({lifetimeCount})
+          </Button>
+        </div>
+
+        {/* Views: Profile & Eligibility, Active Commitments, and Donation History */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4">
           {/* Overview Tab */}
           <TabsContent value="overview">
             <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -551,12 +604,10 @@ function DonorDashboardPage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          {/* Appointments Tab */}
-          <TabsContent value="appointments" className="mt-6">
-            <div className="w-full overflow-x-auto">
-              <AppointmentsTab />
+            {/* Consolidated Active Commitments & Registered Drives */}
+            <div className="mt-8">
+              <ActiveCommitmentsCard />
             </div>
           </TabsContent>
 
@@ -662,7 +713,7 @@ function DonorDashboardPage() {
   );
 }
 
-function AppointmentsTab() {
+function ActiveCommitmentsCard() {
   const { data: user } = useCurrentUser();
   const isDonor = user?.role === "DONOR";
   const { data: appointments, isLoading } = useMyAppointments(isDonor);
@@ -697,10 +748,10 @@ function AppointmentsTab() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="size-5 text-primary" /> My Schedule
+              <Calendar className="size-5 text-primary" /> Active Commitments & Registered Drives
             </CardTitle>
             <CardDescription>
-              Hospital appointments and registered campaign drives
+              Your upcoming registered campaign drives and partner hospital appointments
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">

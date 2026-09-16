@@ -1,9 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/requests/new")({
-  beforeLoad: () => {
+  validateSearch: (search: Record<string, unknown>): { urgency?: "NORMAL" | "URGENT" | "EMERGENCY" } => ({
+    urgency: (search["urgency"] as "NORMAL" | "URGENT" | "EMERGENCY") || undefined,
+  }),
+  beforeLoad: ({ search }) => {
     throw redirect({
       to: "/request-blood",
+      search: { urgency: search.urgency },
     });
   },
 });

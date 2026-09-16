@@ -4,7 +4,7 @@ export const Route = createFileRoute("/donor/appointments")({
   beforeLoad: () => {
     throw redirect({
       to: "/donor",
-      search: { tab: "appointments" },
+      search: { tab: "overview" },
     });
   },
 });

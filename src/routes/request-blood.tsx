@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import {
   Phone,
   Mail,
   Home,
+  Zap,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,9 @@ import {
 } from "@/lib/api/types";
 
 export const Route = createFileRoute("/request-blood")({
+  validateSearch: (search: Record<string, unknown>): { urgency?: "NORMAL" | "URGENT" | "EMERGENCY" } => ({
+    urgency: (search["urgency"] as "NORMAL" | "URGENT" | "EMERGENCY") || undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Request Blood & Match Donors — LifeDrop" },
@@ -94,19 +98,23 @@ const schema = z.object({
   units: z.coerce.number().min(0.5, "At least 0.5 unit").max(20, "Maximum 20 units"),
   urgency: z.enum(["NORMAL", "URGENT", "EMERGENCY"]),
   location: z.string().trim().min(3, "Delivery location is required").max(150),
+  phone: z.string().trim().min(6, "Valid phone number is required").max(30),
   notes: z.string().trim().max(500).optional(),
 });
 
 function RequestBlood() {
   const { data: currentUser } = useCurrentUser();
+  const search = useSearch({ from: "/request-blood" });
+  const isEmergencyLocked = search.urgency === "EMERGENCY";
 
   const [form, setForm] = useState({
     patient: "Patient Rahman",
     group: "O+",
     component: "WHOLE_BLOOD" as ComponentType,
     units: "1",
-    urgency: "NORMAL" as RequestUrgency,
+    urgency: (isEmergencyLocked ? "EMERGENCY" : "NORMAL") as RequestUrgency,
     location: "United Hospital, Gulshan 2, Dhaka",
+    phone: "01711223344",
     notes: "",
   });
 
@@ -135,6 +143,12 @@ function RequestBlood() {
     }
 
     const apiGroup = toApiBloodGroup(form.group);
+    // Combine notes and phone contact for emergency clarity
+    const emergencyNotePrefix = form.phone ? `Immediate Contact: ${form.phone}` : "";
+    const combinedNotes = form.notes
+      ? `${emergencyNotePrefix ? emergencyNotePrefix + " | " : ""}${form.notes}`
+      : emergencyNotePrefix || null;
+
     // Approximate coordinates for Dhaka hospital areas
     const payload = {
       blood_group: apiGroup,
@@ -144,7 +158,7 @@ function RequestBlood() {
       required_location: form.location,
       latitude: 23.7998,
       longitude: 90.4208,
-      notes: form.notes || null,
+      notes: combinedNotes,
     };
 
     try {
@@ -156,6 +170,11 @@ function RequestBlood() {
       }
       setCreatedRequest(res);
       setRevealedContact(null);
+      // Route / scroll immediately to live match tracking screen
+      setTimeout(() => {
+        const el = document.getElementById("live-matches-section");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 150);
     } catch {
       // toast handled in hook
     }
@@ -188,7 +207,7 @@ function RequestBlood() {
     }
   };
 
-  const isEmergency = form.urgency === "EMERGENCY" || createdRequest?.urgency === "EMERGENCY";
+  const isEmergency = isEmergencyLocked || form.urgency === "EMERGENCY" || createdRequest?.urgency === "EMERGENCY";
   const matches = createdRequest?.matches || [];
 
   return (
@@ -198,23 +217,39 @@ function RequestBlood() {
       {isEmergency && (
         <div
           role="alert"
-          className="animate-pulse-slow border-b border-destructive/40 bg-destructive text-destructive-foreground"
+          className="border-b border-destructive/40 bg-destructive text-destructive-foreground py-3.5 px-4 shadow-md"
         >
-          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-            <AlertTriangle className="size-5 shrink-0" />
-            <p className="text-sm font-semibold">
-              Emergency request — notifying all compatible donors within 50 km.
-            </p>
+          <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto flex items-start sm:items-center gap-3">
+            <AlertTriangle className="size-5 shrink-0 mt-0.5 sm:mt-0 animate-pulse text-white" />
+            <div className="text-sm">
+              <p className="font-bold tracking-tight">
+                Emergency Protocol Active: System applies a 1.5x urgency scoring multiplier and dispatches simultaneous instant alerts to all matching donors within radius.
+              </p>
+              <p className="text-xs text-destructive-foreground/90 mt-0.5">
+                Urgency is locked to EMERGENCY mode. Donors within 50km radius receive instantaneous high-priority notifications.
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Request blood</h1>
-        <p className="mt-2 text-muted-foreground">
-          We'll match your request with compatible donors nearby, ranked by blood group, distance,
-          and availability. Donor contact details stay private until they accept.
-        </p>
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Request blood</h1>
+              {isEmergency && (
+                <Badge variant="destructive" className="text-xs font-bold animate-pulse px-2.5 py-0.5">
+                  EMERGENCY PROTOCOL
+                </Badge>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We'll match your request with compatible donors nearby, ranked by blood group, distance,
+              and availability. Donor contact details stay private until they accept.
+            </p>
+          </div>
+        </div>
 
         {!currentUser && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
@@ -231,15 +266,31 @@ function RequestBlood() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           {/* Request Form */}
-          <Card className="h-fit shadow-[var(--shadow-elegant)]">
+          <Card className={`h-fit shadow-[var(--shadow-elegant)] ${isEmergency ? "border-destructive/40" : ""}`}>
             <CardHeader>
-              <CardTitle>Blood request</CardTitle>
-              <CardDescription>Sent to compatible donors and partner blood banks.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    {isEmergency ? <Zap className="size-4 text-destructive" /> : null}
+                    Blood Request Form
+                  </CardTitle>
+                  <CardDescription>
+                    {isEmergency
+                      ? "High-priority fields broadcast to compatible donors and blood centers."
+                      : "Sent to compatible donors and partner blood banks."}
+                  </CardDescription>
+                </div>
+                {isEmergency && (
+                  <Badge variant="destructive" className="text-[10px]">
+                    1.5x Multiplier
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="patient">Patient Name</Label>
+                  <Label htmlFor="patient">Patient Full Name</Label>
                   <Input
                     id="patient"
                     maxLength={100}
@@ -265,13 +316,21 @@ function RequestBlood() {
                   </Select>
                 </div>
 
+                {/* Required Component - High Priority */}
                 <div className="grid gap-2">
-                  <Label htmlFor="comp">Blood Component</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="comp" className={isEmergency ? "font-semibold text-foreground" : ""}>
+                      Required Component
+                    </Label>
+                    {isEmergency && (
+                      <span className="text-[10px] text-destructive font-semibold">Priority</span>
+                    )}
+                  </div>
                   <Select
                     value={form.component}
                     onValueChange={(v) => set("component")(v as ComponentType)}
                   >
-                    <SelectTrigger id="comp">
+                    <SelectTrigger id="comp" className={isEmergency ? "border-destructive/30" : ""}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,8 +343,16 @@ function RequestBlood() {
                   </Select>
                 </div>
 
+                {/* Required Units - High Priority */}
                 <div className="grid gap-2">
-                  <Label htmlFor="units">Units Needed</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="units" className={isEmergency ? "font-semibold text-foreground" : ""}>
+                      Required Units
+                    </Label>
+                    {isEmergency && (
+                      <span className="text-[10px] text-destructive font-semibold">Priority</span>
+                    )}
+                  </div>
                   <Input
                     id="units"
                     type="number"
@@ -295,16 +362,39 @@ function RequestBlood() {
                     value={form.units}
                     onChange={(e) => set("units")(e.target.value)}
                     required
+                    className={isEmergency ? "border-destructive/40 font-semibold" : ""}
                   />
                 </div>
 
+                {/* Urgency Level - Locked in Emergency Mode */}
                 <div className="grid gap-2">
-                  <Label htmlFor="urg">Urgency Level</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="urg" className={isEmergencyLocked ? "font-semibold text-destructive" : ""}>
+                      Urgency Level
+                    </Label>
+                    {isEmergencyLocked && (
+                      <span className="text-[11px] text-destructive font-bold flex items-center gap-1">
+                        <Lock className="size-3" /> Locked to Emergency
+                      </span>
+                    )}
+                  </div>
                   <Select
                     value={form.urgency}
-                    onValueChange={(v) => set("urgency")(v as RequestUrgency)}
+                    onValueChange={(v) => {
+                      if (!isEmergencyLocked) {
+                        set("urgency")(v as RequestUrgency);
+                      }
+                    }}
+                    disabled={isEmergencyLocked}
                   >
-                    <SelectTrigger id="urg">
+                    <SelectTrigger
+                      id="urg"
+                      className={
+                        isEmergencyLocked
+                          ? "bg-destructive/10 border-destructive/50 font-bold text-destructive cursor-not-allowed"
+                          : ""
+                      }
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -317,19 +407,53 @@ function RequestBlood() {
                   </Select>
                 </div>
 
+                {/* Target Hospital / Facility - High Priority */}
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="loc">Hospital / Delivery Location</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="loc" className={isEmergency ? "font-semibold text-foreground" : ""}>
+                      Target Hospital / Medical Facility
+                    </Label>
+                    {isEmergency && (
+                      <span className="text-[10px] text-destructive font-semibold">Priority Location</span>
+                    )}
+                  </div>
                   <Input
                     id="loc"
                     maxLength={150}
                     value={form.location}
                     onChange={(e) => set("location")(e.target.value)}
+                    placeholder="e.g. United Hospital, Emergency Ward, Gulshan 2, Dhaka"
                     required
+                    className={isEmergency ? "border-destructive/40 font-medium" : ""}
+                  />
+                </div>
+
+                {/* Immediate Contact Phone Number - High Priority */}
+                <div className="grid gap-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="phone" className={isEmergency ? "font-semibold text-foreground" : ""}>
+                      Immediate Contact Phone Number
+                    </Label>
+                    {isEmergency && (
+                      <span className="text-[10px] text-destructive font-bold animate-pulse">
+                        Direct Coordinator Line
+                      </span>
+                    )}
+                  </div>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    maxLength={30}
+                    value={form.phone}
+                    onChange={(e) => set("phone")(e.target.value)}
+                    placeholder="e.g. +880 1711-223344"
+                    required
+                    className={isEmergency ? "border-destructive/50 font-semibold" : ""}
                   />
                 </div>
 
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Label htmlFor="notes">Clinical / Ward Notes (optional)</Label>
                   <Textarea
                     id="notes"
                     maxLength={500}
@@ -342,15 +466,16 @@ function RequestBlood() {
                 <Button
                   type="submit"
                   className="sm:col-span-2"
+                  variant={isEmergency ? "destructive" : "default"}
                   disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
                 >
                   {createRequestMutation.isPending || createEmergencyMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
-                      Finding donors...
+                      Dispatching request & searching donors...
                     </>
                   ) : form.urgency === "EMERGENCY" ? (
-                    "Send emergency request (50 km)"
+                    "Dispatch Emergency Request (50 km broadcast)"
                   ) : (
                     "Find matching donors"
                   )}
@@ -360,7 +485,7 @@ function RequestBlood() {
           </Card>
 
           {/* Matches & Contact Safeguard View */}
-          <section>
+          <section id="live-matches-section">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-semibold">Matched donors</h2>
               {createdRequest && (

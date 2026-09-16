@@ -200,7 +200,7 @@ function Inventory() {
           role="alert"
           className="animate-pulse-slow border-b border-destructive/40 bg-destructive text-destructive-foreground"
         >
-          <div className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-12 py-3">
+          <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto flex flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 py-3">
             <AlertTriangle className="size-5 shrink-0" />
             <p className="text-sm font-semibold">
               CRITICAL SHORTAGE — {shortages.map((s) => formatBloodGroup(s.group, "symbol")).join(", ")}{" "}
@@ -211,7 +211,7 @@ function Inventory() {
         </div>
       )}
 
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Blood Inventory</h1>

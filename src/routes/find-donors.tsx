@@ -43,7 +43,7 @@ function FindDonors() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
         <div className="max-w-2xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Nearby Blood Network</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">

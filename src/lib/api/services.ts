@@ -168,9 +168,13 @@ export const requestService = {
     matchId: string,
     payload: MatchRespondRequest,
   ): Promise<{ message: string; match_id: string; response_status: string }> => {
+    const status = payload.response || payload.response_status;
     return apiClient(`/matches/${matchId}/respond`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        response: status,
+        response_status: status,
+      }),
     });
   },
 

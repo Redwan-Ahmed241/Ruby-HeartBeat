@@ -288,7 +288,8 @@ export interface BloodRequestResponse {
 }
 
 export interface MatchRespondRequest {
-  response: MatchResponseStatus; // "ACCEPTED" | "DECLINED"
+  response?: MatchResponseStatus; // "ACCEPTED" | "DECLINED"
+  response_status?: MatchResponseStatus; // "ACCEPTED" | "DECLINED"
 }
 
 export interface DonorContactReveal {
@@ -301,6 +302,7 @@ export interface DonorContactReveal {
   latitude: number;
   longitude: number;
   response_status: MatchResponseStatus;
+  preferred_meetup_time?: string | null;
 }
 
 export interface CommunicationCreate {

@@ -130,14 +130,14 @@ export function NotificationHub() {
   // Donor action handlers
   const handleDonorResponse = (matchId: string, response: "ACCEPTED" | "DECLINED") => {
     respondMutation.mutate(
-      { matchId, payload: { response } },
+      { matchId, payload: { response, response_status: response } },
       {
         onSuccess: () => {
           refetch();
           if (response === "ACCEPTED") {
-            toast.success("Contact details shared with recipient.");
+            toast.success("Donation request accepted! Contact details unlocked for recipient.");
           } else {
-            toast.info("You declined this request.");
+            toast.info("Request declined cleanly. Dismissed from your queue.");
           }
         },
       }
@@ -248,24 +248,23 @@ export function NotificationHub() {
                         "{request.notes}"
                       </p>
                     )}
-
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
                       <Button
                         size="sm"
-                        className="flex-1 text-xs font-semibold"
+                        className="flex-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                         disabled={respondMutation.isPending}
                         onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
                       >
-                        <Phone className="mr-1 size-3.5" /> Approve Contact Access
+                        <Check className="mr-1.5 size-3.5" /> Accept Donation Request
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs"
+                        className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
                         disabled={respondMutation.isPending}
                         onClick={() => handleDonorResponse(match.match_id, "DECLINED")}
                       >
-                        <X className="mr-1 size-3.5" /> Decline
+                        <X className="mr-1.5 size-3.5" /> Decline Request
                       </Button>
                     </div>
                   </div>

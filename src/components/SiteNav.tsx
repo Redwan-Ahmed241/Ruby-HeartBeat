@@ -64,9 +64,9 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]">
-      <nav className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12 py-3">
+      <nav className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto flex items-center justify-between gap-x-3 lg:gap-x-6 flex-wrap md:flex-nowrap px-4 sm:px-6 lg:px-8 py-3">
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2 font-bold tracking-tight text-lg">
+        <Link to="/" className="flex items-center gap-2 font-bold tracking-tight text-lg shrink-0">
           <div className="flex size-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
             <Droplet className="size-5 fill-current" />
           </div>
@@ -74,7 +74,7 @@ export function SiteNav() {
         </Link>
 
         {/* Dynamic Desktop Navigation Links */}
-        <div className="hidden items-center gap-6 xl:gap-8 lg:flex">
+        <div className="hidden items-center gap-x-2 xl:gap-x-4 lg:flex flex-wrap">
           {/* 1. GUEST Navigation (Not Logged In) — Logo already links to "/" */}
           {!user && (
             <>
@@ -88,7 +88,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Hospital Centers
+                Partner Blood Centers
               </Link>
               <a
                 href="/#events"
@@ -105,7 +105,7 @@ export function SiteNav() {
             </>
           )}
 
-          {/* 2. DONOR Navigation */}
+          {/* 2. DONOR Navigation: strictly Dashboard | Donation History | Partner Blood Centers | Events */}
           {isDonor && (
             <>
               <Link
@@ -114,13 +114,6 @@ export function SiteNav() {
                 className={getLinkClass("/donor", "overview", true)}
               >
                 Dashboard
-              </Link>
-              <Link
-                to="/donor"
-                search={{ tab: "appointments" }}
-                className={getLinkClass("/donor", "appointments")}
-              >
-                My Schedule
               </Link>
               <Link
                 to="/donor"
@@ -133,7 +126,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Hospital Centers
+                Partner Blood Centers
               </Link>
               <Link
                 to="/events"
@@ -232,7 +225,7 @@ export function SiteNav() {
 
           {/* Recipient Emergency Request CTA button */}
           {isRecipient && (
-            <Link to="/request-blood">
+            <Link to="/request-blood" search={{ urgency: "EMERGENCY" }}>
               <Button
                 size="sm"
                 variant="destructive"
@@ -331,7 +324,7 @@ export function SiteNav() {
 
             {/* Recipient Emergency Mobile CTA */}
             {isRecipient && (
-              <Link to="/request-blood" onClick={() => setOpen(false)} className="mb-2">
+              <Link to="/request-blood" search={{ urgency: "EMERGENCY" }} onClick={() => setOpen(false)} className="mb-2">
                 <Button size="sm" variant="destructive" className="w-full text-xs font-semibold">
                   <AlertCircle className="mr-1.5 size-3.5" />
                   Emergency Blood Request
@@ -353,7 +346,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/centers")}
                 >
-                  Hospital Centers
+                  Partner Blood Centers
                 </Link>
                 <a
                   href="/#events"
@@ -382,14 +375,6 @@ export function SiteNav() {
                 </Link>
                 <Link
                   to="/donor"
-                  search={{ tab: "appointments" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/donor", "appointments")}
-                >
-                  My Schedule
-                </Link>
-                <Link
-                  to="/donor"
                   search={{ tab: "history" }}
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/donor", "history")}
@@ -401,7 +386,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/centers")}
                 >
-                  Hospital Centers
+                  Partner Blood Centers
                 </Link>
                 <Link
                   to="/events"

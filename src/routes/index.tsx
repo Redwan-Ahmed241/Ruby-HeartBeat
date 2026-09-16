@@ -149,7 +149,7 @@ export function LandingPage() {
 
       {/* Hero */}
       <section className="border-b border-border/40 py-16 sm:py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12 text-center">
+        <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="mx-auto max-w-4xl text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Find a blood donor when it matters most
           </h1>
@@ -198,7 +198,7 @@ export function LandingPage() {
 
       {/* Hospital blood bank network */}
       <section id="nearby-donors" className="border-b border-border/40 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Hospital blood bank network</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -267,7 +267,7 @@ export function LandingPage() {
 
       {/* Eligibility calculator */}
       <section id="eligibility" className="border-b border-border/40 bg-muted/20 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">Check your donation eligibility</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -421,7 +421,7 @@ export function LandingPage() {
 
       {/* Upcoming drives */}
       <section id="events" className="border-b border-border/40 py-14 sm:py-16">
-        <div id="campaigns" className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div id="campaigns" className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Upcoming donation drives</h2>
@@ -485,7 +485,7 @@ export function LandingPage() {
 
       {/* How it works */}
       <section id="about" className="bg-muted/10 py-14 sm:py-16">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight">How LifeDrop works</h2>
             <p className="mt-2 text-sm text-muted-foreground">

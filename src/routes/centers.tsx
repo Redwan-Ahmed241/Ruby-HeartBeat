@@ -184,7 +184,7 @@ function HospitalCentersPage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
         {/* Header Ribbon */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-border/60">
           <div>

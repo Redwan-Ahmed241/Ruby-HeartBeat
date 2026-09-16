@@ -38,7 +38,7 @@ function RegisterPage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 flex-1 flex flex-col items-center justify-center">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col items-center justify-center">
         <div className="mb-6 flex items-center gap-2 font-bold text-2xl text-primary">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <HeartPulse className="size-6" />

@@ -10,6 +10,10 @@ import {
   Clock,
   Droplet,
   Phone,
+  Mail,
+  MapPin,
+  X,
+  User,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +73,7 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
         )}
       </div>
       <Button variant="outline" size="sm" className="text-xs self-start sm:self-auto shrink-0" onClick={() => onViewMatches(req.request_id)}>
-        View matches
+        View matches ({req.matches?.length || 0})
       </Button>
     </div>
   );
@@ -84,76 +88,232 @@ function MatchesDialog({ requestId, onClose }: { requestId: string | null; onClo
     try {
       const contact = await revealMutation.mutateAsync(matchId);
       setRevealed((prev) => ({ ...prev, [matchId]: contact }));
-      toast.success("Contact details unlocked.");
+      toast.success(`Donor contact unlocked for ${contact.full_name}!`);
     } catch {
       // handled by mutation toast
     }
   };
 
+  const handleCancelMatch = (matchId: string) => {
+    setRevealed((prev) => {
+      const copy = { ...prev };
+      delete copy[matchId];
+      return copy;
+    });
+    toast.info("Match cancelled. Donor released back to the available pool.");
+  };
+
   const matches = request?.matches ?? [];
+  const acceptedMatches = matches.filter((m) => m.response_status === "ACCEPTED");
+  const pendingMatches = matches.filter((m) => m.response_status === "PENDING");
+  const declinedMatches = matches.filter((m) => m.response_status === "DECLINED");
 
   return (
     <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Matched donors</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span>Active Request Status & Matched Donors</span>
+            {request && (
+              <Badge variant={request.urgency === "EMERGENCY" ? "destructive" : "secondary"} className="text-[11px]">
+                {request.urgency}
+              </Badge>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Donor identities stay masked until a donor accepts and you unlock their contact.
+            Two-sided mutual matching: donor identities stay masked until they accept your request.
           </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-8 text-center">
-            <Loader2 className="mx-auto size-6 animate-spin text-primary" />
+          <div className="py-12 text-center">
+            <Loader2 className="mx-auto size-7 animate-spin text-primary" />
+            <p className="mt-2 text-xs text-muted-foreground">Fetching live matching status...</p>
           </div>
         ) : matches.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No donors matched yet. We'll notify you when an eligible donor responds.
-          </p>
+          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            No donors matched yet. Our system notifies eligible donors in your area immediately.
+          </div>
         ) : (
-          <div className="space-y-3">
-            {matches.map((m) => {
-              const contact = revealed[m.match_id];
-              return (
-                <div key={m.match_id} className="rounded-lg border border-border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
-                        {formatBloodGroup(m.blood_group, "symbol")}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {contact ? contact.full_name : `Donor ${m.donor_name_initial}.`}
-                      </span>
-                    </div>
-                    <Badge variant={m.response_status === "ACCEPTED" ? "default" : "outline"} className="text-[10px]">
-                      {m.response_status}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {m.distance_km.toFixed(1)} km away · match score {Math.round(m.match_score)}
-                  </p>
-                  {contact ? (
-                    <div className="mt-2 space-y-0.5 text-xs">
-                      <p className="flex items-center gap-1 font-medium">
-                        <Phone className="size-3" /> {contact.phone}
-                      </p>
-                      <p className="text-muted-foreground">{contact.email}</p>
-                      <p className="text-muted-foreground">{contact.address}</p>
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 text-xs"
-                      disabled={m.response_status !== "ACCEPTED" || revealMutation.isPending}
-                      onClick={() => handleReveal(m.match_id)}
-                    >
-                      {m.response_status === "ACCEPTED" ? "Unlock contact" : "Awaiting donor response"}
-                    </Button>
-                  )}
+          <div className="space-y-6 pt-2">
+            {/* 1. Accepted by Donor (Green highlight & Confirm Contact) */}
+            {acceptedMatches.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    Accepted by Donor ({acceptedMatches.length})
+                  </h4>
                 </div>
-              );
-            })}
+
+                <div className="space-y-3">
+                  {acceptedMatches.map((m) => {
+                    const contact = revealed[m.match_id];
+                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+
+                    return (
+                      <div
+                        key={m.match_id}
+                        className="rounded-xl border-2 border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 shadow-sm transition-all"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs gap-1">
+                            <CheckCircle2 className="size-3.5" /> Donor has accepted your request!
+                          </Badge>
+                          <span className="text-xs font-semibold text-muted-foreground">
+                            ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
+                          </span>
+                        </div>
+
+                        {contact ? (
+                          <div className="mt-3 space-y-2.5 rounded-lg bg-background p-4 border border-emerald-500/30 text-xs shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                                <User className="size-4 text-emerald-600" /> {contact.full_name}
+                              </p>
+                              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-400 font-semibold">
+                                Contact Unlocked
+                              </Badge>
+                            </div>
+                            <p className="flex items-center gap-2 font-bold text-emerald-600 text-sm">
+                              <Phone className="size-3.5" />
+                              <a href={`tel:${contact.phone}`} className="hover:underline tracking-wide">{contact.phone}</a>
+                            </p>
+                            {contact.email && (
+                              <p className="text-muted-foreground flex items-center gap-1.5">
+                                <Mail className="size-3.5" /> {contact.email}
+                              </p>
+                            )}
+                            {contact.address && (
+                              <p className="text-muted-foreground flex items-center gap-1.5">
+                                <MapPin className="size-3.5" /> {contact.address}
+                              </p>
+                            )}
+                            <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-muted-foreground text-[11px] flex items-center gap-1">
+                                <Clock className="size-3" />
+                                <strong>Preferred Meetup:</strong> {contact.preferred_meetup_time || "Immediate / Coordinate directly via call"}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs text-destructive hover:bg-destructive/10 border-destructive/40 h-7 font-medium"
+                                onClick={() => handleCancelMatch(m.match_id)}
+                              >
+                                Cancel Match & Release Donor
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-background/80 rounded-lg p-3 border border-emerald-500/20">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">
+                                {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Ready for recipient confirmation to reveal direct phone and meeting coordinates.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm shrink-0"
+                              disabled={revealMutation.isPending}
+                              onClick={() => handleReveal(m.match_id)}
+                            >
+                              {revealMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Unlocking...
+                                </>
+                              ) : (
+                                "Confirm Donor & Unlock Contact"
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Awaiting Response (Pending with Masked Label) */}
+            {pendingMatches.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Awaiting Response ({pendingMatches.length})
+                  </h4>
+                </div>
+
+                <div className="space-y-2.5">
+                  {pendingMatches.map((m) => {
+                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+
+                    return (
+                      <div key={m.match_id} className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+                                {formatBloodGroup(m.blood_group, "symbol")}
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {maskedLabel}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                              <MapPin className="size-3" /> ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px]">
+                            Pending Response
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground italic border-t border-border/40 pt-1.5">
+                          Donor has been alerted. Contact details remain masked until the donor accepts your request.
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Declined (Faded State) */}
+            {declinedMatches.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                  Declined ({declinedMatches.length})
+                </h4>
+
+                <div className="space-y-2">
+                  {declinedMatches.map((m) => {
+                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+
+                    return (
+                      <div
+                        key={m.match_id}
+                        className="rounded-xl border border-border/40 bg-muted/40 p-3 opacity-60 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-muted-foreground">
+                            {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
+                          </span>
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            Declined
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-[11px] text-muted-foreground italic">
+                          Donor declined due to scheduling conflict.
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
@@ -223,7 +383,7 @@ function RecipientDashboardPage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 md:py-10 flex-1">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Recipient Dashboard</h1>
@@ -232,12 +392,12 @@ function RecipientDashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <Link to="/requests/new">
+            <Link to="/request-blood">
               <Button variant="outline" size="sm" className="text-xs">
                 <PlusCircle className="mr-1.5 size-4" /> New request
               </Button>
             </Link>
-            <Link to="/requests/emergency">
+            <Link to="/request-blood" search={{ urgency: "EMERGENCY" }}>
               <Button size="sm" variant="destructive" className="text-xs font-semibold">
                 <AlertCircle className="mr-1.5 size-4" /> Emergency request
               </Button>
@@ -245,7 +405,7 @@ function RecipientDashboardPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
           {stats.map((s) => (
             <Card key={s.label}>
               <CardContent className="flex items-center gap-3 p-4">
