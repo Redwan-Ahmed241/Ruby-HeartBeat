@@ -42,7 +42,7 @@ import {
 } from "@/hooks/useInventory";
 import { useCurrentUser } from "@/hooks/useAuth";
 import {
-  BLOOD_GROUP_UI_MAP,
+  CANONICAL_BLOOD_GROUPS,
   toApiBloodGroup,
   toDisplayBloodGroup,
   type BloodGroup,
@@ -71,7 +71,7 @@ export const Route = createFileRoute("/inventory")({
   component: Inventory,
 });
 
-const GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
+const GROUPS = CANONICAL_BLOOD_GROUPS;
 const COMPONENTS: ComponentType[] = ["WHOLE_BLOOD", "PLASMA", "PLATELETS"];
 const CAPACITY = 60;
 

@@ -35,7 +35,7 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import { useCampaignNotices } from "@/hooks/useAdmin";
 import { useDonorEligibility, useUpdateDonorProfile, useUpsertMedicalInfo } from "@/hooks/useDonor";
 import { HOSPITALS } from "@/lib/donor-data";
-import { BLOOD_GROUP_UI_MAP, toApiBloodGroup } from "@/lib/api/types";
+import { CANONICAL_BLOOD_GROUPS, toApiBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
 
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
+const UI_GROUPS = CANONICAL_BLOOD_GROUPS;
 const RADII = [5, 10, 25, 50];
 
 export function LandingPage() {
@@ -309,7 +309,7 @@ export function LandingPage() {
                     <SelectContent>
                       {UI_GROUPS.map((g) => (
                         <SelectItem key={g} value={g}>
-                          {formatBloodGroup(g, "symbol")} ({toApiBloodGroup(g)})
+                          {formatBloodGroup(g, "symbol")} ({formatBloodGroup(g, "full")})
                         </SelectItem>
                       ))}
                     </SelectContent>

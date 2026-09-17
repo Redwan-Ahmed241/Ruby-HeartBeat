@@ -10,48 +10,45 @@ import {
   Search,
   Boxes,
   AlertCircle,
+  Mail,
+  CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodInventory, useTriggerExpiryScan } from "@/hooks/useInventory";
+import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
+import { ContactBloodBankModal, type BloodBankInfo } from "@/components/ContactBloodBankModal";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/centers")({
   head: () => ({
     meta: [
-      { title: "Hospital Blood Centers Directory — LifeDrop" },
+      { title: "Partner Blood Banks & Reserves — LifeDrop" },
       {
         name: "description",
         content:
-          "Public directory of affiliated partner hospitals, operating hours, live blood inventory sync, and donation booking across Dhaka.",
+          "Public directory of certified partner blood banks, operating hours, live reserve telemetry, and coordinator contact authorization across Dhaka.",
       },
     ],
   }),
-  component: HospitalCentersPage,
+  component: BloodBanksPage,
 });
 
-interface PartnerHospital {
-  id: string;
-  name: string;
-  area: string;
-  address: string;
-  phone: string;
-  emergencyHotline: string;
-  operatingHours: string;
+export interface PartnerBloodBank extends BloodBankInfo {
   is24Hours: boolean;
-  type: string;
+  reservesHighlight?: string[];
 }
 
-const PARTNER_HOSPITALS: PartnerHospital[] = [
+const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
   {
     id: "dmch",
-    name: "Dhaka Medical College Hospital",
+    name: "Dhaka Medical College Hospital Blood Bank",
     area: "Shahbagh",
     address: "Secretariat Road, Shahbagh, Dhaka-1000",
     phone: "+880 2 55165088",
@@ -59,6 +56,7 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "24/7 Emergency Blood Bank",
     is24Hours: true,
     type: "Public Tertiary Medical Center",
+    reservesHighlight: ["Whole Blood", "Platelets", "PRBC"],
   },
   {
     id: "square",
@@ -70,10 +68,11 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "24/7 Continuous Operation",
     is24Hours: true,
     type: "Private Super Specialty",
+    reservesHighlight: ["Apheresis Platelets", "Plasma", "Cryo"],
   },
   {
     id: "evercare",
-    name: "Evercare Hospital Dhaka",
+    name: "Evercare Hospital Blood Bank Dhaka",
     area: "Bashundhara",
     address: "Plot 81, Block E, Bashundhara R/A, Dhaka-1229",
     phone: "+880 2 8431661",
@@ -81,10 +80,11 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "24 Hours Blood Transfusion Service",
     is24Hours: true,
     type: "JCI Accredited Facility",
+    reservesHighlight: ["Irradiated Blood", "FFP", "Platelets"],
   },
   {
     id: "united",
-    name: "United Hospital Blood Center",
+    name: "United Hospital Transfusion Center",
     area: "Gulshan",
     address: "Plot 15, Road 71, Gulshan-2, Dhaka-1212",
     phone: "+880 2 8836444",
@@ -92,6 +92,7 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "24/7 Emergency Transfusion",
     is24Hours: true,
     type: "Private Specialized Hospital",
+    reservesHighlight: ["Whole Blood", "Platelet Concentrates"],
   },
   {
     id: "birdem",
@@ -103,10 +104,11 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "8:00 AM – 10:00 PM Daily",
     is24Hours: false,
     type: "Diabetic Association of Bangladesh",
+    reservesHighlight: ["Packed RBC", "Whole Blood"],
   },
   {
     id: "popular",
-    name: "Popular Diagnostic & Medical Center",
+    name: "Popular Diagnostic Transfusion Center",
     area: "Dhanmondi",
     address: "House 16, Road 2, Dhanmondi, Dhaka-1205",
     phone: "+880 9613 787801",
@@ -114,12 +116,13 @@ const PARTNER_HOSPITALS: PartnerHospital[] = [
     operatingHours: "24/7 Lab & Blood Services",
     is24Hours: true,
     type: "Diagnostic & Transfusion Center",
+    reservesHighlight: ["Plasma (FFP)", "PRBC Units"],
   },
 ];
 
 const AREAS = ["All", "Shahbagh", "Panthapath", "Bashundhara", "Gulshan", "Dhanmondi"];
 
-function HospitalCentersPage() {
+function BloodBanksPage() {
   const { data: user } = useCurrentUser();
   const { data: inventoryItems, isLoading: isInvLoading, refetch: refetchInventory } = useBloodInventory();
   const expiryScanMutation = useTriggerExpiryScan();
@@ -128,24 +131,29 @@ function HospitalCentersPage() {
   const [selectedArea, setSelectedArea] = useState("All");
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Group inventory units across standard blood groups
+  // Contact modal state
+  const [selectedBankForContact, setSelectedBankForContact] = useState<PartnerBloodBank | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [requestedBankIds, setRequestedBankIds] = useState<Set<string>>(new Set());
+
+  // Group inventory units across standard blood groups (handles both _POSITIVE and legacy _PLUS)
   const stockSummary = useMemo(() => {
     const summary: Record<string, number> = {
-      O_PLUS: 0,
-      O_MINUS: 0,
-      A_PLUS: 0,
-      A_MINUS: 0,
-      B_PLUS: 0,
-      B_MINUS: 0,
-      AB_PLUS: 0,
-      AB_MINUS: 0,
+      "O+": 0,
+      "O-": 0,
+      "A+": 0,
+      "A-": 0,
+      "B+": 0,
+      "B-": 0,
+      "AB+": 0,
+      "AB-": 0,
     };
 
     if (inventoryItems) {
       inventoryItems.forEach((item) => {
-        const key = item.blood_group;
-        if (summary[key] !== undefined) {
-          summary[key] += Number(item.quantity) || 0;
+        const displayGroup = toDisplayBloodGroup(item.blood_group);
+        if (summary[displayGroup] !== undefined) {
+          summary[displayGroup] += Number(item.quantity) || 0;
         }
       });
     }
@@ -156,13 +164,13 @@ function HospitalCentersPage() {
     return Object.values(stockSummary).reduce((acc, curr) => acc + curr, 0);
   }, [stockSummary]);
 
-  const filteredHospitals = useMemo(() => {
-    return PARTNER_HOSPITALS.filter((h) => {
+  const filteredBloodBanks = useMemo(() => {
+    return PARTNER_BLOOD_BANKS.filter((b) => {
       const matchSearch =
-        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.address.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchArea = selectedArea === "All" || h.area === selectedArea;
+        b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.address.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchArea = selectedArea === "All" || b.area === selectedArea;
       return matchSearch && matchArea;
     });
   }, [searchQuery, selectedArea]);
@@ -172,36 +180,45 @@ function HospitalCentersPage() {
     try {
       await expiryScanMutation.mutateAsync();
       await refetchInventory();
-      toast.success("Synchronized real-time inventory from external partner network.");
+      toast.success("Synchronized real-time inventory from partner blood bank network.");
     } catch {
       await refetchInventory();
-      toast.info("Queried live stock feeds from partner hospital endpoints.");
+      toast.info("Queried live stock feeds from partner blood bank endpoints.");
     } finally {
       setIsSyncing(false);
     }
   };
 
+  const handleOpenContactModal = (bank: PartnerBloodBank) => {
+    setSelectedBankForContact(bank);
+    setIsContactModalOpen(true);
+  };
+
+  const handleContactSuccess = (bankId: string) => {
+    setRequestedBankIds((prev) => new Set([...prev, bankId]));
+  };
+
   return (
     <div className="min-h-screen w-full bg-slate-50 dark:bg-background flex flex-col">
       <SiteNav />
-      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex-1">
+      <main className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Header Ribbon */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-6 border-b border-border/60">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
-                Affiliated Hospital Blood Centers
+                Partner Blood Banks & Reserves
               </h1>
               <Badge className="bg-emerald-600 text-white border-0 text-xs font-semibold">
-                Third-Party Network
+                Partner Network
               </Badge>
               <Badge variant="outline" className="border-primary text-primary text-xs font-semibold">
                 Live External Feeds
               </Badge>
             </div>
             <p className="mt-1.5 text-sm text-muted-foreground max-w-3xl">
-              Public directory of certified hospitals and blood banks across Dhaka. Check operating hours,
-              contact medical staff, inspect aggregated partner blood reserves, or book a donation appointment.
+              Public directory of certified partner blood banks across Dhaka. Check operating hours,
+              inspect real-time aggregated blood reserves, or request authorized coordinator contact access.
             </p>
           </div>
 
@@ -225,30 +242,27 @@ function HospitalCentersPage() {
             <div className="flex items-center gap-2">
               <Boxes className="size-4 text-primary" />
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Live Aggregated Partner Stock ({totalUnits} Total Units in Reserve)
+                Live Blood Bank Reserves ({totalUnits} Total Units in Reserve)
               </span>
             </div>
             <span className="text-[11px] text-muted-foreground">
-              Direct telemetry from partner hospital management systems
+              Direct telemetry from connected blood bank management systems
             </span>
           </div>
 
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
-            {Object.entries(stockSummary).map(([rawGroup, qty]) => {
-              const formatted = formatBloodGroup(rawGroup, "symbol");
-              return (
-                <div
-                  key={rawGroup}
-                  className="rounded-xl border border-border/70 bg-muted/30 p-2.5 text-center flex flex-col items-center justify-center transition-all hover:bg-muted/50"
-                >
-                  <span className="text-xs font-medium text-muted-foreground">Group</span>
-                  <span className="text-lg font-black text-primary">{formatted}</span>
-                  <span className="text-xs font-semibold text-foreground mt-0.5">
-                    {qty} <span className="text-[10px] font-normal text-muted-foreground">units</span>
-                  </span>
-                </div>
-              );
-            })}
+            {Object.entries(stockSummary).map(([groupSymbol, qty]) => (
+              <div
+                key={groupSymbol}
+                className="rounded-xl border border-border/70 bg-muted/30 p-2.5 text-center flex flex-col items-center justify-center transition-all hover:bg-muted/50"
+              >
+                <span className="text-xs font-medium text-muted-foreground">Group</span>
+                <span className="text-lg font-black text-primary">{groupSymbol}</span>
+                <span className="text-xs font-semibold text-foreground mt-0.5">
+                  {qty} <span className="text-[10px] font-normal text-muted-foreground">units</span>
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -257,7 +271,7 @@ function HospitalCentersPage() {
           <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
-              placeholder="Search hospital name, address, or area..."
+              placeholder="Search blood bank, hospital, address, or area..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 text-sm h-10 rounded-xl"
@@ -282,95 +296,125 @@ function HospitalCentersPage() {
           </div>
         </div>
 
-        {/* Hospital Directory Cards Grid */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredHospitals.map((hospital) => (
-            <Card
-              key={hospital.id}
-              className="rounded-2xl border border-border/80 bg-card shadow-[var(--shadow-elegant)] hover:border-primary/40 transition-all flex flex-col"
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider mb-1 font-semibold text-primary border-primary/30">
-                      {hospital.type}
-                    </Badge>
-                    <CardTitle className="text-base sm:text-lg font-bold text-foreground">
-                      {hospital.name}
-                    </CardTitle>
-                  </div>
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-                    <Building2 className="size-5" />
-                  </div>
-                </div>
-                <CardDescription className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <MapPin className="size-3.5 text-primary shrink-0" />
-                  <span>{hospital.address}</span>
-                </CardDescription>
-              </CardHeader>
+        {/* Blood Bank Directory Cards Grid */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+          {filteredBloodBanks.map((bank) => {
+            const isRequested = requestedBankIds.has(bank.id);
 
-              <CardContent className="space-y-3 flex-1 flex flex-col justify-between pt-0">
-                <div className="space-y-2 rounded-xl bg-muted/40 p-3 text-xs border border-border/50">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Clock className="size-3.5 text-primary" /> Operating Hours:
-                    </span>
-                    <span className="font-semibold text-foreground">{hospital.operatingHours}</span>
+            return (
+              <Card
+                key={bank.id}
+                className="rounded-2xl border border-border/80 bg-card shadow-[var(--shadow-elegant)] hover:border-primary/40 transition-all flex flex-col"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] uppercase tracking-wider mb-1 font-semibold text-primary border-primary/30"
+                      >
+                        {bank.type}
+                      </Badge>
+                      <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                        {bank.name}
+                      </CardTitle>
+                    </div>
+                    <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                      <Building2 className="size-5" />
+                    </div>
+                  </div>
+                  <CardDescription className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                    <MapPin className="size-3.5 text-primary shrink-0" />
+                    <span>{bank.address}</span>
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-3 flex-1 flex flex-col justify-between pt-0">
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-3 text-xs border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Clock className="size-3.5 text-primary" /> Operating Hours:
+                      </span>
+                      <span className="font-semibold text-foreground">{bank.operatingHours}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Phone className="size-3.5 text-primary" /> Blood Bank Tel:
+                      </span>
+                      <a
+                        href={`tel:${bank.phone}`}
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        {bank.phone}
+                      </a>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <AlertCircle className="size-3.5 text-destructive" /> Emergency Line:
+                      </span>
+                      <span className="font-bold text-destructive">{bank.emergencyHotline}</span>
+                    </div>
+
+                    {bank.reservesHighlight && bank.reservesHighlight.length > 0 && (
+                      <div className="pt-1.5 border-t border-border/40 flex flex-wrap gap-1">
+                        {bank.reservesHighlight.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <Phone className="size-3.5 text-primary" /> Blood Bank Tel:
-                    </span>
-                    <a
-                      href={`tel:${hospital.phone}`}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {hospital.phone}
-                    </a>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <AlertCircle className="size-3.5 text-destructive" /> Emergency Line:
-                    </span>
-                    <span className="font-bold text-destructive">{hospital.emergencyHotline}</span>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  {user?.role === "DONOR" ? (
-                    <Link
-                      to="/donor"
-                      search={{ tab: "appointments" }}
-                      className="w-full"
-                    >
-                      <Button className="w-full gap-1.5 text-xs font-bold" size="sm">
-                        <Calendar className="size-3.5" /> Book Donation Slot
+                  {/* Primary Action Button: Contact Blood Bank */}
+                  <div className="pt-2">
+                    {isRequested ? (
+                      <Button
+                        disabled
+                        className="w-full mt-2 px-4 py-2.5 text-sm font-semibold rounded-xl border border-emerald-600/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-2 cursor-not-allowed opacity-90 shadow-xs"
+                      >
+                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        ✓ Permission Requested
                       </Button>
-                    </Link>
-                  ) : (
-                    <AuthDialog
-                      defaultTab="login"
-                      trigger={
-                        <Button className="w-full gap-1.5 text-xs font-bold" size="sm">
-                          <Calendar className="size-3.5" /> Book Donation Slot
-                        </Button>
-                      }
-                    />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenContactModal(bank)}
+                        className="w-full mt-2 px-4 py-2.5 text-sm font-semibold rounded-xl border border-[#800000] text-[#800000] hover:bg-[#800000] hover:text-white transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        <Mail className="size-4" />
+                        Contact Blood Bank
+                      </button>
+                    )}
+
+                    {/* Secondary action for donors */}
+                    {user?.role === "DONOR" && (
+                      <Link
+                        to="/donor"
+                        search={{ tab: "overview" }}
+                        className="w-full text-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 mt-2.5"
+                      >
+                        <Calendar className="size-3.5" /> Book Donation Slot at Center
+                      </Link>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        {filteredHospitals.length === 0 && (
+        {filteredBloodBanks.length === 0 && (
           <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center">
             <Building2 className="mx-auto size-10 text-muted-foreground opacity-50" />
-            <h3 className="mt-3 text-base font-semibold text-foreground">No matching medical centers</h3>
+            <h3 className="mt-3 text-base font-semibold text-foreground">No matching blood banks</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Try adjusting your search keywords or clear the area filter to see all partner centers.
+              Try adjusting your search keywords or clear the area filter to see all partner blood banks.
             </p>
             <Button
               variant="outline"
@@ -386,6 +430,15 @@ function HospitalCentersPage() {
           </div>
         )}
       </main>
+
+      {/* Contact Blood Bank Authorization Modal */}
+      <ContactBloodBankModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        bloodBank={selectedBankForContact}
+        onSuccess={handleContactSuccess}
+      />
     </div>
   );
 }
+export default BloodBanksPage;

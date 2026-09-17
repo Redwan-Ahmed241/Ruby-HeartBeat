@@ -470,6 +470,19 @@ export interface SystemLogResponse {
 // Ensures bidirectional translation between UI ("A+") and Backend ("A_PLUS")
 // ============================================================================
 
+export const CANONICAL_BLOOD_GROUPS = [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+] as const;
+
+export type CanonicalBloodGroup = (typeof CANONICAL_BLOOD_GROUPS)[number];
+
 export const BLOOD_GROUP_UI_MAP: Record<BloodGroup, string> = {
   A_POSITIVE: "A+",
   A_NEGATIVE: "A-",
@@ -509,4 +522,23 @@ export function toDisplayBloodGroup(group: BloodGroup | string): string {
 
 export function toApiBloodGroup(display: string): BloodGroup {
   return UI_TO_BLOOD_GROUP_MAP[display] ?? (display as BloodGroup);
+}
+
+// ============================================================================
+// BLOOD BANK CONTACT REQUEST
+// ============================================================================
+
+export interface BloodBankContactRequest {
+  blood_group: BloodGroup | string;
+  urgency: RequestUrgency;
+  component?: ComponentType | string;
+  note?: string;
+}
+
+export interface BloodBankContactResponse {
+  success: boolean;
+  request_id?: string;
+  bank_id: string;
+  message: string;
+  simulated?: boolean;
 }

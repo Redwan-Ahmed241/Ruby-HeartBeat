@@ -43,7 +43,7 @@ import {
 } from "@/hooks/useDonor";
 import {
   toDisplayBloodGroup,
-  BLOOD_GROUP_UI_MAP,
+  CANONICAL_BLOOD_GROUPS,
 } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ export const Route = createFileRoute("/donor")({
   component: DonorDashboardPage,
 });
 
-const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
+const UI_GROUPS = CANONICAL_BLOOD_GROUPS;
 
 function DonorDashboardPage() {
   const search = useSearch({ from: "/donor" });
@@ -421,7 +421,7 @@ function DonorDashboardPage() {
                       <SelectContent>
                         {UI_GROUPS.map((g) => (
                           <SelectItem key={g} value={g}>
-                            {formatBloodGroup(g, "symbol")} ({g})
+                            {formatBloodGroup(g, "symbol")} ({formatBloodGroup(g, "full")})
                           </SelectItem>
                         ))}
                       </SelectContent>

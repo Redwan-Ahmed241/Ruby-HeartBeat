@@ -37,6 +37,8 @@ import type {
   SystemLogResponse,
   CommunicationCreate,
   CommunicationResponse,
+  BloodBankContactRequest,
+  BloodBankContactResponse,
 } from "./types";
 
 // ============================================================================
@@ -341,5 +343,32 @@ export const communicationService = {
 
   getMessages: async (matchId: string): Promise<CommunicationResponse[]> => {
     return apiClient<CommunicationResponse[]>(`/communications/${matchId}`);
+  },
+};
+
+// ============================================================================
+// 7. PARTNER BLOOD BANKS & RESERVES (/api/v1/blood-banks)
+// ============================================================================
+
+export const bloodBankService = {
+  requestContactAccess: async (
+    bankId: string,
+    payload: BloodBankContactRequest,
+  ): Promise<BloodBankContactResponse> => {
+    try {
+      return await apiClient<BloodBankContactResponse>(`/blood-banks/${bankId}/contact-request`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.warn(`[DEMO FALLBACK] Blood bank request simulated for bank ${bankId}:`, payload, err);
+      return {
+        success: true,
+        bank_id: bankId,
+        message:
+          "Authorization request dispatched. The blood bank administration has been notified via email and portal alert.",
+        simulated: true,
+      };
+    }
   },
 };

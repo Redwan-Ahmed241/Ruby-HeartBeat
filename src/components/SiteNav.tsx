@@ -88,7 +88,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Partner Blood Centers
+                Partner Blood Banks
               </Link>
               <a
                 href="/#events"
@@ -126,7 +126,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Partner Blood Centers
+                Partner Blood Banks
               </Link>
               <Link
                 to="/events"
@@ -164,7 +164,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Hospital Stock
+                Partner Blood Banks
               </Link>
             </>
           )}
@@ -183,7 +183,7 @@ export function SiteNav() {
                 to="/centers"
                 className={getLinkClass("/centers")}
               >
-                Hospital Network
+                Partner Blood Banks
               </Link>
               <Link
                 to="/admin/users"
@@ -386,7 +386,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/centers")}
                 >
-                  Partner Blood Centers
+                  Partner Blood Banks
                 </Link>
                 <Link
                   to="/events"
@@ -426,7 +426,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/centers")}
                 >
-                  Hospital Stock
+                  Partner Blood Banks
                 </Link>
               </>
             ) : (
@@ -443,7 +443,7 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/centers")}
                 >
-                  Hospital Network
+                  Partner Blood Banks
                 </Link>
                 <Link
                   to="/admin/users"

@@ -45,7 +45,7 @@ import {
 import { useCurrentUser } from "@/hooks/useAuth";
 import { AuthDialog } from "@/components/AuthDialog";
 import {
-  BLOOD_GROUP_UI_MAP,
+  CANONICAL_BLOOD_GROUPS,
   toApiBloodGroup,
   toDisplayBloodGroup,
   type BloodGroup,
@@ -55,6 +55,7 @@ import {
   type MaskedDonorMatchResponse,
   type DonorContactReveal,
 } from "@/lib/api/types";
+import { formatBloodGroup } from "@/lib/formatters";
 
 export const Route = createFileRoute("/request-blood")({
   validateSearch: (search: Record<string, unknown>): { urgency?: "NORMAL" | "URGENT" | "EMERGENCY" } => ({
@@ -78,7 +79,7 @@ export const Route = createFileRoute("/request-blood")({
   component: RequestBlood,
 });
 
-const UI_GROUPS = Object.values(BLOOD_GROUP_UI_MAP);
+const UI_GROUPS = CANONICAL_BLOOD_GROUPS;
 const COMPONENTS = [
   { label: "Whole Blood", value: "WHOLE_BLOOD" },
   { label: "Plasma", value: "PLASMA" },
@@ -309,7 +310,7 @@ function RequestBlood() {
                     <SelectContent>
                       {UI_GROUPS.map((g) => (
                         <SelectItem key={g} value={g}>
-                          {g}
+                          {formatBloodGroup(g, "symbol")} ({formatBloodGroup(g, "full")})
                         </SelectItem>
                       ))}
                     </SelectContent>
