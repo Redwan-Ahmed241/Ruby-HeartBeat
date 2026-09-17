@@ -18,6 +18,7 @@ import { Route as FindDonorsRouteImport } from './routes/find-donors'
 import { Route as HospitalRouteImport } from './routes/hospital'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PartnerRouteImport } from './routes/partner'
 import { Route as RecipientRouteImport } from './routes/recipient'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RequestBloodRouteImport } from './routes/request-blood'
@@ -30,6 +31,8 @@ import { Route as DonorHistoryRouteImport } from './routes/donor.history'
 import { Route as HospitalAppointmentsRouteImport } from './routes/hospital.appointments'
 import { Route as HospitalInventoryRouteImport } from './routes/hospital.inventory'
 import { Route as HospitalTransactionsRouteImport } from './routes/hospital.transactions'
+import { Route as PartnerIndexRouteImport } from './routes/partner.index'
+import { Route as PartnerPortalRouteImport } from './routes/partner.portal'
 import { Route as RecipientRequestsRouteImport } from './routes/recipient.requests'
 import { Route as RequestsEmergencyRouteImport } from './routes/requests.emergency'
 import { Route as RequestsNewRouteImport } from './routes/requests.new'
@@ -77,6 +80,11 @@ const InventoryRoute = InventoryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnerRoute = PartnerRouteImport.update({
+  id: '/partner',
+  path: '/partner',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipientRoute = RecipientRouteImport.update({
@@ -139,6 +147,16 @@ const HospitalTransactionsRoute = HospitalTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => HospitalRoute,
 } as any)
+const PartnerIndexRoute = PartnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerPortalRoute = PartnerPortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => PartnerRoute,
+} as any)
 const RecipientRequestsRoute = RecipientRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -165,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/partner': typeof PartnerRouteWithChildren
   '/recipient': typeof RecipientRouteWithChildren
   '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
@@ -176,10 +195,12 @@ export interface FileRoutesByFullPath {
   '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin/': typeof AdminIndexRoute
+  '/partner/': typeof PartnerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -201,10 +222,12 @@ export interface FileRoutesByTo {
   '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin': typeof AdminIndexRoute
+  '/partner': typeof PartnerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -217,6 +240,7 @@ export interface FileRoutesById {
   '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/partner': typeof PartnerRouteWithChildren
   '/recipient': typeof RecipientRouteWithChildren
   '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
@@ -228,10 +252,12 @@ export interface FileRoutesById {
   '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
+  '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin/': typeof AdminIndexRoute
+  '/partner/': typeof PartnerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -245,6 +271,7 @@ export interface FileRouteTypes {
     | '/hospital'
     | '/inventory'
     | '/login'
+    | '/partner'
     | '/recipient'
     | '/register'
     | '/request-blood'
@@ -256,10 +283,12 @@ export interface FileRouteTypes {
     | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
+    | '/partner/portal'
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin/'
+    | '/partner/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -281,10 +310,12 @@ export interface FileRouteTypes {
     | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
+    | '/partner/portal'
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin'
+    | '/partner'
   id:
     | '__root__'
     | '/'
@@ -296,6 +327,7 @@ export interface FileRouteTypes {
     | '/hospital'
     | '/inventory'
     | '/login'
+    | '/partner'
     | '/recipient'
     | '/register'
     | '/request-blood'
@@ -307,10 +339,12 @@ export interface FileRouteTypes {
     | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
+    | '/partner/portal'
     | '/recipient/requests'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin/'
+    | '/partner/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -323,6 +357,7 @@ export interface RootRouteChildren {
   HospitalRoute: typeof HospitalRouteWithChildren
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
+  PartnerRoute: typeof PartnerRouteWithChildren
   RecipientRoute: typeof RecipientRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   RequestBloodRoute: typeof RequestBloodRoute
@@ -393,6 +428,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipient': {
@@ -479,6 +521,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HospitalTransactionsRouteImport
       parentRoute: typeof HospitalRoute
     }
+    '/partner/': {
+      id: '/partner/'
+      path: '/'
+      fullPath: '/partner/'
+      preLoaderRoute: typeof PartnerIndexRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/portal': {
+      id: '/partner/portal'
+      path: '/portal'
+      fullPath: '/partner/portal'
+      preLoaderRoute: typeof PartnerPortalRouteImport
+      parentRoute: typeof PartnerRoute
+    }
     '/recipient/requests': {
       id: '/recipient/requests'
       path: '/requests'
@@ -547,6 +603,19 @@ const HospitalRouteWithChildren = HospitalRoute._addFileChildren(
   HospitalRouteChildren,
 )
 
+interface PartnerRouteChildren {
+  PartnerPortalRoute: typeof PartnerPortalRoute
+  PartnerIndexRoute: typeof PartnerIndexRoute
+}
+
+const PartnerRouteChildren: PartnerRouteChildren = {
+  PartnerPortalRoute: PartnerPortalRoute,
+  PartnerIndexRoute: PartnerIndexRoute,
+}
+
+const PartnerRouteWithChildren =
+  PartnerRoute._addFileChildren(PartnerRouteChildren)
+
 interface RecipientRouteChildren {
   RecipientRequestsRoute: typeof RecipientRequestsRoute
 }
@@ -569,6 +638,7 @@ const rootRouteChildren: RootRouteChildren = {
   HospitalRoute: HospitalRouteWithChildren,
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
+  PartnerRoute: PartnerRouteWithChildren,
   RecipientRoute: RecipientRouteWithChildren,
   RegisterRoute: RegisterRoute,
   RequestBloodRoute: RequestBloodRoute,

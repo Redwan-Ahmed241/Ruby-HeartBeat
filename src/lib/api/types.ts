@@ -405,6 +405,11 @@ export interface DonationEventCreate {
   location: string;
   start_date: string;
   end_date: string;
+  organizer_name?: string;
+  organizer_type?: "HOSPITAL" | "NGO" | "COMMUNITY";
+  target_units?: number;
+  contact_phone?: string;
+  focus_blood_groups?: string[];
 }
 
 export interface EventResponse {
@@ -412,10 +417,16 @@ export interface EventResponse {
   title: string;
   description: string;
   organizer_id: string;
+  organizer_name?: string;
+  organizer_type?: "HOSPITAL" | "NGO" | "COMMUNITY";
+  target_units?: number;
+  registered_count?: number;
   location: string;
   start_date: string;
   end_date: string;
   status: EventStatus;
+  contact_phone?: string;
+  focus_blood_groups?: string[];
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -542,3 +553,56 @@ export interface BloodBankContactResponse {
   message: string;
   simulated?: boolean;
 }
+
+// ============================================================================
+// EXTERNAL PARTNER PORTAL TYPES
+// ============================================================================
+
+export interface PartnerFacilityProfile {
+  facility_id: string;
+  facility_name: string;
+  license_id: string;
+  address: string;
+  area: string;
+  latitude: number;
+  longitude: number;
+  is_24_hours: boolean;
+  operating_hours: string;
+  hotline: string;
+  duty_officer: string;
+  email: string;
+}
+
+export interface PartnerGroupReserve {
+  whole_blood: number;
+  platelets: number;
+  plasma: number;
+}
+
+export type PartnerInventoryMatrix = Record<CanonicalBloodGroup, PartnerGroupReserve>;
+
+export type NeedUrgency = "URGENT" | "CRITICAL_ICU";
+export type NeedStatus = "ACTIVE" | "FULFILLED" | "CANCELLED";
+
+export interface PartnerBloodNeed {
+  id: string;
+  facility_id: string;
+  blood_group: CanonicalBloodGroup | string;
+  component: string;
+  required_units: number;
+  urgency: NeedUrgency;
+  clinical_reason: string;
+  deadline: string;
+  status: NeedStatus;
+  created_at: string;
+}
+
+export interface PartnerBloodNeedCreate {
+  blood_group: CanonicalBloodGroup | string;
+  component: string;
+  required_units: number;
+  urgency: NeedUrgency;
+  clinical_reason: string;
+  deadline: string;
+}
+
