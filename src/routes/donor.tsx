@@ -121,13 +121,13 @@ function DonorDashboardPage() {
     data: eligibility,
     isLoading: eligLoading,
     refetch: refetchEligibility,
-  } = useDonorEligibility(!!user && user.role === "DONOR");
+  } = useDonorEligibility(!!user && (user.role === "DONOR" || user.role === "RECIPIENT"));
 
   const updateProfileMutation = useUpdateDonorProfile();
   const upsertMedicalMutation = useUpsertMedicalInfo();
 
-  const { data: registeredEvents } = useMyRegisteredEvents(!!user && user.role === "DONOR");
-  const { data: donationHistory } = useDonorHistory(!!user && user.role === "DONOR");
+  const { data: registeredEvents } = useMyRegisteredEvents(!!user && (user.role === "DONOR" || user.role === "RECIPIENT"));
+  const { data: donationHistory } = useDonorHistory(!!user && (user.role === "DONOR" || user.role === "RECIPIENT"));
 
   const scheduledEventsCount = registeredEvents?.length || 0;
   const lifetimeCount = donationHistory?.length || 0;
@@ -191,12 +191,15 @@ function DonorDashboardPage() {
   const handleSaveHealthMetrics = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const notesCombined = [
+        modalNotes?.trim(),
+        modalSystolic ? `BP: ${modalSystolic}/${modalDiastolic}` : null,
+        modalPulse ? `Pulse: ${modalPulse} bpm` : null,
+      ].filter(Boolean).join(" | ");
+
       await upsertMedicalMutation.mutateAsync({
         hemoglobin_level: Number(modalHemoglobin),
-        systolic_bp: Number(modalSystolic) || undefined,
-        diastolic_bp: Number(modalDiastolic) || undefined,
-        pulse_rate: Number(modalPulse) || undefined,
-        medical_notes: modalNotes || undefined,
+        other_notes: notesCombined || undefined,
       });
       setHemoglobin(modalHemoglobin);
       await refetchEligibility();
@@ -711,7 +714,7 @@ function DonorDashboardPage() {
 
 function ActiveCommitmentsCard() {
   const { data: user } = useCurrentUser();
-  const isDonor = user?.role === "DONOR";
+  const isDonor = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
   const { data: registeredEvents, isLoading } = useMyRegisteredEvents(isDonor);
 
   const hasEvents = registeredEvents && registeredEvents.length > 0;
@@ -779,7 +782,7 @@ function ActiveCommitmentsCard() {
 
 function DonationHistoryTab() {
   const { data: user } = useCurrentUser();
-  const isDonor = user?.role === "DONOR";
+  const isDonor = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
   const { data: history, isLoading } = useDonorHistory(isDonor);
 
   return (

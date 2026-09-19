@@ -108,7 +108,7 @@ export function LandingPage() {
   }, [calcAge, calcWeight, calcHemoglobin, calcLastDonation]);
 
   const { refetch: refetchServerEligibility } = useDonorEligibility(
-    !!user && user.role === "DONOR",
+    !!user && (user.role === "DONOR" || user.role === "RECIPIENT"),
   );
   const updateProfileMutation = useUpdateDonorProfile();
   const upsertMedicalMutation = useUpsertMedicalInfo();
@@ -396,7 +396,7 @@ export function LandingPage() {
                 )}
 
                 <div className="flex flex-col gap-2 pt-2">
-                  {user?.role === "DONOR" ? (
+                  {user && (user.role === "DONOR" || user.role === "RECIPIENT") ? (
                     <Button
                       onClick={handleSaveToProfile}
                       disabled={updateProfileMutation.isPending || upsertMedicalMutation.isPending}
@@ -406,9 +406,9 @@ export function LandingPage() {
                       Save to my profile
                     </Button>
                   ) : (
-                    <Link to="/register" search={{ role: "DONOR" }} className="w-full">
+                    <Link to="/register" className="w-full">
                       <Button className="w-full gap-2">
-                        <HeartPulse className="size-4" /> Register as a donor
+                        <HeartPulse className="size-4" /> Create an account
                       </Button>
                     </Link>
                   )}

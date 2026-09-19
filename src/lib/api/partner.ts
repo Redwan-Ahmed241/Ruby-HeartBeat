@@ -90,7 +90,7 @@ export const PRESET_PARTNER_PROFILES: Record<string, PartnerFacilityProfile> = {
   },
 };
 
-export const DEFAULT_PARTNER_PROFILE: PartnerFacilityProfile = PRESET_PARTNER_PROFILES["square"];
+export const DEFAULT_PARTNER_PROFILE: PartnerFacilityProfile = PRESET_PARTNER_PROFILES["square"]!;
 
 export const DEFAULT_PARTNER_MATRIX: PartnerInventoryMatrix = {
   "O+": { whole_blood: 14, platelets: 9, plasma: 12 },

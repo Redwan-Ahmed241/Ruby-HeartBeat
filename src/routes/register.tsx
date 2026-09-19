@@ -5,33 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
-import type { UserRole } from "@/lib/api/types";
 import { HeartPulse } from "lucide-react";
 
 export const Route = createFileRoute("/register")({
-  validateSearch: (search: Record<string, unknown>): { role: "DONOR" | "RECIPIENT" } => ({
-    role: (search["role"] as string) === "RECIPIENT" ? "RECIPIENT" : "DONOR",
+  validateSearch: (search: Record<string, unknown>): { role?: string | undefined } => ({
+    role: (search["role"] as string) || undefined,
   }),
   head: () => ({
     meta: [
       { title: "Register — LifeDrop Blood Management" },
-      { name: "description", content: "Join the LifeDrop network as a blood donor or recipient." },
+      { name: "description", content: "Create your unified LifeDrop account to donate blood and request emergency blood." },
     ],
   }),
   component: RegisterPage,
 });
 
 function RegisterPage() {
-  const { role } = useSearch({ from: "/register" });
   const { data: user } = useCurrentUser();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      if (user.role === "DONOR") navigate({ to: "/donor" });
-      else if (user.role === "RECIPIENT") navigate({ to: "/recipient" });
-      else if (user.role === "SYSTEM_ADMIN") navigate({ to: "/admin" });
-      else navigate({ to: "/" });
+      if (user.role === "SYSTEM_ADMIN") navigate({ to: "/admin" });
+      else if (user.role === "HOSPITAL_ADMIN") navigate({ to: "/hospital" });
+      else navigate({ to: "/donor" });
     }
   }, [user, navigate]);
 
@@ -50,13 +47,12 @@ function RegisterPage() {
           <CardHeader className="text-center">
             <CardTitle className="text-xl font-bold">Join LifeDrop</CardTitle>
             <CardDescription>
-              Register as a <strong className="text-primary">{role === "DONOR" ? "Blood Donor" : "Recipient / Patient Family"}</strong> to join the blood management network
+              Create your unified LifeDrop account. One account to donate blood and request emergency blood with verified safety.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4">
             <AuthDialog
               defaultTab="register"
-              defaultRole={role}
               trigger={
                 <Button className="w-full py-2.5 text-sm font-bold bg-[#800000] text-white hover:bg-[#600000] rounded-xl shadow-sm transition-all duration-200">
                   Open Registration Form

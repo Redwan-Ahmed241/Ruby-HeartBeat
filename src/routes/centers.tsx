@@ -41,6 +41,7 @@ export const Route = createFileRoute("/centers")({
 });
 
 export interface PartnerBloodBank extends BloodBankInfo {
+  operatingHours: string;
   is24Hours: boolean;
   reservesHighlight?: string[];
 }
@@ -392,8 +393,8 @@ function BloodBanksPage() {
                       </button>
                     )}
 
-                    {/* Secondary action for donors */}
-                    {user?.role === "DONOR" && (
+                    {/* Secondary action for donors & unified members */}
+                    {user && (user.role === "DONOR" || user.role === "RECIPIENT") && (
                       <Link
                         to="/donor"
                         search={{ tab: "overview" }}

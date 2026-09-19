@@ -1,7 +1,7 @@
 /**
  * Authentic Authentication Dialog for LifeDrop:
  * 1. Clean Sign In form with Email & Password
- * 2. Clean Registration form with Name, Email, Phone, Password, and Role selection
+ * 2. Clean Unified Registration form with Name, Email, Phone, Password, Blood Group & Area
  * 3. Discreet Evaluator Demo Credentials accordion with real JWT credential auto-fill
  */
 
@@ -14,7 +14,6 @@ import {
   UserCheck,
   Building2,
   Lock,
-  ChevronDown,
   LayoutDashboard,
   Eye,
   EyeOff,
@@ -68,31 +67,23 @@ const DEMO_CREDENTIALS: Array<{
   icon: typeof User;
   description: string;
 }> = [
-    {
-      role: "DONOR",
-      label: "Blood Donor",
-      email: "donor.demo@lifedrop.org",
-      pass: "DemoPass123!",
-      icon: UserCheck,
-      description: "Verified O+ volunteer donor (Banani, Dhaka)",
-    },
-    {
-      role: "RECIPIENT",
-      label: "Recipient / Patient Family",
-      email: "recipient.demo@lifedrop.org",
-      pass: "DemoPass123!",
-      icon: User,
-      description: "Active emergency blood recipient",
-    },
-    {
-      role: "SYSTEM_ADMIN",
-      label: "System Admin",
-      email: "admin.demo@lifedrop.org",
-      pass: "DemoPass123!",
-      icon: ShieldCheck,
-      description: "Full platform auditor & system supervisor",
-    },
-  ];
+  {
+    role: "DONOR",
+    label: "Unified Member (Dual Capability)",
+    email: "donor.demo@lifedrop.org",
+    pass: "DemoPass123!",
+    icon: UserCheck,
+    description: "Volunteer donor & emergency blood requester (Banani, Dhaka)",
+  },
+  {
+    role: "SYSTEM_ADMIN",
+    label: "System Admin",
+    email: "admin.demo@lifedrop.org",
+    pass: "DemoPass123!",
+    icon: ShieldCheck,
+    description: "Full platform auditor & system supervisor",
+  },
+];
 
 export interface AuthDialogProps {
   trigger?: React.ReactNode;
@@ -105,7 +96,6 @@ export interface AuthDialogProps {
 export function AuthDialog({
   trigger,
   defaultTab = "login",
-  defaultRole = "DONOR",
   open: controlledOpen,
   onOpenChange: setControlledOpen,
 }: AuthDialogProps = {}) {
@@ -120,7 +110,7 @@ export function AuthDialog({
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("+8801700000000");
-  const [selectedRole, setSelectedRole] = useState<UserRole>(defaultRole);
+  const [address, setAddress] = useState("Banani, Dhaka");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -139,9 +129,9 @@ export function AuthDialog({
       setOpen(false);
       const me = await authService.getMe();
       const dest =
-        me.role === "DONOR" ? "/donor"
-          : me.role === "RECIPIENT" ? "/recipient"
-            : "/admin";
+        me.role === "SYSTEM_ADMIN" ? "/admin"
+          : me.role === "HOSPITAL_ADMIN" ? "/hospital"
+            : "/donor";
       navigate({ to: dest });
     } catch {
       // Error handled by mutation toast
@@ -156,30 +146,13 @@ export function AuthDialog({
         email,
         phone,
         password,
-        role: selectedRole,
-        donor_profile:
-          selectedRole === "DONOR"
-            ? {
-              blood_group: selectedBloodGroup || "O_POSITIVE",
-              date_of_birth: "1998-05-20",
-              gender: "Male",
-              weight: 68.0,
-              address: "Banani, Dhaka",
-              latitude: 23.7937,
-              longitude: 90.4066,
-              hemoglobin_level: 14.0,
-            }
-            : null,
-        recipient_profile:
-          selectedRole === "RECIPIENT"
-            ? {
-              nid_passport_no: "NID-882716291",
-              address: "Gulshan, Dhaka",
-              relationship_to_patient: "Family",
-              patient_name: "Patient Family Member",
-            }
-            : null,
-        hospital_profile: null,
+        blood_group: selectedBloodGroup || "O_POSITIVE",
+        address: address || "Dhaka, Bangladesh",
+        date_of_birth: "1998-05-20",
+        gender: "Other",
+        weight: 68.0,
+        latitude: 23.7937,
+        longitude: 90.4066,
       });
       toast.success("Account created! You may now sign in.");
       setActiveTab("login");
@@ -202,19 +175,19 @@ export function AuthDialog({
   if (currentUser) {
     const roleColors: Record<UserRole, string> = {
       DONOR: "bg-emerald-600 text-white",
-      RECIPIENT: "bg-blue-600 text-white",
+      RECIPIENT: "bg-emerald-600 text-white",
       HOSPITAL_ADMIN: "bg-amber-600 text-white",
       SYSTEM_ADMIN: "bg-purple-600 text-white",
     };
 
+    const isRegularUser = currentUser.role === "DONOR" || currentUser.role === "RECIPIENT";
+
     const dashboardPath =
-      currentUser.role === "DONOR"
-        ? "/donor"
-        : currentUser.role === "RECIPIENT"
-          ? "/recipient"
-          : currentUser.role === "HOSPITAL_ADMIN"
-            ? "/hospital"
-            : "/admin";
+      currentUser.role === "HOSPITAL_ADMIN"
+        ? "/hospital"
+        : currentUser.role === "SYSTEM_ADMIN"
+          ? "/admin"
+          : "/donor";
 
     return (
       <DropdownMenu>
@@ -227,9 +200,9 @@ export function AuthDialog({
             <span className="max-w-[110px] truncate sm:max-w-none">{currentUser.full_name}</span>
             <Badge
               variant="outline"
-              className={`ml-1 border-0 text-[10px] uppercase font-semibold ${roleColors[currentUser.role]}`}
+              className={`ml-1 border-0 text-[10px] uppercase font-semibold ${roleColors[currentUser.role] || "bg-emerald-600 text-white"}`}
             >
-              {currentUser.role.replace("_", " ")}
+              {isRegularUser ? "MEMBER" : currentUser.role.replace("_", " ")}
             </Badge>
           </button>
         </DropdownMenuTrigger>
@@ -242,12 +215,35 @@ export function AuthDialog({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild>
-            <Link to={dashboardPath} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-              <LayoutDashboard className="size-4 text-primary" />
-              <span>Go to My Dashboard</span>
-            </Link>
-          </DropdownMenuItem>
+          {isRegularUser ? (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to="/donor" className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <LayoutDashboard className="size-4 text-primary" />
+                  <span>Donor Dashboard</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/recipient" className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <User className="size-4 text-primary" />
+                  <span>Recipient Dashboard</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/request-blood" className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <ShieldCheck className="size-4 text-primary" />
+                  <span>Create Blood Request</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem asChild>
+              <Link to={dashboardPath} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <LayoutDashboard className="size-4 text-primary" />
+                <span>Go to My Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
@@ -441,24 +437,6 @@ export function AuthDialog({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="reg-role">Register as</Label>
-                  <Select
-                    value={selectedRole}
-                    onValueChange={(v) => setSelectedRole(v as UserRole)}
-                  >
-                    <SelectTrigger id="reg-role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DONOR">Blood Donor</SelectItem>
-                      <SelectItem value="RECIPIENT">Recipient / Patient Family</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {selectedRole === "DONOR" && (
-                <div className="space-y-1">
                   <Label htmlFor="reg-blood-group">Blood Group</Label>
                   <Select
                     value={selectedBloodGroup}
@@ -479,7 +457,22 @@ export function AuthDialog({
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="reg-address">Area / City (Dhaka)</Label>
+                <Input
+                  id="reg-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="e.g. Banani, Dhaka or Dhanmondi, Dhaka"
+                  required
+                />
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Unified account: Every member can volunteer to donate blood and request emergency blood with full privacy protection.
+              </p>
 
               <Button type="submit" className="w-full mt-2" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? "Creating Account..." : "Create Account"}

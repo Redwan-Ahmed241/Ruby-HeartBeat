@@ -106,7 +106,15 @@ export interface UserRegisterRequest {
   email: string;
   phone: string;
   password: string;
-  role: UserRole;
+  role?: UserRole;
+  blood_group?: BloodGroup;
+  date_of_birth?: string;
+  gender?: string;
+  weight?: number;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  nid_passport_no?: string;
   donor_profile?: DonorProfileCreate | null;
   recipient_profile?: RecipientProfileCreate | null;
   hospital_profile?: HospitalProfileCreate | null;
@@ -123,6 +131,7 @@ export interface DonorBriefResponse {
   longitude: number;
   last_donation_date?: string | null;
   availability_status: AvailabilityStatus;
+  medical_info?: MedicalInfoResponse | null | undefined;
 }
 
 export interface RecipientBriefResponse {
@@ -175,10 +184,10 @@ export interface AvailabilityUpdate {
 
 export interface MedicalInfoUpsert {
   hemoglobin_level: number;
-  chronic_diseases?: string | null;
-  medications?: string | null;
-  allergies?: string | null;
-  other_notes?: string | null;
+  chronic_diseases?: string | null | undefined;
+  medications?: string | null | undefined;
+  allergies?: string | null | undefined;
+  other_notes?: string | null | undefined;
 }
 
 export interface MedicalInfoResponse {
@@ -394,18 +403,18 @@ export interface EventResponse {
   title: string;
   description: string;
   organizer_id: string;
-  organizer_name?: string;
-  organizer_type?: "HOSPITAL" | "NGO" | "COMMUNITY";
-  target_units?: number;
-  registered_count?: number;
+  organizer_name?: string | null | undefined;
+  organizer_type?: "HOSPITAL" | "NGO" | "COMMUNITY" | undefined;
+  target_units?: number | undefined;
+  registered_count?: number | undefined;
   location: string;
   start_date: string;
   end_date: string;
   status: EventStatus;
-  contact_phone?: string;
-  focus_blood_groups?: string[];
-  created_at?: string | null;
-  updated_at?: string | null;
+  contact_phone?: string | null | undefined;
+  focus_blood_groups?: string[] | undefined;
+  created_at?: string | null | undefined;
+  updated_at?: string | null | undefined;
 }
 
 export interface EventParticipantCreate {
@@ -519,8 +528,8 @@ export function toApiBloodGroup(display: string): BloodGroup {
 export interface BloodBankContactRequest {
   blood_group: BloodGroup | string;
   urgency: RequestUrgency;
-  component?: ComponentType | string;
-  note?: string;
+  component?: ComponentType | string | undefined;
+  note?: string | undefined;
 }
 
 export interface BloodBankContactResponse {

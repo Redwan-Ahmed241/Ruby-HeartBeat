@@ -34,10 +34,9 @@ function LoginPage() {
         navigate({ to: redirect });
       } else {
         const dest =
-          user.role === "DONOR" ? "/donor"
-          : user.role === "RECIPIENT" ? "/recipient"
-          : user.role === "SYSTEM_ADMIN" ? "/admin"
-          : "/";
+          user.role === "SYSTEM_ADMIN" ? "/admin"
+          : user.role === "HOSPITAL_ADMIN" ? "/hospital"
+          : "/donor";
         navigate({ to: dest });
       }
     }

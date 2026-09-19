@@ -137,15 +137,15 @@ function EventsPage() {
             </Link>
 
             {!user ? (
-              <Link to="/register" search={{ role: "DONOR" }}>
+              <Link to="/register">
                 <Button className="bg-primary text-primary-foreground font-semibold shadow-sm">
-                  Register as Donor
+                  Register to Participate
                 </Button>
               </Link>
-            ) : user.role === "DONOR" ? (
+            ) : (user.role === "DONOR" || user.role === "RECIPIENT") ? (
               <Link to="/donor">
                 <Button className="bg-primary text-primary-foreground font-semibold shadow-sm">
-                  My Donor Dashboard
+                  My Dashboard
                 </Button>
               </Link>
             ) : null}

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Droplet, Menu, AlertCircle, LogOut, Building2, User } from "lucide-react";
+import { Droplet, Menu, AlertCircle, LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
@@ -17,9 +17,9 @@ export function SiteNav() {
   const { data: user } = useCurrentUser();
   const toggleAvailabilityMutation = useToggleAvailability();
 
-  const isDonor = user?.role === "DONOR";
-  const isRecipient = user?.role === "RECIPIENT";
+  const isRegularUser = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
   const isSysAdmin = user?.role === "SYSTEM_ADMIN";
+  const isHospitalAdmin = user?.role === "HOSPITAL_ADMIN";
 
   const isDonorAvailable = user?.donor?.availability_status === "AVAILABLE";
 
@@ -105,52 +105,20 @@ export function SiteNav() {
             </>
           )}
 
-          {/* 2. DONOR Navigation: strictly Dashboard | Donation History | Partner Blood Centers | Events */}
-          {isDonor && (
+          {/* 2. UNIFIED MEMBER Navigation (Dual Capability: Donor + Recipient) */}
+          {isRegularUser && (
             <>
               <Link
                 to="/donor"
                 search={{ tab: "overview" }}
                 className={getLinkClass("/donor", "overview", true)}
               >
-                Dashboard
+                Donor Dashboard
               </Link>
-              <Link
-                to="/donor"
-                search={{ tab: "history" }}
-                className={getLinkClass("/donor", "history")}
-              >
-                Donation History
-              </Link>
-              <Link
-                to="/centers"
-                className={getLinkClass("/centers")}
-              >
-                Partner Blood Banks
-              </Link>
-              <Link
-                to="/events"
-                className={getLinkClass("/events")}
-              >
-                Events
-              </Link>
-            </>
-          )}
-
-          {/* 3. RECIPIENT Navigation */}
-          {isRecipient && (
-            <>
               <Link
                 to="/recipient"
                 search={{ tab: "overview" }}
                 className={getLinkClass("/recipient", "overview", true)}
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/recipient"
-                search={{ tab: "requests" }}
-                className={getLinkClass("/recipient", "requests")}
               >
                 My Requests
               </Link>
@@ -159,6 +127,30 @@ export function SiteNav() {
                 className={getLinkClass("/request-blood")}
               >
                 Create Request
+              </Link>
+              <Link
+                to="/events"
+                className={getLinkClass("/events")}
+              >
+                Events
+              </Link>
+              <Link
+                to="/centers"
+                className={getLinkClass("/centers")}
+              >
+                Partner Blood Banks
+              </Link>
+            </>
+          )}
+
+          {/* 3. HOSPITAL_ADMIN Navigation */}
+          {isHospitalAdmin && (
+            <>
+              <Link
+                to="/hospital"
+                className={getLinkClass("/hospital")}
+              >
+                Hospital Dashboard
               </Link>
               <Link
                 to="/centers"
@@ -209,10 +201,10 @@ export function SiteNav() {
 
         {/* Right Actions Toolbar */}
         <div className="flex items-center gap-3">
-          {/* Donor Availability Toggle Switch */}
-          {isDonor && (
+          {/* Donor Availability Toggle Switch for Unified Members */}
+          {isRegularUser && (
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1 text-xs">
-              <span className="font-medium">{isDonorAvailable ? "Available" : "Unavailable"}</span>
+              <span className="font-medium">{isDonorAvailable ? "Available to Donate" : "Unavailable"}</span>
               <Switch
                 checked={isDonorAvailable}
                 onCheckedChange={handleAvailabilityToggle}
@@ -223,8 +215,8 @@ export function SiteNav() {
             </div>
           )}
 
-          {/* Recipient Emergency Request CTA button */}
-          {isRecipient && (
+          {/* Emergency Request CTA button for Unified Members */}
+          {isRegularUser && (
             <Link to="/request-blood" search={{ urgency: "EMERGENCY" }}>
               <Button
                 size="sm"
@@ -237,7 +229,7 @@ export function SiteNav() {
             </Link>
           )}
 
-          {(isDonor || isRecipient) && <NotificationHub />}
+          {isRegularUser && <NotificationHub />}
 
           {/* Unauthenticated Guest Actions: Login & Register buttons with High Contrast */}
           {!user ? (
@@ -255,7 +247,6 @@ export function SiteNav() {
               />
               <AuthDialog
                 defaultTab="register"
-                defaultRole="DONOR"
                 trigger={
                   <button
                     type="button"
@@ -275,7 +266,7 @@ export function SiteNav() {
                   {user.full_name.split(" ")[0]}
                 </span>
                 <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
-                  {isDonor ? "Donor" : isRecipient ? "Recipient" : "Admin"}
+                  {isRegularUser ? "Member" : "Admin"}
                 </span>
               </div>
 
@@ -308,7 +299,7 @@ export function SiteNav() {
         <div className="border-t border-border/40 bg-primary px-4 py-3 lg:hidden">
           <div className="flex flex-col gap-1">
             {/* Donor Mobile Switch */}
-            {isDonor && (
+            {isRegularUser && (
               <div className="flex items-center justify-between rounded-md bg-primary-glow/30 px-3 py-2 text-xs mb-2">
                 <span className="font-semibold">
                   Donor Status: {isDonorAvailable ? "Available to Donate" : "Unavailable"}
@@ -322,8 +313,8 @@ export function SiteNav() {
               </div>
             )}
 
-            {/* Recipient Emergency Mobile CTA */}
-            {isRecipient && (
+            {/* Emergency Mobile CTA */}
+            {isRegularUser && (
               <Link to="/request-blood" search={{ urgency: "EMERGENCY" }} onClick={() => setOpen(false)} className="mb-2">
                 <Button size="sm" variant="destructive" className="w-full text-xs font-semibold">
                   <AlertCircle className="mr-1.5 size-3.5" />
@@ -363,7 +354,7 @@ export function SiteNav() {
                   About
                 </a>
               </>
-            ) : isDonor ? (
+            ) : isRegularUser ? (
               <>
                 <Link
                   to="/donor"
@@ -371,22 +362,22 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/donor", "overview", true)}
                 >
-                  Dashboard
+                  Donor Dashboard
                 </Link>
                 <Link
-                  to="/donor"
-                  search={{ tab: "history" }}
+                  to="/recipient"
+                  search={{ tab: "overview" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/donor", "history")}
+                  className={getMobileLinkClass("/recipient", "overview", true)}
                 >
-                  Donation History
+                  My Blood Requests
                 </Link>
                 <Link
-                  to="/centers"
+                  to="/request-blood"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/centers")}
+                  className={getMobileLinkClass("/request-blood")}
                 >
-                  Partner Blood Banks
+                  Create Blood Request
                 </Link>
                 <Link
                   to="/events"
@@ -395,31 +386,22 @@ export function SiteNav() {
                 >
                   Events
                 </Link>
+                <Link
+                  to="/centers"
+                  onClick={() => setOpen(false)}
+                  className={getMobileLinkClass("/centers")}
+                >
+                  Partner Blood Banks
+                </Link>
               </>
-            ) : isRecipient ? (
+            ) : isHospitalAdmin ? (
               <>
                 <Link
-                  to="/recipient"
-                  search={{ tab: "overview" }}
+                  to="/hospital"
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/recipient", "overview", true)}
+                  className={getMobileLinkClass("/hospital")}
                 >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/recipient"
-                  search={{ tab: "requests" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/recipient", "requests")}
-                >
-                  My Requests
-                </Link>
-                <Link
-                  to="/request-blood"
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/request-blood")}
-                >
-                  Create Request
+                  Hospital Dashboard
                 </Link>
                 <Link
                   to="/centers"

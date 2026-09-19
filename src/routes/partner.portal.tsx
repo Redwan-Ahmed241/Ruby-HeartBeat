@@ -327,7 +327,7 @@ export function PartnerPortalPage() {
       setProfile(targetPreset);
       const isNgo = newId === "red_crescent" || newId === "quantum";
       setEventCategory(isNgo ? "NGO" : "HOSPITAL");
-      setEventContact(targetPreset.hotline.split("/")[0].trim());
+      setEventContact(targetPreset.hotline.split("/")[0]?.trim() || "");
       setEventLocation(targetPreset.address);
       toast.success(`Active Facility: ${targetPreset.facility_name}`);
     }
