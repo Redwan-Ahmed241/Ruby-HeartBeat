@@ -26,9 +26,6 @@ import type {
   InventoryTransactionCreate,
   InventoryTransactionResponse,
   ExpiryScanResponse,
-  AppointmentCreate,
-  AppointmentStatusUpdate,
-  AppointmentResponse,
   DonationEventCreate,
   EventResponse,
   EventParticipantCreate,
@@ -223,31 +220,8 @@ export const inventoryService = {
 };
 
 // ============================================================================
-// 5. APPOINTMENTS, EVENTS & NOTICES
+// 5. EVENTS & NOTICES
 // ============================================================================
-
-export const appointmentService = {
-  bookAppointment: async (payload: AppointmentCreate): Promise<AppointmentResponse> => {
-    return apiClient<AppointmentResponse>("/appointments/", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  },
-
-  getMyAppointments: async (): Promise<AppointmentResponse[]> => {
-    return apiClient<AppointmentResponse[]>("/appointments/my-appointments");
-  },
-
-  updateStatus: async (
-    appointmentId: string,
-    payload: AppointmentStatusUpdate,
-  ): Promise<AppointmentResponse> => {
-    return apiClient<AppointmentResponse>(`/appointments/${appointmentId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
-  },
-};
 
 export const eventService = {
   listEvents: async (): Promise<EventResponse[]> => {

@@ -26,9 +26,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminLogsRouteImport } from './routes/admin.logs'
 import { Route as AdminNoticesRouteImport } from './routes/admin.notices'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
-import { Route as DonorAppointmentsRouteImport } from './routes/donor.appointments'
 import { Route as DonorHistoryRouteImport } from './routes/donor.history'
-import { Route as HospitalAppointmentsRouteImport } from './routes/hospital.appointments'
 import { Route as HospitalInventoryRouteImport } from './routes/hospital.inventory'
 import { Route as HospitalTransactionsRouteImport } from './routes/hospital.transactions'
 import { Route as PartnerIndexRouteImport } from './routes/partner.index'
@@ -122,20 +120,10 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
-const DonorAppointmentsRoute = DonorAppointmentsRouteImport.update({
-  id: '/appointments',
-  path: '/appointments',
-  getParentRoute: () => DonorRoute,
-} as any)
 const DonorHistoryRoute = DonorHistoryRouteImport.update({
   id: '/history',
   path: '/history',
   getParentRoute: () => DonorRoute,
-} as any)
-const HospitalAppointmentsRoute = HospitalAppointmentsRouteImport.update({
-  id: '/appointments',
-  path: '/appointments',
-  getParentRoute: () => HospitalRoute,
 } as any)
 const HospitalInventoryRoute = HospitalInventoryRouteImport.update({
   id: '/inventory',
@@ -190,9 +178,7 @@ export interface FileRoutesByFullPath {
   '/admin/logs': typeof AdminLogsRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/donor/appointments': typeof DonorAppointmentsRoute
   '/donor/history': typeof DonorHistoryRoute
-  '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
@@ -217,9 +203,7 @@ export interface FileRoutesByTo {
   '/admin/logs': typeof AdminLogsRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/donor/appointments': typeof DonorAppointmentsRoute
   '/donor/history': typeof DonorHistoryRoute
-  '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
@@ -247,9 +231,7 @@ export interface FileRoutesById {
   '/admin/logs': typeof AdminLogsRoute
   '/admin/notices': typeof AdminNoticesRoute
   '/admin/users': typeof AdminUsersRoute
-  '/donor/appointments': typeof DonorAppointmentsRoute
   '/donor/history': typeof DonorHistoryRoute
-  '/hospital/appointments': typeof HospitalAppointmentsRoute
   '/hospital/inventory': typeof HospitalInventoryRoute
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
@@ -278,9 +260,7 @@ export interface FileRouteTypes {
     | '/admin/logs'
     | '/admin/notices'
     | '/admin/users'
-    | '/donor/appointments'
     | '/donor/history'
-    | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
     | '/partner/portal'
@@ -305,9 +285,7 @@ export interface FileRouteTypes {
     | '/admin/logs'
     | '/admin/notices'
     | '/admin/users'
-    | '/donor/appointments'
     | '/donor/history'
-    | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
     | '/partner/portal'
@@ -334,9 +312,7 @@ export interface FileRouteTypes {
     | '/admin/logs'
     | '/admin/notices'
     | '/admin/users'
-    | '/donor/appointments'
     | '/donor/history'
-    | '/hospital/appointments'
     | '/hospital/inventory'
     | '/hospital/transactions'
     | '/partner/portal'
@@ -486,26 +462,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/donor/appointments': {
-      id: '/donor/appointments'
-      path: '/appointments'
-      fullPath: '/donor/appointments'
-      preLoaderRoute: typeof DonorAppointmentsRouteImport
-      parentRoute: typeof DonorRoute
-    }
     '/donor/history': {
       id: '/donor/history'
       path: '/history'
       fullPath: '/donor/history'
       preLoaderRoute: typeof DonorHistoryRouteImport
       parentRoute: typeof DonorRoute
-    }
-    '/hospital/appointments': {
-      id: '/hospital/appointments'
-      path: '/appointments'
-      fullPath: '/hospital/appointments'
-      preLoaderRoute: typeof HospitalAppointmentsRouteImport
-      parentRoute: typeof HospitalRoute
     }
     '/hospital/inventory': {
       id: '/hospital/inventory'
@@ -576,25 +538,21 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface DonorRouteChildren {
-  DonorAppointmentsRoute: typeof DonorAppointmentsRoute
   DonorHistoryRoute: typeof DonorHistoryRoute
 }
 
 const DonorRouteChildren: DonorRouteChildren = {
-  DonorAppointmentsRoute: DonorAppointmentsRoute,
   DonorHistoryRoute: DonorHistoryRoute,
 }
 
 const DonorRouteWithChildren = DonorRoute._addFileChildren(DonorRouteChildren)
 
 interface HospitalRouteChildren {
-  HospitalAppointmentsRoute: typeof HospitalAppointmentsRoute
   HospitalInventoryRoute: typeof HospitalInventoryRoute
   HospitalTransactionsRoute: typeof HospitalTransactionsRoute
 }
 
 const HospitalRouteChildren: HospitalRouteChildren = {
-  HospitalAppointmentsRoute: HospitalAppointmentsRoute,
   HospitalInventoryRoute: HospitalInventoryRoute,
   HospitalTransactionsRoute: HospitalTransactionsRoute,
 }

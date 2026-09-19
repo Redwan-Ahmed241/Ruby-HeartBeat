@@ -47,7 +47,6 @@ import {
 } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
-import { useMyAppointments, useBookAppointment, useUpdateAppointmentStatus } from "@/hooks/useAppointmentsEventsNotices";
 import { useDonorHistory } from "@/hooks/useDonor";
 import { useMyRegisteredEvents } from "@/hooks/useAdmin";
 import { HOSPITALS } from "@/lib/donor-data";
@@ -63,7 +62,7 @@ export const Route = createFileRoute("/donor")({
       { title: "Donor Dashboard — LifeDrop" },
       {
         name: "description",
-        content: "Manage donor availability, appointments, and donation history.",
+        content: "Manage donor availability, eligibility, and donation history.",
       },
     ],
   }),
@@ -127,13 +126,10 @@ function DonorDashboardPage() {
   const updateProfileMutation = useUpdateDonorProfile();
   const upsertMedicalMutation = useUpsertMedicalInfo();
 
-  const { data: appointments } = useMyAppointments(!!user && user.role === "DONOR");
   const { data: registeredEvents } = useMyRegisteredEvents(!!user && user.role === "DONOR");
   const { data: donationHistory } = useDonorHistory(!!user && user.role === "DONOR");
 
-  const scheduledCount =
-    (appointments?.filter((a) => a.status === "SCHEDULED").length || 0) +
-    (registeredEvents?.length || 0);
+  const scheduledEventsCount = registeredEvents?.length || 0;
   const lifetimeCount = donationHistory?.length || 0;
   const tierInfo = getDonorTier(lifetimeCount);
 
@@ -235,7 +231,7 @@ function DonorDashboardPage() {
           <p className="mt-2 text-muted-foreground text-sm">
             {user
               ? `You are logged in as ${user.role}. This portal is reserved for registered Donors.`
-              : "You must be authenticated as a Donor to access this dashboard, view appointments, and toggle emergency availability."}
+              : "You must be authenticated as a Donor to access this dashboard, review eligibility, and toggle emergency availability."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <AuthDialog defaultTab="login" defaultRole="DONOR" />
@@ -269,7 +265,7 @@ function DonorDashboardPage() {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Manage clinical eligibility, appointments, donation records, and emergency availability.
+              Manage clinical eligibility, donation records, and emergency availability.
             </p>
 
             {/* Dynamic Tier Progress Bar */}
@@ -354,8 +350,8 @@ function DonorDashboardPage() {
                 <Calendar className="size-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Active Commitments</p>
-                <p className="text-xl font-bold">{scheduledCount} Upcoming</p>
+                <p className="text-xs text-muted-foreground font-medium">Registered Drives</p>
+                <p className="text-xl font-bold">{scheduledEventsCount} Campaigns</p>
               </div>
             </CardContent>
           </Card>
@@ -716,31 +712,9 @@ function DonorDashboardPage() {
 function ActiveCommitmentsCard() {
   const { data: user } = useCurrentUser();
   const isDonor = user?.role === "DONOR";
-  const { data: appointments, isLoading } = useMyAppointments(isDonor);
-  const { data: registeredEvents, isLoading: eventsLoading } = useMyRegisteredEvents(isDonor);
-  const bookMutation = useBookAppointment();
-  const updateStatusMutation = useUpdateAppointmentStatus();
+  const { data: registeredEvents, isLoading } = useMyRegisteredEvents(isDonor);
 
-  const [showBooking, setShowBooking] = useState(false);
-  const [centerId, setCenterId] = useState(HOSPITALS[0]?.id || "32a02b1c-cbf6-408e-ae28-c2fe3203a394");
-  const [apptDate, setApptDate] = useState("");
-  const [apptTime, setApptTime] = useState("");
-
-  const handleBook = () => {
-    if (!centerId || !apptDate || !apptTime) {
-      toast.error("Please fill all booking fields.");
-      return;
-    }
-    bookMutation.mutate(
-      { center_id: centerId, appointment_date: apptDate, appointment_time: apptTime + ":00" },
-      { onSuccess: () => setShowBooking(false) },
-    );
-  };
-
-  const allLoading = isLoading || eventsLoading;
-  const hasAppointments = appointments && appointments.length > 0;
   const hasEvents = registeredEvents && registeredEvents.length > 0;
-  const hasAnything = hasAppointments || hasEvents;
 
   return (
     <Card className="shadow-[var(--shadow-elegant)]">
@@ -748,104 +722,26 @@ function ActiveCommitmentsCard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="size-5 text-primary" /> Active Commitments & Registered Drives
+              <Calendar className="size-5 text-primary" /> Registered Campaign Drives
             </CardTitle>
             <CardDescription>
-              Your upcoming registered campaign drives and partner hospital appointments
+              Your upcoming registered voluntary blood donation drives and campaigns
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div>
             <Link to="/events">
               <Button size="sm" variant="outline">Browse Donation Drives</Button>
             </Link>
-            <Button size="sm" onClick={() => setShowBooking((s) => !s)}>
-              {showBooking ? "Cancel" : "Book Appointment"}
-            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        {showBooking && (
-          <div className="mb-6 space-y-4 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
-            <p className="text-sm font-semibold text-foreground">Book Partner Hospital Appointment</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <Label className="text-xs font-medium">Partner Hospital Facility</Label>
-                <Select value={centerId} onValueChange={setCenterId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select hospital center" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HOSPITALS.map((h) => (
-                      <SelectItem key={h.id} value={h.id}>
-                        {h.name} ({h.area})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs font-medium">Date</Label>
-                <Input className="mt-1" type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs font-medium">Time</Label>
-                <Input className="mt-1" type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
-              </div>
-            </div>
-            <Button size="sm" disabled={bookMutation.isPending} onClick={handleBook}>
-              {bookMutation.isPending ? "Booking..." : "Confirm Booking"}
-            </Button>
-          </div>
-        )}
-
-        {allLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading schedule...
+            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading registered drives...
           </div>
-        ) : hasAnything ? (
+        ) : hasEvents ? (
           <div className="space-y-3">
-            {appointments?.map((appt) => (
-              <div
-                key={appt.appointment_id}
-                className="flex items-start justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] font-semibold border-blue-500 text-blue-600">
-                      Hospital Appointment
-                    </Badge>
-                    <Badge variant={appt.status === "COMPLETED" ? "default" : appt.status === "CANCELLED" ? "destructive" : "secondary"}>
-                      {appt.status}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="size-3" />
-                    {new Date(appt.appointment_date).toLocaleDateString()} at {appt.appointment_time}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Center: {appt.center_id.slice(0, 8)}...
-                  </p>
-                </div>
-                {appt.status === "SCHEDULED" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    disabled={updateStatusMutation.isPending}
-                    onClick={() =>
-                      updateStatusMutation.mutate({
-                        appointmentId: appt.appointment_id,
-                        payload: { status: "CANCELLED" },
-                      })
-                    }
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            ))}
-
             {registeredEvents?.map((ev) => (
               <div
                 key={ev.event_id}
@@ -873,7 +769,7 @@ function ActiveCommitmentsCard() {
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No appointments or registered drives found. Book one above or browse donation drives.
+            No registered donation drives found. Browse upcoming campaigns to participate.
           </div>
         )}
       </CardContent>

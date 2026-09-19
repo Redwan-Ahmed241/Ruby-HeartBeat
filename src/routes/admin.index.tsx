@@ -34,7 +34,7 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodRequests } from "@/hooks/useRequests";
 import { useBloodInventory } from "@/hooks/useInventory";
 import { useSystemLogs, useCampaignNotices } from "@/hooks/useAdmin";
-import { useCreateCampaignNotice } from "@/hooks/useAppointmentsEventsNotices";
+import { useCreateCampaignNotice } from "@/hooks/useEventsNotices";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 
 export const Route = createFileRoute("/admin/")({

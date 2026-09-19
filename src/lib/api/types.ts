@@ -41,8 +41,6 @@ export type AvailabilityStatus = "AVAILABLE" | "UNAVAILABLE";
 
 export type MatchResponseStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
-export type AppointmentStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
-
 export type EventStatus = "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
 export type ParticipantRole = "ORGANIZER" | "PARTICIPANT" | "VOLUNTEER";
@@ -375,29 +373,8 @@ export interface ExpiryScanResponse {
 }
 
 // ============================================================================
-// APPOINTMENTS, EVENTS & AUDIT (app.schemas.appointment)
+// EVENTS & AUDIT (app.schemas.events_notices)
 // ============================================================================
-
-export interface AppointmentCreate {
-  center_id: string;
-  appointment_date: string; // YYYY-MM-DD
-  appointment_time: string; // HH:MM:SS
-}
-
-export interface AppointmentStatusUpdate {
-  status: AppointmentStatus;
-}
-
-export interface AppointmentResponse {
-  appointment_id: string;
-  donor_id: string;
-  center_id: string;
-  appointment_date: string;
-  appointment_time: string;
-  status: AppointmentStatus;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
 
 export interface DonationEventCreate {
   title: string;

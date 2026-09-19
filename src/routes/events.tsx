@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCampaignNotices, useDonationEvents } from "@/hooks/useAdmin";
-import { useRegisterForEvent } from "@/hooks/useAppointmentsEventsNotices";
+import { useRegisterForEvent } from "@/hooks/useEventsNotices";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
