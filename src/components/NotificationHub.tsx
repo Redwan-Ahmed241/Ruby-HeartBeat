@@ -410,14 +410,30 @@ export function NotificationHub() {
                           className="flex items-center justify-between text-xs rounded border border-border/50 p-2.5 bg-muted/20"
                         >
                           <div>
-                            <p className="font-medium">
-                              {formatBloodGroup(r.blood_group)} · {r.quantity} Unit(s)
+                            <p className="font-medium flex items-center gap-1.5">
+                              <span>{formatBloodGroup(r.blood_group)}</span>
+                              <span>·</span>
+                              <span>{r.quantity} Unit(s) ({r.volume_ml || Number(r.quantity) * 450} mL)</span>
+                              {r.patient_name && <span className="text-muted-foreground">({r.patient_name})</span>}
                             </p>
                             <p className="text-[11px] text-muted-foreground">
-                              {r.required_location}
+                              {r.hospital_name || r.required_location} {r.area_zone ? `· ${r.area_zone}` : ""}
                             </p>
                           </div>
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge
+                            className={
+                              r.status === "OPEN"
+                                ? "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"
+                                : r.status === "ACCEPTED"
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]"
+                                : r.status === "PROCESSING"
+                                ? "bg-amber-600 hover:bg-amber-700 text-white text-[10px]"
+                                : r.status === "COMPLETED"
+                                ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]"
+                                : "text-[10px]"
+                            }
+                            variant={r.status === "CANCELLED" ? "destructive" : "outline"}
+                          >
                             {r.status}
                           </Badge>
                         </div>

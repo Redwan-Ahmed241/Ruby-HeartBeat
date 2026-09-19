@@ -55,22 +55,54 @@ const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> =
 };
 
 function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
+  const renderStatusBadge = () => {
+    switch (req.status) {
+      case "OPEN":
+        return <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-[10px]">OPEN</Badge>;
+      case "ACCEPTED":
+        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]">ACCEPTED</Badge>;
+      case "PROCESSING":
+        return <Badge className="bg-amber-600 hover:bg-amber-700 text-white text-[10px]">PROCESSING</Badge>;
+      case "COMPLETED":
+        return <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px]">COMPLETED</Badge>;
+      case "CANCELLED":
+        return <Badge variant="destructive" className="text-[10px]">CANCELLED</Badge>;
+      default:
+        return <Badge variant="outline" className="text-[10px]">{req.status}</Badge>;
+    }
+  };
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
-      <div className="space-y-1 min-w-0 flex-1">
+      <div className="space-y-1.5 min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-base font-bold text-primary">{formatBloodGroup(req.blood_group, "symbol")}</span>
           <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
-          <Badge variant="outline">{req.status}</Badge>
+          {renderStatusBadge()}
+          {req.patient_name && (
+            <span className="text-xs font-semibold text-foreground">for {req.patient_name}</span>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground truncate">
-          {req.quantity} unit(s) · {req.component_type.replace("_", " ")} · {req.required_location}
+        <p className="text-xs text-muted-foreground">
+          {req.quantity} unit(s) ({req.volume_ml ? `${req.volume_ml} mL` : `${Number(req.quantity) * 450} mL`}) · {req.component_type.replace("_", " ")}
+          {req.hospital_name ? ` · ${req.hospital_name}` : ""}
+          {req.area_zone ? ` (${req.area_zone})` : ""}
         </p>
-        {req.request_date && (
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="size-3" /> {new Date(req.request_date).toLocaleString()}
-          </p>
-        )}
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 truncate max-w-xs">
+            <MapPin className="size-3 text-muted-foreground shrink-0" /> {req.required_location}
+          </span>
+          {req.attendant_phone_number && (
+            <span className="flex items-center gap-1 font-mono">
+              <Phone className="size-3 text-muted-foreground shrink-0" /> {req.attendant_phone_number}
+            </span>
+          )}
+          {req.request_date && (
+            <span className="flex items-center gap-1">
+              <Clock className="size-3 shrink-0" /> {new Date(req.request_date).toLocaleDateString()}
+            </span>
+          )}
+        </div>
       </div>
       <Button variant="outline" size="sm" className="text-xs self-start sm:self-auto shrink-0" onClick={() => onViewMatches(req.request_id)}>
         View matches ({req.matches?.length || 0})

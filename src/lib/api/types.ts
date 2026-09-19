@@ -33,7 +33,7 @@ export type ComponentType = "WHOLE_BLOOD" | "PLASMA" | "PLATELETS";
 
 export type RequestUrgency = "NORMAL" | "URGENT" | "EMERGENCY";
 
-export type RequestStatus = "PENDING" | "MATCHED" | "COMPLETED" | "CANCELLED";
+export type RequestStatus = "OPEN" | "PENDING" | "ACCEPTED" | "MATCHED" | "PROCESSING" | "COMPLETED" | "CANCELLED";
 
 export type StockStatus = "HEALTHY" | "LOW_STOCK" | "CRITICAL" | "OUT_OF_STOCK";
 
@@ -257,11 +257,16 @@ export interface BloodRequestCreate {
   blood_group: BloodGroup;
   component_type: ComponentType;
   quantity: number;
-  urgency?: RequestUrgency;
+  urgency?: RequestUrgency | undefined;
   required_location: string;
   latitude: number;
   longitude: number;
-  notes?: string | null;
+  notes?: string | null | undefined;
+  patient_name?: string | undefined;
+  hospital_name?: string | undefined;
+  area_zone?: string | undefined;
+  attendant_phone_number?: string | undefined;
+  volume_ml?: number | undefined;
 }
 
 export interface MaskedDonorMatchResponse {
@@ -289,9 +294,20 @@ export interface BloodRequestResponse {
   latitude: number;
   longitude: number;
   status: RequestStatus;
-  request_date?: string | null;
-  notes?: string | null;
-  matches?: MaskedDonorMatchResponse[] | null;
+  request_date?: string | null | undefined;
+  notes?: string | null | undefined;
+  patient_name?: string | null | undefined;
+  hospital_name?: string | null | undefined;
+  area_zone?: string | null | undefined;
+  attendant_phone_number?: string | null | undefined;
+  volume_ml?: number | null | undefined;
+  accepted_donor_id?: string | null | undefined;
+  matches?: MaskedDonorMatchResponse[] | null | undefined;
+}
+
+export interface RequestStatusUpdate {
+  status: RequestStatus;
+  accepted_donor_id?: string | undefined;
 }
 
 export interface MatchRespondRequest {

@@ -92,14 +92,44 @@ const URGENCIES = [
   { label: "Emergency (Immediate 50km Broadcast)", value: "EMERGENCY" },
 ] as const;
 
+export const DHAKA_ZONES = [
+  "Shahbagh",
+  "Panthapath",
+  "Bashundhara",
+  "Gulshan",
+  "Banani",
+  "Dhanmondi",
+  "Mirpur",
+  "Uttara",
+  "Mohakhali",
+  "Banasree",
+  "Mohammadpur",
+  "Badda",
+  "Puran Dhaka",
+  "Khilgaon",
+] as const;
+
+export const POPULAR_HOSPITALS = [
+  { name: "Dhaka Medical College Hospital (DMCH)", area: "Shahbagh" },
+  { name: "Square Hospital", area: "Panthapath" },
+  { name: "Evercare Hospital Dhaka", area: "Bashundhara" },
+  { name: "United Hospital", area: "Gulshan" },
+  { name: "BIRDEM General Hospital", area: "Shahbagh" },
+  { name: "Popular Diagnostic & Hospital", area: "Dhanmondi" },
+  { name: "National Heart Foundation", area: "Mirpur" },
+] as const;
+
 const schema = z.object({
   patient: z.string().trim().min(1, "Patient name is required").max(100),
   group: z.string().min(1, "Blood group is required"),
   component: z.enum(["WHOLE_BLOOD", "PLASMA", "PLATELETS"]),
   units: z.coerce.number().min(0.5, "At least 0.5 unit").max(20, "Maximum 20 units"),
+  volume_ml: z.coerce.number().min(100, "Volume must be at least 100 mL").max(10000).optional(),
   urgency: z.enum(["NORMAL", "URGENT", "EMERGENCY"]),
-  location: z.string().trim().min(3, "Delivery location is required").max(150),
-  phone: z.string().trim().min(6, "Valid phone number is required").max(30),
+  hospital_name: z.string().trim().min(2, "Hospital name is required").max(150),
+  area_zone: z.string().trim().min(2, "Area zone is required").max(100),
+  location: z.string().trim().min(2, "Ward / Delivery location is required").max(150),
+  phone: z.string().trim().min(6, "Valid attendant phone number is required").max(30),
   notes: z.string().trim().max(500).optional(),
 });
 
@@ -113,8 +143,11 @@ function RequestBlood() {
     group: "O+",
     component: "WHOLE_BLOOD" as ComponentType,
     units: "1",
+    volume_ml: "450",
     urgency: (isEmergencyLocked ? "EMERGENCY" : "NORMAL") as RequestUrgency,
-    location: "United Hospital, Gulshan 2, Dhaka",
+    hospital_name: "United Hospital",
+    area_zone: "Gulshan",
+    location: "Emergency Ward, Room 302",
     phone: "01711223344",
     notes: "",
   });
@@ -130,6 +163,23 @@ function RequestBlood() {
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const handleUnitsChange = (newUnits: string) => {
+    const u = parseFloat(newUnits) || 1;
+    setForm((f) => ({
+      ...f,
+      units: newUnits,
+      volume_ml: String(Math.round(u * 450)),
+    }));
+  };
+
+  const handleQuickHospital = (h: typeof POPULAR_HOSPITALS[number]) => {
+    setForm((f) => ({
+      ...f,
+      hospital_name: h.name,
+      area_zone: h.area,
+    }));
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
@@ -144,22 +194,22 @@ function RequestBlood() {
     }
 
     const apiGroup = toApiBloodGroup(form.group);
-    // Combine notes and phone contact for emergency clarity
-    const emergencyNotePrefix = form.phone ? `Immediate Contact: ${form.phone}` : "";
-    const combinedNotes = form.notes
-      ? `${emergencyNotePrefix ? emergencyNotePrefix + " | " : ""}${form.notes}`
-      : emergencyNotePrefix || null;
 
     // Approximate coordinates for Dhaka hospital areas
     const payload = {
       blood_group: apiGroup,
       component_type: form.component,
       quantity: Number(form.units),
+      volume_ml: Number(form.volume_ml) || (Number(form.units) * 450),
       urgency: form.urgency,
-      required_location: form.location,
+      required_location: `${form.hospital_name}, ${form.location}`,
       latitude: 23.7998,
       longitude: 90.4208,
-      notes: combinedNotes,
+      notes: form.notes.trim() || undefined,
+      patient_name: form.patient.trim(),
+      hospital_name: form.hospital_name.trim(),
+      area_zone: form.area_zone.trim(),
+      attendant_phone_number: form.phone.trim(),
     };
 
     try {
@@ -344,7 +394,7 @@ function RequestBlood() {
                   </Select>
                 </div>
 
-                {/* Required Units - High Priority */}
+                {/* Required Units & Volume - High Priority */}
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="units" className={isEmergency ? "font-semibold text-foreground" : ""}>
@@ -361,14 +411,29 @@ function RequestBlood() {
                     max={20}
                     step={0.5}
                     value={form.units}
-                    onChange={(e) => set("units")(e.target.value)}
+                    onChange={(e) => handleUnitsChange(e.target.value)}
                     required
                     className={isEmergency ? "border-destructive/40 font-semibold" : ""}
                   />
                 </div>
 
-                {/* Urgency Level - Locked in Emergency Mode */}
+                {/* Volume in mL */}
                 <div className="grid gap-2">
+                  <Label htmlFor="vol">Estimated Volume (mL)</Label>
+                  <Input
+                    id="vol"
+                    type="number"
+                    min={100}
+                    max={10000}
+                    step={50}
+                    value={form.volume_ml}
+                    onChange={(e) => set("volume_ml")(e.target.value)}
+                    placeholder="e.g. 450"
+                  />
+                </div>
+
+                {/* Urgency Level - Locked in Emergency Mode */}
+                <div className="grid gap-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="urg" className={isEmergencyLocked ? "font-semibold text-destructive" : ""}>
                       Urgency Level
@@ -408,24 +473,64 @@ function RequestBlood() {
                   </Select>
                 </div>
 
-                {/* Target Hospital / Facility - High Priority */}
+                {/* Target Hospital & Quick Picks */}
                 <div className="grid gap-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="loc" className={isEmergency ? "font-semibold text-foreground" : ""}>
-                      Target Hospital / Medical Facility
+                    <Label htmlFor="hosp" className={isEmergency ? "font-semibold text-foreground" : ""}>
+                      Hospital / Medical Facility Name
                     </Label>
-                    {isEmergency && (
-                      <span className="text-[10px] text-destructive font-semibold">Priority Location</span>
-                    )}
+                    <span className="text-[11px] text-muted-foreground">Quick Suggestions:</span>
                   </div>
+                  <div className="flex flex-wrap gap-1.5 mb-1">
+                    {POPULAR_HOSPITALS.slice(0, 5).map((h) => (
+                      <button
+                        key={h.name}
+                        type="button"
+                        onClick={() => handleQuickHospital(h)}
+                        className="text-[11px] rounded-full border border-border px-2.5 py-0.5 bg-muted/40 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        {h.name.split(" ")[0]}
+                      </button>
+                    ))}
+                  </div>
+                  <Input
+                    id="hosp"
+                    maxLength={150}
+                    value={form.hospital_name}
+                    onChange={(e) => set("hospital_name")(e.target.value)}
+                    placeholder="e.g. United Hospital, Square Hospital, DMCH"
+                    required
+                    className={isEmergency ? "border-destructive/40 font-medium" : ""}
+                  />
+                </div>
+
+                {/* Area Zone Dropdown */}
+                <div className="grid gap-2">
+                  <Label htmlFor="zone">Area Zone (Dhaka)</Label>
+                  <Select value={form.area_zone} onValueChange={set("area_zone")}>
+                    <SelectTrigger id="zone">
+                      <SelectValue placeholder="Select Area Zone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DHAKA_ZONES.map((zone) => (
+                        <SelectItem key={zone} value={zone}>
+                          {zone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Ward / Specific Location */}
+                <div className="grid gap-2">
+                  <Label htmlFor="loc">Ward / Bed / Department</Label>
                   <Input
                     id="loc"
                     maxLength={150}
                     value={form.location}
                     onChange={(e) => set("location")(e.target.value)}
-                    placeholder="e.g. United Hospital, Emergency Ward, Gulshan 2, Dhaka"
+                    placeholder="e.g. ICU Ward Bed 04, Level 3"
                     required
-                    className={isEmergency ? "border-destructive/40 font-medium" : ""}
                   />
                 </div>
 
@@ -433,13 +538,11 @@ function RequestBlood() {
                 <div className="grid gap-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="phone" className={isEmergency ? "font-semibold text-foreground" : ""}>
-                      Immediate Contact Phone Number
+                      Attendant Phone Number (Direct Contact)
                     </Label>
-                    {isEmergency && (
-                      <span className="text-[10px] text-destructive font-bold animate-pulse">
-                        Direct Coordinator Line
-                      </span>
-                    )}
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <ShieldCheck className="size-3 text-primary" /> Masked from public until accepted
+                    </span>
                   </div>
                   <Input
                     id="phone"
@@ -454,11 +557,11 @@ function RequestBlood() {
                 </div>
 
                 <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="notes">Clinical / Ward Notes (optional)</Label>
+                  <Label htmlFor="notes">Clinical / Special Instructions (optional)</Label>
                   <Textarea
                     id="notes"
                     maxLength={500}
-                    placeholder="Provide patient ward, bed number, or specific clinical instructions..."
+                    placeholder="Provide special medical requirements, cross-matching requirements, or family instructions..."
                     value={form.notes}
                     onChange={(e) => set("notes")(e.target.value)}
                   />
@@ -501,6 +604,57 @@ function RequestBlood() {
               <strong>Contact stays private:</strong> donor details are masked until the donor
               accepts your request.
             </p>
+
+            {createdRequest && (
+              <Card className="mt-4 border-primary/30 bg-primary/5">
+                <CardContent className="p-4 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-foreground">
+                        {createdRequest.patient_name || "Patient Blood Request"}
+                      </span>
+                      <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        {toDisplayBloodGroup(createdRequest.blood_group)}
+                      </span>
+                    </div>
+                    <Badge
+                      className={
+                        createdRequest.status === "OPEN"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          : createdRequest.status === "ACCEPTED"
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : createdRequest.status === "PROCESSING"
+                          ? "bg-amber-600 hover:bg-amber-700 text-white"
+                          : createdRequest.status === "COMPLETED"
+                          ? "bg-purple-600 hover:bg-purple-700 text-white"
+                          : ""
+                      }
+                    >
+                      {createdRequest.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                    <p>
+                      <strong className="text-foreground">Hospital:</strong>{" "}
+                      {createdRequest.hospital_name || createdRequest.required_location}
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Area Zone:</strong>{" "}
+                      {createdRequest.area_zone || "Dhaka Zone"}
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Units & Volume:</strong>{" "}
+                      {createdRequest.quantity} Unit(s) (
+                      {createdRequest.volume_ml || Number(createdRequest.quantity) * 450} mL)
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Attendant Phone:</strong>{" "}
+                      {createdRequest.attendant_phone_number || "Direct Coordinator"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {!createdRequest && (
               <Card className="mt-4 border-dashed">
