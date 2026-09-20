@@ -268,16 +268,15 @@ export function SiteNav() {
                 </span>
               </Link>
 
-              <Button
-                size="sm"
-                variant="outline"
+              <button
+                type="button"
                 onClick={handleLogout}
-                className="border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40 gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-sm"
                 title="Logout of current session"
               >
                 <LogOut className="size-3.5" />
                 <span className="hidden sm:inline">Logout</span>
-              </Button>
+              </button>
             </div>
           )}
 
@@ -442,18 +441,17 @@ export function SiteNav() {
                     {user.full_name}
                   </span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
+                <button
+                  type="button"
                   onClick={() => {
                     setOpen(false);
                     handleLogout();
                   }}
-                  className="w-full border-primary-glow/60 bg-primary-glow/20 text-xs font-semibold text-primary-foreground hover:bg-primary-glow/40 gap-1.5"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-sm"
                 >
                   <LogOut className="size-3.5" />
                   <span>Logout</span>
-                </Button>
+                </button>
               </div>
             )}
           </div>
