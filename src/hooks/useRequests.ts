@@ -94,3 +94,43 @@ export function useRevealDonorContact() {
     },
   });
 }
+
+export function useAcceptRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: string) => requestService.acceptRequest(requestId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      toast.success("Request accepted! Attendant contact details are now unmasked.");
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail?.message || error?.message || "Failed to accept blood request.";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    },
+  });
+}
+
+export function useUpdateRequestStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      payload,
+    }: {
+      requestId: string;
+      payload: { status: string; accepted_donor_id?: string };
+    }) => requestService.updateRequestStatus(requestId, payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      toast.success(`Request status updated to ${data.status}.`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update request status.");
+    },
+  });
+}
+

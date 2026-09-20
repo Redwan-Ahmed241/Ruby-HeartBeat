@@ -283,6 +283,14 @@ export interface MaskedDonorMatchResponse {
   contact_revealed: boolean;
 }
 
+export interface AcceptedDonorSummary {
+  donor_id: string;
+  full_name: string;
+  phone: string;
+  area_zone?: string | null | undefined;
+  email?: string | null | undefined;
+}
+
 export interface BloodRequestResponse {
   request_id: string;
   recipient_id: string;
@@ -302,6 +310,7 @@ export interface BloodRequestResponse {
   attendant_phone_number?: string | null | undefined;
   volume_ml?: number | null | undefined;
   accepted_donor_id?: string | null | undefined;
+  accepted_donor?: AcceptedDonorSummary | null | undefined;
   matches?: MaskedDonorMatchResponse[] | null | undefined;
 }
 

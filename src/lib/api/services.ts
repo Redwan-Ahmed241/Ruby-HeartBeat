@@ -182,6 +182,22 @@ export const requestService = {
     // Enforces Contact Reveal Safeguard: returns 403 if response_status != ACCEPTED
     return apiClient<DonorContactReveal>(`/matches/${matchId}/contact`);
   },
+
+  acceptRequest: async (requestId: string): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/requests/${requestId}/accept`, {
+      method: "POST",
+    });
+  },
+
+  updateRequestStatus: async (
+    requestId: string,
+    payload: { status: string; accepted_donor_id?: string },
+  ): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/requests/${requestId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
 };
 
 // ============================================================================

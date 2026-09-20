@@ -32,6 +32,7 @@ import { Route as HospitalTransactionsRouteImport } from './routes/hospital.tran
 import { Route as PartnerIndexRouteImport } from './routes/partner.index'
 import { Route as PartnerPortalRouteImport } from './routes/partner.portal'
 import { Route as RecipientRequestsRouteImport } from './routes/recipient.requests'
+import { Route as RequestRequestIdRouteImport } from './routes/request.$requestId'
 import { Route as RequestsEmergencyRouteImport } from './routes/requests.emergency'
 import { Route as RequestsNewRouteImport } from './routes/requests.new'
 
@@ -150,6 +151,11 @@ const RecipientRequestsRoute = RecipientRequestsRouteImport.update({
   path: '/requests',
   getParentRoute: () => RecipientRoute,
 } as any)
+const RequestRequestIdRoute = RequestRequestIdRouteImport.update({
+  id: '/request/$requestId',
+  path: '/request/$requestId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsEmergencyRoute = RequestsEmergencyRouteImport.update({
   id: '/requests/emergency',
   path: '/requests/emergency',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
+  '/request/$requestId': typeof RequestRequestIdRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin/': typeof AdminIndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
+  '/request/$requestId': typeof RequestRequestIdRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin': typeof AdminIndexRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/hospital/transactions': typeof HospitalTransactionsRoute
   '/partner/portal': typeof PartnerPortalRoute
   '/recipient/requests': typeof RecipientRequestsRoute
+  '/request/$requestId': typeof RequestRequestIdRoute
   '/requests/emergency': typeof RequestsEmergencyRoute
   '/requests/new': typeof RequestsNewRoute
   '/admin/': typeof AdminIndexRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/hospital/transactions'
     | '/partner/portal'
     | '/recipient/requests'
+    | '/request/$requestId'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin/'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/hospital/transactions'
     | '/partner/portal'
     | '/recipient/requests'
+    | '/request/$requestId'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/hospital/transactions'
     | '/partner/portal'
     | '/recipient/requests'
+    | '/request/$requestId'
     | '/requests/emergency'
     | '/requests/new'
     | '/admin/'
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   RecipientRoute: typeof RecipientRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   RequestBloodRoute: typeof RequestBloodRoute
+  RequestRequestIdRoute: typeof RequestRequestIdRoute
   RequestsEmergencyRoute: typeof RequestsEmergencyRoute
   RequestsNewRoute: typeof RequestsNewRoute
 }
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecipientRequestsRouteImport
       parentRoute: typeof RecipientRoute
     }
+    '/request/$requestId': {
+      id: '/request/$requestId'
+      path: '/request/$requestId'
+      fullPath: '/request/$requestId'
+      preLoaderRoute: typeof RequestRequestIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests/emergency': {
       id: '/requests/emergency'
       path: '/requests/emergency'
@@ -600,6 +620,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecipientRoute: RecipientRouteWithChildren,
   RegisterRoute: RegisterRoute,
   RequestBloodRoute: RequestBloodRoute,
+  RequestRequestIdRoute: RequestRequestIdRoute,
   RequestsEmergencyRoute: RequestsEmergencyRoute,
   RequestsNewRoute: RequestsNewRoute,
 }

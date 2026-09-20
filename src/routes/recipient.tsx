@@ -73,40 +73,85 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
-      <div className="space-y-1.5 min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-bold text-primary">{formatBloodGroup(req.blood_group, "symbol")}</span>
-          <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
-          {renderStatusBadge()}
-          {req.patient_name && (
-            <span className="text-xs font-semibold text-foreground">for {req.patient_name}</span>
-          )}
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1.5 min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-bold text-primary">{formatBloodGroup(req.blood_group, "symbol")}</span>
+            <Badge variant={URGENCY_VARIANT[req.urgency] ?? "outline"}>{req.urgency}</Badge>
+            {renderStatusBadge()}
+            {req.patient_name && (
+              <span className="text-xs font-semibold text-foreground">for {req.patient_name}</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {req.quantity} unit(s) ({req.volume_ml ? `${req.volume_ml} mL` : `${Number(req.quantity) * 450} mL`}) · {req.component_type.replace("_", " ")}
+            {req.hospital_name ? ` · ${req.hospital_name}` : ""}
+            {req.area_zone ? ` (${req.area_zone})` : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 truncate max-w-xs">
+              <MapPin className="size-3 text-muted-foreground shrink-0" /> {req.required_location}
+            </span>
+            {req.attendant_phone_number && (
+              <span className="flex items-center gap-1 font-mono">
+                <Phone className="size-3 text-muted-foreground shrink-0" /> {req.attendant_phone_number}
+              </span>
+            )}
+            {req.request_date && (
+              <span className="flex items-center gap-1">
+                <Clock className="size-3 shrink-0" /> {new Date(req.request_date).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {req.quantity} unit(s) ({req.volume_ml ? `${req.volume_ml} mL` : `${Number(req.quantity) * 450} mL`}) · {req.component_type.replace("_", " ")}
-          {req.hospital_name ? ` · ${req.hospital_name}` : ""}
-          {req.area_zone ? ` (${req.area_zone})` : ""}
-        </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 truncate max-w-xs">
-            <MapPin className="size-3 text-muted-foreground shrink-0" /> {req.required_location}
-          </span>
-          {req.attendant_phone_number && (
-            <span className="flex items-center gap-1 font-mono">
-              <Phone className="size-3 text-muted-foreground shrink-0" /> {req.attendant_phone_number}
-            </span>
-          )}
-          {req.request_date && (
-            <span className="flex items-center gap-1">
-              <Clock className="size-3 shrink-0" /> {new Date(req.request_date).toLocaleDateString()}
-            </span>
-          )}
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <Link to="/request/$requestId" params={{ requestId: req.request_id }}>
+            <Button variant="ghost" size="sm" className="text-xs">
+              Direct Link
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" className="text-xs" onClick={() => onViewMatches(req.request_id)}>
+            View matches ({req.matches?.length || 0})
+          </Button>
         </div>
       </div>
-      <Button variant="outline" size="sm" className="text-xs self-start sm:self-auto shrink-0" onClick={() => onViewMatches(req.request_id)}>
-        View matches ({req.matches?.length || 0})
-      </Button>
+
+      {/* Phase 4: Recipient Notification for ACCEPTED Status */}
+      {req.status === "ACCEPTED" && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 sm:p-4 text-xs text-emerald-950 dark:text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <CheckCircle2 className="size-5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <p className="font-bold text-sm text-emerald-900 dark:text-emerald-100">
+                {req.accepted_donor?.full_name
+                  ? `Donor ${req.accepted_donor.full_name}`
+                  : "A volunteer donor"}
+                {req.accepted_donor?.area_zone ? ` from ${req.accepted_donor.area_zone}` : ""} has accepted your request!
+              </p>
+              {req.accepted_donor?.phone ? (
+                <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-0.5">
+                  Direct Contact: <span className="font-mono font-bold underline">{req.accepted_donor.phone}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-0.5">
+                  The donor is coordinating arrival at the hospital transfusion center.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            {req.accepted_donor?.phone && (
+              <a href={`tel:${req.accepted_donor.phone}`}>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 shadow-xs">
+                  <Phone className="size-3.5 mr-1.5" /> Call Donor
+                </Button>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
