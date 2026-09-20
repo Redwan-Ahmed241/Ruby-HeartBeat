@@ -16,12 +16,15 @@ import {
   User,
   Building2,
   ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const DonorMap = lazy(() => import("@/components/DonorMap"));
 import {
@@ -33,7 +36,13 @@ import {
 } from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useBloodRequests, useBloodRequest, useRevealDonorContact, useCompleteRequest } from "@/hooks/useRequests";
+import {
+  useBloodRequests,
+  useBloodRequest,
+  useRevealDonorContact,
+  useCompleteRequest,
+  useReopenRequest,
+} from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import type { BloodRequestResponse, DonorContactReveal, MaskedDonorMatchResponse } from "@/lib/api/types";
@@ -60,7 +69,10 @@ const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> =
 
 function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState("");
   const completeMutation = useCompleteRequest();
+  const reopenMutation = useReopenRequest();
 
   const renderStatusBadge = () => {
     switch (req.status) {
@@ -148,7 +160,7 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
             {req.accepted_donor?.phone && (
               <a href={`tel:${req.accepted_donor.phone}`}>
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 shadow-xs">
@@ -156,6 +168,14 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
                 </Button>
               </a>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs h-8 gap-1 shadow-2xs"
+              onClick={() => setReopenDialogOpen(true)}
+            >
+              <RotateCcw className="size-3.5" /> Cancel Match & Re-Open
+            </Button>
             <Button
               size="sm"
               variant="default"
@@ -237,6 +257,67 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
             >
               {completeMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
               Confirm Donation Completed
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 8: Dialog to Cancel Match and Re-Open Blood Request */}
+      <Dialog open={reopenDialogOpen} onOpenChange={setReopenDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <RotateCcw className="size-5 text-amber-600" />
+              <span>Cancel Match & Re-Open Search</span>
+            </DialogTitle>
+            <DialogDescription>
+              Release the current donor match and restart automated search for alternative donors.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-3 space-y-1.5 text-amber-900 dark:text-amber-200">
+              <p className="font-semibold text-sm">What happens next?</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Request status immediately returns to <strong>OPEN</strong>.</li>
+                <li>The Intelligent Matching Engine resumes searching for nearby available donors.</li>
+                <li><strong>No penalty:</strong> The donor will not receive any cooldown and their profile remains eligible.</li>
+              </ul>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="reopen-reason" className="text-xs font-semibold">
+                Reason for cancellation (optional):
+              </Label>
+              <Input
+                id="reopen-reason"
+                placeholder="e.g., Donor unable to travel, schedule changed, etc."
+                value={reopenReason}
+                onChange={(e) => setReopenReason(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setReopenDialogOpen(false)}>
+              Back
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              disabled={reopenMutation.isPending}
+              onClick={async () => {
+                await reopenMutation.mutateAsync({
+                  requestId: req.request_id,
+                  reason: reopenReason.trim() || undefined,
+                });
+                setReopenDialogOpen(false);
+                setReopenReason("");
+              }}
+            >
+              {reopenMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+              Cancel Match & Re-Open
             </Button>
           </div>
         </DialogContent>

@@ -200,6 +200,14 @@ export const requestService = {
     });
   },
 
+  reopenRequest: async (requestId: string, reason?: string | undefined): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/requests/${requestId}/reopen`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+
   updateRequestStatus: async (
     requestId: string,
     payload: { status: string; accepted_donor_id?: string },

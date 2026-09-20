@@ -154,4 +154,26 @@ export function useCompleteRequest() {
   });
 }
 
+export function useReopenRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ requestId, reason }: { requestId: string; reason?: string | undefined }) =>
+      requestService.reopenRequest(requestId, reason),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-history"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      toast.success("Match cancelled. Request is open and donor search has restarted.");
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail || error?.message || "Failed to re-open blood request.";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    },
+  });
+}
+
+
 

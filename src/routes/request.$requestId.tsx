@@ -15,12 +15,16 @@ import {
   ShieldCheck,
   Sparkles,
   UserCheck,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
-import { useBloodRequest, useAcceptRequest } from "@/hooks/useRequests";
+import { useBloodRequest, useAcceptRequest, useReopenRequest } from "@/hooks/useRequests";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { formatBloodGroup } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -60,6 +64,9 @@ function RequestLandingPage() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [reopenModalOpen, setReopenModalOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState("");
+  const reopenMutation = useReopenRequest();
 
   if (isLoading) {
     return (
@@ -377,7 +384,7 @@ function RequestLandingPage() {
             )}
 
             {isAcceptedByMe && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge className="bg-emerald-600 text-white p-2 px-3 text-xs font-semibold flex items-center gap-1.5">
                   <CheckCircle2 className="size-4" />
                   You Accepted This Request
@@ -389,6 +396,14 @@ function RequestLandingPage() {
                     </Button>
                   </a>
                 )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
+                  onClick={() => setReopenModalOpen(true)}
+                >
+                  <RotateCcw className="size-3.5" /> Unable to Donate / Cancel Commitment
+                </Button>
               </div>
             )}
 
@@ -397,6 +412,17 @@ function RequestLandingPage() {
                 <UserCheck className="size-4 mr-1 text-emerald-600" />
                 A volunteer donor has already accepted this request
               </Badge>
+            )}
+
+            {isOwner && (req.status === "ACCEPTED" || req.status === "PROCESSING") && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
+                onClick={() => setReopenModalOpen(true)}
+              >
+                <RotateCcw className="size-3.5" /> Cancel Match & Re-Open Search
+              </Button>
             )}
 
             {isOwner && req.status === "OPEN" && (
@@ -568,6 +594,69 @@ function RequestLandingPage() {
               onClick={() => setSuccessModalOpen(false)}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Phase 8: Cancel Commitment / Match Dialog */}
+      <Dialog open={reopenModalOpen} onOpenChange={setReopenModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <RotateCcw className="size-5 text-amber-600" />
+              <span>{isAcceptedByMe ? "Cancel Donation Commitment" : "Cancel Match & Re-Open Search"}</span>
+            </DialogTitle>
+            <DialogDescription>
+              {isAcceptedByMe
+                ? "If you are unable to donate at this time, releasing the commitment allows another donor to step forward immediately."
+                : "Release the current donor match and restart automated search for alternative donors."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-3 space-y-1.5 text-amber-900 dark:text-amber-200">
+              <p className="font-semibold text-sm">Key assurances:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Request returns to <strong>OPEN</strong> status immediately.</li>
+                <li>The Intelligent Matching Engine resumes searching for nearby available donors.</li>
+                <li><strong>No cooldown penalty:</strong> The donor remains fully eligible without any penalty.</li>
+              </ul>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-reason" className="text-xs font-semibold">
+                Reason for cancellation (optional):
+              </Label>
+              <Input
+                id="cancel-reason"
+                placeholder="e.g., Unable to travel, emergency schedule change, etc."
+                value={reopenReason}
+                onChange={(e) => setReopenReason(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" size="sm" onClick={() => setReopenModalOpen(false)}>
+              Back
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              disabled={reopenMutation.isPending}
+              onClick={async () => {
+                await reopenMutation.mutateAsync({
+                  requestId: req.request_id,
+                  reason: reopenReason.trim() || undefined,
+                });
+                setReopenModalOpen(false);
+                setReopenReason("");
+              }}
+            >
+              {reopenMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+              Confirm Cancellation & Re-Open
             </Button>
           </DialogFooter>
         </DialogContent>
