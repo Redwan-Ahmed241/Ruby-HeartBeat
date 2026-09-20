@@ -134,3 +134,24 @@ export function useUpdateRequestStatus() {
   });
 }
 
+export function useCompleteRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: string) => requestService.completeRequest(requestId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-history"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      toast.success("Blood donation confirmed as completed! Donor profile & recovery cooldown updated.");
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail?.message || error?.message || "Failed to complete blood request.";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    },
+  });
+}
+
+

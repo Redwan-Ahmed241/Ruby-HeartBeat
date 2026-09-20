@@ -189,6 +189,12 @@ export const requestService = {
     });
   },
 
+  completeRequest: async (requestId: string): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/requests/${requestId}/complete`, {
+      method: "POST",
+    });
+  },
+
   updateRequestStatus: async (
     requestId: string,
     payload: { status: string; accepted_donor_id?: string },

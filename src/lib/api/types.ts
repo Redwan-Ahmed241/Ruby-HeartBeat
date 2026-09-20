@@ -231,6 +231,9 @@ export interface EligibilityCheckResponse {
   hemoglobin_level?: number | null;
   days_since_last_donation?: number | null;
   last_donation_date?: string | null;
+  cooldown_active?: boolean;
+  next_eligible_date?: string | null;
+  cooldown_days_remaining?: number | null;
 }
 
 export interface DonorResponse {

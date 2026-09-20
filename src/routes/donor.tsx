@@ -266,6 +266,15 @@ function DonorDashboardPage() {
                 <span>{tierInfo.icon}</span>
                 <span>{tierInfo.title} • {lifetimeCount} {lifetimeCount === 1 ? "Donation" : "Donations"} Completed</span>
               </Badge>
+              {eligibility?.cooldown_active && (
+                <Badge
+                  variant="outline"
+                  className="text-xs font-bold px-3 py-1 flex items-center gap-1.5 shadow-xs border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                >
+                  <Clock className="size-3 text-amber-600" />
+                  <span>90-Day Cooldown Active ({eligibility.cooldown_days_remaining}d left)</span>
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
               Manage clinical eligibility, donation records, and emergency availability.
@@ -331,18 +340,41 @@ function DonorDashboardPage() {
                 className={`flex size-10 items-center justify-center rounded-lg ${
                   isEligible
                     ? "bg-emerald-500/10 text-emerald-600"
-                    : "bg-destructive/10 text-destructive"
+                    : eligibility?.cooldown_active
+                      ? "bg-amber-500/10 text-amber-600"
+                      : "bg-destructive/10 text-destructive"
                 }`}
               >
-                {isEligible ? <CheckCircle2 className="size-5" /> : <XCircle className="size-5" />}
+                {isEligible ? (
+                  <CheckCircle2 className="size-5" />
+                ) : eligibility?.cooldown_active ? (
+                  <Clock className="size-5" />
+                ) : (
+                  <XCircle className="size-5" />
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Eligibility Status</p>
                 <p
-                  className={`text-base font-bold ${isEligible ? "text-emerald-600" : "text-destructive"}`}
+                  className={`text-base font-bold ${
+                    isEligible
+                      ? "text-emerald-600"
+                      : eligibility?.cooldown_active
+                        ? "text-amber-600"
+                        : "text-destructive"
+                  }`}
                 >
-                  {isEligible ? "Eligible to Donate" : "Cooldown / Ineligible"}
+                  {isEligible
+                    ? "Eligible to Donate"
+                    : eligibility?.cooldown_active
+                      ? "90-Day Cooldown Active"
+                      : "Cooldown / Ineligible"}
                 </p>
+                {eligibility?.cooldown_active && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Eligible: {eligibility.next_eligible_date} ({eligibility.cooldown_days_remaining}d left)
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -524,30 +556,54 @@ function DonorDashboardPage() {
                       <Loader2 className="size-8 animate-spin text-primary" />
                     ) : isEligible ? (
                       <CheckCircle2 className="size-8 text-emerald-600" />
+                    ) : eligibility?.cooldown_active ? (
+                      <Clock className="size-8 text-amber-600" />
                     ) : (
                       <XCircle className="size-8 text-destructive" />
                     )}
                     <div>
                       <p
                         className={`text-lg font-semibold ${
-                          isEligible ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                          isEligible
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : eligibility?.cooldown_active
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-destructive"
                         }`}
                       >
                         {isEligible
                           ? "Qualified for Blood Donation"
-                          : "Temporary Clinical Deferral"}
+                          : eligibility?.cooldown_active
+                            ? "90-Day Recovery Cooldown Active"
+                            : "Temporary Clinical Deferral"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {isEligible
                           ? "All safety protocols and cooldown windows satisfied."
-                          : !isWeightPassed
-                            ? "Weight below minimum 50 kg requirement."
-                            : !isHemoglobinPassed
-                              ? "Hemoglobin level below clinical 12.5 g/dL threshold."
-                              : "Active cooldown window since last donation (90 days required)."}
+                          : eligibility?.cooldown_active
+                            ? `Mandatory recovery cooldown active until ${eligibility.next_eligible_date}. Rest and replenish healthy reserves.`
+                            : !isWeightPassed
+                              ? "Weight below minimum 50 kg requirement."
+                              : !isHemoglobinPassed
+                                ? "Hemoglobin level below clinical 12.5 g/dL threshold."
+                                : "Active cooldown window since last donation (90 days required)."}
                       </p>
                     </div>
                   </div>
+
+                  {eligibility?.cooldown_active && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs space-y-1">
+                      <div className="flex items-center justify-between font-bold text-amber-900 dark:text-amber-200">
+                        <span className="flex items-center gap-1.5"><Clock className="size-3.5 text-amber-600" /> Recovery Cooldown Mandatory Rest</span>
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-800 dark:text-amber-300 font-mono text-[10px]">
+                          {eligibility.cooldown_days_remaining} days left
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                        Next eligible donation date: <strong>{eligibility.next_eligible_date}</strong>. Medical safety protocols require 90 days of recovery to regenerate hemoglobin and red blood cell reserves.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between border-b border-border/40 py-2">
@@ -579,7 +635,11 @@ function DonorDashboardPage() {
                     <div className="flex items-center justify-between py-2">
                       <span className="text-muted-foreground">Cooldown Window</span>
                       <span className="text-foreground font-medium">
-                        {lastDonation ? `${lastDonation}` : "No recorded donation (Eligible)"}
+                        {eligibility?.cooldown_active
+                          ? `In cooldown until ${eligibility.next_eligible_date} (${eligibility.cooldown_days_remaining}d left)`
+                          : lastDonation
+                            ? `Last donation: ${lastDonation} (Cooldown satisfied)`
+                            : "No recorded donation (Eligible)"}
                       </span>
                     </div>
                   </div>
@@ -807,12 +867,15 @@ function DonationHistoryTab() {
                 key={h.history_id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/80 bg-card p-3 text-sm"
               >
-                <div>
+                <div className="space-y-0.5">
                   <p className="font-semibold text-foreground">{h.center_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {h.component_type.replace("_", " ")} · {h.quantity} unit(s) · Donated on{" "}
+                    {h.component_type.replace("_", " ")} · {h.quantity} unit(s) ({Number(h.quantity) * 450} mL) · Donated on{" "}
                     {new Date(h.donation_date).toLocaleDateString()}
                   </p>
+                  {h.notes && (
+                    <p className="text-[11px] text-muted-foreground/80 italic">{h.notes}</p>
+                  )}
                 </div>
                 <Badge className="bg-emerald-600 text-white text-xs">Completed</Badge>
               </div>

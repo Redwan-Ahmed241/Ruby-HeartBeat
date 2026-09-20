@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useBloodRequests, useBloodRequest, useRevealDonorContact } from "@/hooks/useRequests";
+import { useBloodRequests, useBloodRequest, useRevealDonorContact, useCompleteRequest } from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import type { BloodRequestResponse, DonorContactReveal, MaskedDonorMatchResponse } from "@/lib/api/types";
@@ -59,6 +59,9 @@ const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> =
 };
 
 function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const completeMutation = useCompleteRequest();
+
   const renderStatusBadge = () => {
     switch (req.status) {
       case "OPEN":
@@ -121,8 +124,8 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
         </div>
       </div>
 
-      {/* Phase 4: Recipient Notification for ACCEPTED Status */}
-      {req.status === "ACCEPTED" && (
+      {/* Phase 4 & 6: Recipient Notification & Completion Action for ACCEPTED Status */}
+      {(req.status === "ACCEPTED" || req.status === "PROCESSING") && (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 sm:p-4 text-xs text-emerald-950 dark:text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-start sm:items-center gap-2.5">
             <CheckCircle2 className="size-5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
@@ -153,9 +156,91 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
                 </Button>
               </a>
             )}
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-8 shadow-xs gap-1"
+              onClick={() => setCompleteDialogOpen(true)}
+            >
+              <CheckCircle2 className="size-3.5" /> Confirm Completed
+            </Button>
           </div>
         </div>
       )}
+
+      {/* Phase 6: Completed Resolution Banner */}
+      {req.status === "COMPLETED" && (
+        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3 text-xs text-purple-950 dark:text-purple-100 flex items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-purple-600 shrink-0" />
+            <span className="font-medium">
+              Donation completed at {req.hospital_name || req.required_location}.
+              {req.accepted_donor?.full_name ? ` Fulfilled by Donor ${req.accepted_donor.full_name}.` : " Fulfilled by volunteer donor."} Donor placed on 90-day recovery cooldown.
+            </span>
+          </div>
+          <Badge className="bg-purple-600 text-white text-[10px]">Fulfilled</Badge>
+        </div>
+      )}
+
+      {/* Phase 6: Dialog to Confirm Physical Blood Donation Completion */}
+      <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <CheckCircle2 className="size-5 text-emerald-600" />
+              <span>Confirm Blood Donation Completion</span>
+            </DialogTitle>
+            <DialogDescription>
+              Mark this request as completed and record the life-saving donation in the donor's history.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Donor:</span>
+                <span className="font-bold text-foreground">
+                  {req.accepted_donor?.full_name || "Accepted Volunteer Donor"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Hospital / Center:</span>
+                <span className="font-bold text-foreground">
+                  {req.hospital_name || req.required_location}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Units & Component:</span>
+                <span className="font-bold text-foreground">
+                  {req.quantity} unit(s) · {req.component_type.replace("_", " ")}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-muted-foreground leading-relaxed">
+              Confirming will transition this request to <strong className="text-purple-600 font-semibold">COMPLETED</strong>, permanently credit the donor with 1 completed donation, and activate their <strong>90-day recovery cooldown window</strong>.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setCompleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              disabled={completeMutation.isPending}
+              onClick={async () => {
+                await completeMutation.mutateAsync(req.request_id);
+                setCompleteDialogOpen(false);
+              }}
+            >
+              {completeMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+              Confirm Donation Completed
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
