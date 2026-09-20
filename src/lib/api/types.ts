@@ -252,6 +252,18 @@ export interface DonorResponse {
   medical_info?: MedicalInfoResponse | null;
 }
 
+export interface TopDonorResponse {
+  donor_id: string;
+  full_name: string;
+  blood_group: BloodGroup;
+  area_zone?: string | null;
+  donation_count: number;
+  tier: string;
+  badge_icon: string;
+  last_donation_date?: string | null;
+}
+
+
 // ============================================================================
 // BLOOD REQUESTS & MATCHES (app.schemas.request)
 // ============================================================================

@@ -11,6 +11,7 @@ import {
   Loader2,
   Save,
   MapPin,
+  Trophy,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,10 +53,14 @@ import { useMyRegisteredEvents } from "@/hooks/useAdmin";
 import { HOSPITALS } from "@/lib/donor-data";
 import { getDonorTier } from "@/lib/gamification";
 import { cn } from "@/lib/utils";
+import { TopDonorsLeaderboard } from "@/components/TopDonorsLeaderboard";
 
 export const Route = createFileRoute("/donor")({
-  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "history" } => ({
-    tab: search["tab"] === "history" ? "history" : "overview",
+  validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "history" | "leaderboard" } => ({
+    tab:
+      search["tab"] === "history" || search["tab"] === "leaderboard"
+        ? (search["tab"] as "history" | "leaderboard")
+        : "overview",
   }),
   head: () => ({
     meta: [
@@ -74,12 +79,15 @@ const UI_GROUPS = CANONICAL_BLOOD_GROUPS;
 function DonorDashboardPage() {
   const search = useSearch({ from: "/donor" });
   const navigate = useNavigate();
-  const activeTab = search["tab"] === "history" ? "history" : "overview";
+  const activeTab =
+    search["tab"] === "history" || search["tab"] === "leaderboard"
+      ? search["tab"]
+      : "overview";
 
   const handleTabChange = (newTab: string) => {
     navigate({
       to: "/donor",
-      search: { tab: newTab as "overview" | "history" },
+      search: { tab: newTab as "overview" | "history" | "leaderboard" },
     });
   };
 
@@ -427,6 +435,15 @@ function DonorDashboardPage() {
           >
             Donation History ({lifetimeCount})
           </Button>
+          <Button
+            variant={activeTab === "leaderboard" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("leaderboard")}
+            className="text-xs font-semibold flex items-center gap-1.5"
+          >
+            <Trophy className="size-3.5" />
+            Top Donors Leaderboard
+          </Button>
         </div>
 
         {/* Views: Profile & Eligibility, Active Commitments, and Donation History */}
@@ -675,6 +692,11 @@ function DonorDashboardPage() {
             <div className="w-full overflow-x-auto">
               <DonationHistoryTab />
             </div>
+          </TabsContent>
+
+          {/* Leaderboard Tab */}
+          <TabsContent value="leaderboard" className="mt-6">
+            <TopDonorsLeaderboard limit={25} showPodium={true} />
           </TabsContent>
         </Tabs>
 

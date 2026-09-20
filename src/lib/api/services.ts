@@ -17,6 +17,7 @@ import type {
   DonationHistoryCreate,
   DonationHistoryResponse,
   EligibilityCheckResponse,
+  TopDonorResponse,
   BloodRequestCreate,
   BloodRequestResponse,
   MaskedDonorMatchResponse,
@@ -120,6 +121,10 @@ export const donorService = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+  },
+
+  getTopDonors: async (limit: number = 10): Promise<TopDonorResponse[]> => {
+    return apiClient<TopDonorResponse[]>(`/donors/top?limit=${limit}`);
   },
 };
 

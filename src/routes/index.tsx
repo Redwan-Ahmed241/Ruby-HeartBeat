@@ -38,6 +38,7 @@ import { HOSPITALS } from "@/lib/donor-data";
 import { CANONICAL_BLOOD_GROUPS, toApiBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import { toast } from "sonner";
+import { TopDonorsLeaderboard } from "@/components/TopDonorsLeaderboard";
 
 const DonorMap = lazy(() => import("@/components/DonorMap"));
 
@@ -480,6 +481,13 @@ export function LandingPage() {
               <p className="mt-1 text-xs text-muted-foreground">Check back soon, or register as a donor to be notified.</p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Top Life-Savers Leaderboard */}
+      <section id="leaderboard" className="border-b border-border/40 bg-muted/20 py-14 sm:py-16">
+        <div className="w-full max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
+          <TopDonorsLeaderboard limit={25} showPodium={true} />
         </div>
       </section>
 

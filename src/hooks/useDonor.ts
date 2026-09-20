@@ -16,7 +16,17 @@ import { AUTH_KEYS } from "./useAuth";
 export const DONOR_KEYS = {
   eligibility: ["donor", "eligibility"] as const,
   history: ["donor", "history"] as const,
+  top: (limit: number) => ["donor", "top", limit] as const,
 };
+
+export function useTopDonors(limit: number = 10, enabled = true) {
+  return useQuery({
+    queryKey: DONOR_KEYS.top(limit),
+    queryFn: () => donorService.getTopDonors(limit),
+    enabled,
+    staleTime: 60 * 1000,
+  });
+}
 
 export function useDonorEligibility(enabled = true) {
   return useQuery({

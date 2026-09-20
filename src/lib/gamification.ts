@@ -1,16 +1,15 @@
 /**
  * Dynamic Donor Gamification Tiers and Progression System
  *
- * Tier Thresholds:
+ * Standardized Tier Thresholds (Doc Section 8):
  * - 0 donations:     New Donor (Slate badge) 🩸
- * - 1 – 2 donations: Bronze Donor (Amber-700 / bronze accent) 🥉
- * - 3 – 5 donations: Silver Donor (Slate-300 / silver accent) 🥈
- * - 6 – 9 donations: Gold Donor (Amber-400 / gold glow accent) 🥇
- * - 10 – 14 donations: Platinum Donor (Cyan-400 / platinum sheen accent) ⚡
- * - 15+ donations:   Diamond Donor (Purple-500 / iridescent diamond accent) 💎
+ * - 1 – 2 donations: Bronze Donor (Amber/Bronze accent) 🥉
+ * - 3 – 5 donations: Silver Donor (Slate/Silver accent) 🥈
+ * - 6 – 9 donations: Platinum Donor (Cyan/Platinum accent) ⚡
+ * - 10+ donations:   Diamond Donor (Purple/Diamond accent, highest honor) 💎
  */
 
-export type DonorTier = 'New' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
+export type DonorTier = 'New' | 'Bronze' | 'Silver' | 'Platinum' | 'Diamond';
 
 export interface DonorTierInfo {
   name: DonorTier;
@@ -28,7 +27,7 @@ export interface DonorTierInfo {
 export function getDonorTier(count: number): DonorTierInfo {
   const safeCount = Math.max(0, count || 0);
 
-  if (safeCount >= 15) {
+  if (safeCount >= 10) {
     return {
       name: 'Diamond',
       title: 'Diamond Donor',
@@ -40,10 +39,10 @@ export function getDonorTier(count: number): DonorTierInfo {
     };
   }
 
-  if (safeCount >= 10) {
-    const nextTierThreshold = 15;
+  if (safeCount >= 6) {
+    const nextTierThreshold = 10;
     const remainingToNext = nextTierThreshold - safeCount;
-    const progressPercent = Math.round(((safeCount - 10) / (nextTierThreshold - 10)) * 100);
+    const progressPercent = Math.round(((safeCount - 6) / (nextTierThreshold - 6)) * 100);
     return {
       name: 'Platinum',
       title: 'Platinum Donor',
@@ -52,24 +51,6 @@ export function getDonorTier(count: number): DonorTierInfo {
       icon: '⚡',
       currentCount: safeCount,
       nextTier: 'Diamond',
-      nextTierThreshold,
-      remainingToNext,
-      progressPercent,
-    };
-  }
-
-  if (safeCount >= 6) {
-    const nextTierThreshold = 10;
-    const remainingToNext = nextTierThreshold - safeCount;
-    const progressPercent = Math.round(((safeCount - 6) / (nextTierThreshold - 6)) * 100);
-    return {
-      name: 'Gold',
-      title: 'Gold Donor',
-      badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
-      borderAccent: 'border-amber-500',
-      icon: '🥇',
-      currentCount: safeCount,
-      nextTier: 'Platinum',
       nextTierThreshold,
       remainingToNext,
       progressPercent,
@@ -87,7 +68,7 @@ export function getDonorTier(count: number): DonorTierInfo {
       borderAccent: 'border-slate-400',
       icon: '🥈',
       currentCount: safeCount,
-      nextTier: 'Gold',
+      nextTier: 'Platinum',
       nextTierThreshold,
       remainingToNext,
       progressPercent,
@@ -126,3 +107,4 @@ export function getDonorTier(count: number): DonorTierInfo {
     progressPercent: 0,
   };
 }
+

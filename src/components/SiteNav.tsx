@@ -91,6 +91,12 @@ export function SiteNav() {
                 Partner Blood Banks
               </Link>
               <a
+                href="/#leaderboard"
+                className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
+              >
+                Top Donors
+              </a>
+              <a
                 href="/#events"
                 className="rounded-md px-3 py-2 text-sm font-medium opacity-85 transition-colors hover:bg-primary-glow/40 hover:opacity-100"
               >
