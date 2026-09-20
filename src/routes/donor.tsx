@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import {
   HeartPulse,
@@ -56,6 +56,12 @@ import { cn } from "@/lib/utils";
 import { TopDonorsLeaderboard } from "@/components/TopDonorsLeaderboard";
 
 export const Route = createFileRoute("/donor")({
+  beforeLoad: () => {
+    throw redirect({
+      to: "/dashboard",
+      search: { tab: "donate" },
+    });
+  },
   validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "history" | "leaderboard" } => ({
     tab:
       search["tab"] === "history" || search["tab"] === "leaderboard"

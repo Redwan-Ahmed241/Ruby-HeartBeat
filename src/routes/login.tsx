@@ -36,7 +36,7 @@ function LoginPage() {
         const dest =
           user.role === "SYSTEM_ADMIN" ? "/admin"
           : user.role === "HOSPITAL_ADMIN" ? "/hospital"
-          : "/donor";
+          : "/dashboard";
         navigate({ to: dest });
       }
     }

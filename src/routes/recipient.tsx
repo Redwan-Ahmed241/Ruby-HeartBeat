@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, lazy, Suspense } from "react";
 import {
   AlertCircle,
@@ -49,6 +49,12 @@ import type { BloodRequestResponse, DonorContactReveal, MaskedDonorMatchResponse
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/recipient")({
+  beforeLoad: () => {
+    throw redirect({
+      to: "/dashboard",
+      search: { tab: "request" },
+    });
+  },
   validateSearch: (search: Record<string, unknown>): { tab?: "overview" | "requests" } => ({
     tab: (search["tab"] as "overview" | "requests") || "overview",
   }),

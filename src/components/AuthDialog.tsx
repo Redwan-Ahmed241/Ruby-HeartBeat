@@ -131,7 +131,7 @@ export function AuthDialog({
       const dest =
         me.role === "SYSTEM_ADMIN" ? "/admin"
           : me.role === "HOSPITAL_ADMIN" ? "/hospital"
-            : "/donor";
+            : "/dashboard";
       navigate({ to: dest });
     } catch {
       // Error handled by mutation toast
@@ -218,15 +218,15 @@ export function AuthDialog({
           {isRegularUser ? (
             <>
               <DropdownMenuItem asChild>
-                <Link to="/donor" className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <Link to="/dashboard" search={{ tab: "donate" }} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
                   <LayoutDashboard className="size-4 text-primary" />
-                  <span>Donor Dashboard</span>
+                  <span>Donate Blood</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/recipient" className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <Link to="/dashboard" search={{ tab: "request" }} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
                   <User className="size-4 text-primary" />
-                  <span>Recipient Dashboard</span>
+                  <span>Request Blood</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

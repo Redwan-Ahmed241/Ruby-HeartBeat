@@ -111,22 +111,22 @@ export function SiteNav() {
             </>
           )}
 
-          {/* 2. UNIFIED MEMBER Navigation (Dual Capability: Donor + Recipient) */}
+          {/* 2. UNIFIED MEMBER Navigation (Dual Capability: Donate Blood & Request Blood) */}
           {isRegularUser && (
             <>
               <Link
-                to="/donor"
-                search={{ tab: "overview" }}
-                className={getLinkClass("/donor", "overview", true)}
+                to="/dashboard"
+                search={{ tab: "donate" }}
+                className={getLinkClass("/dashboard", "donate", true)}
               >
-                Donor Dashboard
+                Donate Blood
               </Link>
               <Link
-                to="/recipient"
-                search={{ tab: "overview" }}
-                className={getLinkClass("/recipient", "overview", true)}
+                to="/dashboard"
+                search={{ tab: "request" }}
+                className={getLinkClass("/dashboard", "request")}
               >
-                My Requests
+                Request Blood
               </Link>
               <Link
                 to="/request-blood"
@@ -363,20 +363,20 @@ export function SiteNav() {
             ) : isRegularUser ? (
               <>
                 <Link
-                  to="/donor"
-                  search={{ tab: "overview" }}
+                  to="/dashboard"
+                  search={{ tab: "donate" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/donor", "overview", true)}
+                  className={getMobileLinkClass("/dashboard", "donate", true)}
                 >
-                  Donor Dashboard
+                  Donate Blood
                 </Link>
                 <Link
-                  to="/recipient"
-                  search={{ tab: "overview" }}
+                  to="/dashboard"
+                  search={{ tab: "request" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/recipient", "overview", true)}
+                  className={getMobileLinkClass("/dashboard", "request")}
                 >
-                  My Blood Requests
+                  Request Blood
                 </Link>
                 <Link
                   to="/request-blood"
