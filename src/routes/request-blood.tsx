@@ -1,5 +1,5 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -13,6 +13,7 @@ import {
   Mail,
   Home,
   Zap,
+  Building2,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,6 +79,8 @@ export const Route = createFileRoute("/request-blood")({
   }),
   component: RequestBlood,
 });
+
+const DonorMap = lazy(() => import("@/components/DonorMap"));
 
 const UI_GROUPS = CANONICAL_BLOOD_GROUPS;
 const COMPONENTS = [
@@ -154,6 +157,7 @@ function RequestBlood() {
 
   const [createdRequest, setCreatedRequest] = useState<BloodRequestResponse | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<MaskedDonorMatchResponse | null>(null);
+  const [selectedMapMatch, setSelectedMapMatch] = useState<MaskedDonorMatchResponse | null>(null);
   const [revealedContact, setRevealedContact] = useState<DonorContactReveal | null>(null);
 
   const createRequestMutation = useCreateBloodRequest();
@@ -713,6 +717,14 @@ function RequestBlood() {
 
                       <div className="space-y-1.5">
                         <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full text-xs h-8 gap-1 font-medium"
+                          onClick={() => setSelectedMapMatch(match)}
+                        >
+                          <MapPin className="size-3 text-red-600" /> View on Map
+                        </Button>
+                        <Button
                           className="w-full text-xs h-8"
                           variant={isAccepted ? "default" : "secondary"}
                           onClick={() => handleViewContact(match)}
@@ -794,6 +806,65 @@ function RequestBlood() {
           <DialogFooter>
             <Button onClick={() => setRevealedContact(null)}>Close</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leaflet Map Dialog for Matched Donor (Doc §5) */}
+      <Dialog open={!!selectedMapMatch} onOpenChange={(open) => !open && setSelectedMapMatch(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="size-5 text-red-600" />
+              <span>Hospital & Matched Donor Map</span>
+            </DialogTitle>
+            <DialogDescription>
+              Visualize hospital destination and approximate donor location (~1km privacy grid).
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMapMatch && (
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/40 border border-border text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-foreground">
+                  <Building2 className="size-4 text-red-600" />
+                  <span>{createdRequest?.hospital_name || createdRequest?.required_location || form.hospital_name}</span>
+                </div>
+                <Badge variant="secondary" className="font-mono text-xs font-semibold">
+                  ~{selectedMapMatch.distance_km.toFixed(1)} km distance
+                </Badge>
+              </div>
+
+              <Suspense
+                fallback={
+                  <div className="h-[280px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground animate-pulse">
+                    Loading Leaflet map...
+                  </div>
+                }
+              >
+                <DonorMap
+                  hospitalLocation={{
+                    lat: createdRequest?.latitude ?? 23.8103,
+                    lng: createdRequest?.longitude ?? 90.4125,
+                    name: createdRequest?.hospital_name || createdRequest?.required_location || form.hospital_name,
+                    area: createdRequest?.area_zone || form.area_zone,
+                  }}
+                  donorLocation={{
+                    lat: selectedMapMatch.approx_latitude ?? ((createdRequest?.latitude ?? 23.8103) + 0.015),
+                    lng: selectedMapMatch.approx_longitude ?? ((createdRequest?.longitude ?? 90.4125) + 0.015),
+                    label: selectedMapMatch.donor_name_initial,
+                    bloodGroup: selectedMapMatch.blood_group,
+                    isApproximate: true,
+                  }}
+                  heightClassName="h-[280px] sm:h-[340px]"
+                />
+              </Suspense>
+
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 justify-center">
+                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                <span>Donor residential coordinates are approximate to protect privacy until confirmed.</span>
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

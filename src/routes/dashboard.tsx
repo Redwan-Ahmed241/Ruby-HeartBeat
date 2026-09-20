@@ -723,14 +723,34 @@ export default function UnifiedDashboardPage() {
                   </div>
                 }
               >
-                <DonorMap
-                  hospitalLocation={{
-                    lat: selectedMapRequest.latitude,
-                    lng: selectedMapRequest.longitude,
-                    name: selectedMapRequest.hospital_name || selectedMapRequest.required_location,
-                  }}
-                  radiusKm={10}
-                />
+                {(() => {
+                  const acceptedMatch = selectedMapRequest.accepted_donor_id && selectedMapRequest.matches
+                    ? selectedMapRequest.matches.find((m) => m.donor_id === selectedMapRequest.accepted_donor_id)
+                    : undefined;
+
+                  const donorLoc = acceptedMatch
+                    ? {
+                        lat: acceptedMatch.approx_latitude ?? (selectedMapRequest.latitude + 0.015),
+                        lng: acceptedMatch.approx_longitude ?? (selectedMapRequest.longitude + 0.015),
+                        label: selectedMapRequest.accepted_donor?.full_name || acceptedMatch.donor_name_initial,
+                        bloodGroup: acceptedMatch.blood_group,
+                        isApproximate: true,
+                      }
+                    : undefined;
+
+                  return (
+                    <DonorMap
+                      hospitalLocation={{
+                        lat: selectedMapRequest.latitude,
+                        lng: selectedMapRequest.longitude,
+                        name: selectedMapRequest.hospital_name || selectedMapRequest.required_location,
+                        area: selectedMapRequest.area_zone,
+                      }}
+                      donorLocation={donorLoc}
+                      radiusKm={10}
+                    />
+                  );
+                })()}
               </Suspense>
             </div>
           </DialogContent>
