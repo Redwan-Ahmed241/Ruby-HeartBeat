@@ -27,6 +27,8 @@ export function SiteNav() {
   const searchParams = (location.search as Record<string, string>) || {};
   const currentTab = searchParams["tab"];
 
+  const userDashboardPath = isSysAdmin ? "/admin" : isHospitalAdmin ? "/hospital" : "/dashboard";
+
   const isLinkActive = (path: string, tab?: string, isDefault?: boolean) => {
     if (currentPath !== path) return false;
     if (!tab) return true;
@@ -111,28 +113,14 @@ export function SiteNav() {
             </>
           )}
 
-          {/* 2. UNIFIED MEMBER Navigation (Dual Capability: Donate Blood & Request Blood) */}
+          {/* 2. UNIFIED MEMBER Navigation */}
           {isRegularUser && (
             <>
               <Link
                 to="/dashboard"
-                search={{ tab: "donate" }}
-                className={getLinkClass("/dashboard", "donate", true)}
+                className={getLinkClass("/dashboard")}
               >
-                Donate Blood
-              </Link>
-              <Link
-                to="/dashboard"
-                search={{ tab: "request" }}
-                className={getLinkClass("/dashboard", "request")}
-              >
-                Request Blood
-              </Link>
-              <Link
-                to="/request-blood"
-                className={getLinkClass("/request-blood")}
-              >
-                Create Request
+                Dashboard
               </Link>
               <Link
                 to="/events"
@@ -266,7 +254,11 @@ export function SiteNav() {
           ) : (
             /* Authenticated User Actions: compact identity + logout */
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground">
+              <Link
+                to={userDashboardPath}
+                className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary-glow/50 transition-colors"
+                title="Go to Dashboard"
+              >
                 <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <span className="font-semibold max-w-[120px] truncate">
                   {user.full_name.split(" ")[0]}
@@ -274,7 +266,7 @@ export function SiteNav() {
                 <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
                   {isRegularUser ? "Member" : "Admin"}
                 </span>
-              </div>
+              </Link>
 
               <Button
                 size="sm"
@@ -364,26 +356,10 @@ export function SiteNav() {
               <>
                 <Link
                   to="/dashboard"
-                  search={{ tab: "donate" }}
                   onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/dashboard", "donate", true)}
+                  className={getMobileLinkClass("/dashboard")}
                 >
-                  Donate Blood
-                </Link>
-                <Link
-                  to="/dashboard"
-                  search={{ tab: "request" }}
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/dashboard", "request")}
-                >
-                  Request Blood
-                </Link>
-                <Link
-                  to="/request-blood"
-                  onClick={() => setOpen(false)}
-                  className={getMobileLinkClass("/request-blood")}
-                >
-                  Create Blood Request
+                  Dashboard
                 </Link>
                 <Link
                   to="/events"

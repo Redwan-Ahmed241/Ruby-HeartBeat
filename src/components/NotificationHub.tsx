@@ -171,7 +171,7 @@ export function NotificationHub() {
         </button>
       </SheetTrigger>
 
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg p-4 sm:p-6">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Bell className="size-4 text-primary" />
@@ -182,7 +182,7 @@ export function NotificationHub() {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 px-4 pb-8 pt-4">
+        <div className="space-y-4 pb-8 pt-4">
           {requestsLoading ? (
             <div className="py-12 text-center text-muted-foreground">
               <Loader2 className="mx-auto size-6 animate-spin text-primary" />
@@ -223,11 +223,11 @@ export function NotificationHub() {
                     {pendingDonorMatches.map(({ request, match }) => (
                       <div
                         key={match.match_id}
-                        className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm"
+                        className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm overflow-hidden"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-base text-primary">
                                 {formatBloodGroup(request.blood_group)}
                               </span>
@@ -236,39 +236,43 @@ export function NotificationHub() {
                               </span>
                             </div>
                             <p className="text-xs font-medium text-foreground mt-0.5 flex items-center gap-1">
-                              <MapPin className="size-3 text-muted-foreground" />
-                              {request.required_location}
+                              <MapPin className="size-3 text-muted-foreground shrink-0" />
+                              <span className="truncate">{request.required_location}</span>
                             </p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <Clock className="size-3" />
-                              Distance: ~{match.distance_km} km · Urgency:
+                              <Clock className="size-3 shrink-0" />
+                              Distance: ~{match.distance_km} km
                             </p>
                           </div>
-                          {getUrgencyBadge(request.urgency)}
+                          <div className="shrink-0">
+                            {getUrgencyBadge(request.urgency)}
+                          </div>
                         </div>
 
                         {request.notes && (
-                          <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 italic">
+                          <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 italic break-words">
                             "{request.notes}"
                           </p>
                         )}
-                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 w-full">
                           <Button
                             size="sm"
-                            className="flex-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white min-w-0"
                             disabled={respondMutation.isPending}
                             onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
                           >
-                            <Check className="mr-1.5 size-3.5" /> Accept Donation Request
+                            <Check className="mr-1.5 size-3.5 shrink-0" />
+                            <span className="truncate">Accept Request</span>
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
+                            className="w-full text-xs text-destructive hover:bg-destructive/10 border-destructive/30 min-w-0"
                             disabled={respondMutation.isPending}
                             onClick={() => handleDonorResponse(match.match_id, "DECLINED")}
                           >
-                            <X className="mr-1.5 size-3.5" /> Decline Request
+                            <X className="mr-1.5 size-3.5 shrink-0" />
+                            <span className="truncate">Decline Request</span>
                           </Button>
                         </div>
                       </div>
