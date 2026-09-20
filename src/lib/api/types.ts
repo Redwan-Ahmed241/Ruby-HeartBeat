@@ -281,6 +281,9 @@ export interface MaskedDonorMatchResponse {
   start_date?: string | null;
   donor_name_initial: string;
   contact_revealed: boolean;
+  approx_latitude?: number | null | undefined;
+  approx_longitude?: number | null | undefined;
+  approx_area?: string | null | undefined;
 }
 
 export interface AcceptedDonorSummary {

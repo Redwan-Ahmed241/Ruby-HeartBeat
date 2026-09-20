@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useSearch, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   AlertCircle,
   PlusCircle,
@@ -14,12 +14,16 @@ import {
   MapPin,
   X,
   User,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+
+const DonorMap = lazy(() => import("@/components/DonorMap"));
 import {
   Dialog,
   DialogContent,
@@ -32,7 +36,7 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodRequests, useBloodRequest, useRevealDonorContact } from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
-import type { BloodRequestResponse, DonorContactReveal } from "@/lib/api/types";
+import type { BloodRequestResponse, DonorContactReveal, MaskedDonorMatchResponse } from "@/lib/api/types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/recipient")({
@@ -160,6 +164,10 @@ function MatchesDialog({ requestId, onClose }: { requestId: string | null; onClo
   const { data: request, isLoading } = useBloodRequest(requestId ?? "", !!requestId);
   const revealMutation = useRevealDonorContact();
   const [revealed, setRevealed] = useState<Record<string, DonorContactReveal>>({});
+  const [mapMatch, setMapMatch] = useState<{
+    match: MaskedDonorMatchResponse;
+    contact?: DonorContactReveal | undefined;
+  } | null>(null);
 
   const handleReveal = async (matchId: string) => {
     try {
@@ -186,215 +194,306 @@ function MatchesDialog({ requestId, onClose }: { requestId: string | null; onClo
   const declinedMatches = matches.filter((m) => m.response_status === "DECLINED");
 
   return (
-    <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span>Active Request Status & Matched Donors</span>
-            {request && (
-              <Badge variant={request.urgency === "EMERGENCY" ? "destructive" : "secondary"} className="text-[11px]">
-                {request.urgency}
-              </Badge>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            Two-sided mutual matching: donor identities stay masked until they accept your request.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={!!requestId} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>Active Request Status & Matched Donors</span>
+              {request && (
+                <Badge variant={request.urgency === "EMERGENCY" ? "destructive" : "secondary"} className="text-[11px]">
+                  {request.urgency}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Two-sided mutual matching: donor identities stay masked until they accept your request.
+            </DialogDescription>
+          </DialogHeader>
 
-        {isLoading ? (
-          <div className="py-12 text-center">
-            <Loader2 className="mx-auto size-7 animate-spin text-primary" />
-            <p className="mt-2 text-xs text-muted-foreground">Fetching live matching status...</p>
-          </div>
-        ) : matches.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            No donors matched yet. Our system notifies eligible donors in your area immediately.
-          </div>
-        ) : (
-          <div className="space-y-6 pt-2">
-            {/* 1. Accepted by Donor (Green highlight & Confirm Contact) */}
-            {acceptedMatches.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                    Accepted by Donor ({acceptedMatches.length})
-                  </h4>
-                </div>
-
+          {isLoading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="mx-auto size-7 animate-spin text-primary" />
+              <p className="mt-2 text-xs text-muted-foreground">Fetching live matching status...</p>
+            </div>
+          ) : matches.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No donors matched yet. Our system notifies eligible donors in your area immediately.
+            </div>
+          ) : (
+            <div className="space-y-6 pt-2">
+              {/* 1. Accepted by Donor (Green highlight & Confirm Contact) */}
+              {acceptedMatches.length > 0 && (
                 <div className="space-y-3">
-                  {acceptedMatches.map((m) => {
-                    const contact = revealed[m.match_id];
-                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      Accepted by Donor ({acceptedMatches.length})
+                    </h4>
+                  </div>
 
-                    return (
-                      <div
-                        key={m.match_id}
-                        className="rounded-xl border-2 border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 shadow-sm transition-all"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs gap-1">
-                            <CheckCircle2 className="size-3.5" /> Donor has accepted your request!
-                          </Badge>
-                          <span className="text-xs font-semibold text-muted-foreground">
-                            ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
-                          </span>
-                        </div>
+                  <div className="space-y-3">
+                    {acceptedMatches.map((m) => {
+                      const contact = revealed[m.match_id];
+                      const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
 
-                        {contact ? (
-                          <div className="mt-3 space-y-2.5 rounded-lg bg-background p-4 border border-emerald-500/30 text-xs shadow-xs">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                                <User className="size-4 text-emerald-600" /> {contact.full_name}
+                      return (
+                        <div
+                          key={m.match_id}
+                          className="rounded-xl border-2 border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 shadow-sm transition-all"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs gap-1">
+                              <CheckCircle2 className="size-3.5" /> Donor has accepted your request!
+                            </Badge>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
+                            </span>
+                          </div>
+
+                          {contact ? (
+                            <div className="mt-3 space-y-2.5 rounded-lg bg-background p-4 border border-emerald-500/30 text-xs shadow-xs">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                                  <User className="size-4 text-emerald-600" /> {contact.full_name}
+                                </p>
+                                <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-400 font-semibold">
+                                  Contact Unlocked
+                                </Badge>
+                              </div>
+                              <p className="flex items-center gap-2 font-bold text-emerald-600 text-sm">
+                                <Phone className="size-3.5" />
+                                <a href={`tel:${contact.phone}`} className="hover:underline tracking-wide">{contact.phone}</a>
                               </p>
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-400 font-semibold">
-                                Contact Unlocked
-                              </Badge>
+                              {contact.email && (
+                                <p className="text-muted-foreground flex items-center gap-1.5">
+                                  <Mail className="size-3.5" /> {contact.email}
+                                </p>
+                              )}
+                              {contact.address && (
+                                <p className="text-muted-foreground flex items-center gap-1.5">
+                                  <MapPin className="size-3.5" /> {contact.address}
+                                </p>
+                              )}
+                              <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-muted-foreground text-[11px] flex items-center gap-1">
+                                  <Clock className="size-3" />
+                                  <strong>Preferred Meetup:</strong> {contact.preferred_meetup_time || "Immediate / Coordinate directly via call"}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7 gap-1 font-medium"
+                                    onClick={() => setMapMatch({ match: m, contact })}
+                                  >
+                                    <MapPin className="size-3 text-red-600" /> View on Map
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs text-destructive hover:bg-destructive/10 border-destructive/40 h-7 font-medium"
+                                    onClick={() => handleCancelMatch(m.match_id)}
+                                  >
+                                    Cancel Match
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                            <p className="flex items-center gap-2 font-bold text-emerald-600 text-sm">
-                              <Phone className="size-3.5" />
-                              <a href={`tel:${contact.phone}`} className="hover:underline tracking-wide">{contact.phone}</a>
-                            </p>
-                            {contact.email && (
-                              <p className="text-muted-foreground flex items-center gap-1.5">
-                                <Mail className="size-3.5" /> {contact.email}
+                          ) : (
+                            <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-background/80 rounded-lg p-3 border border-emerald-500/20">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">
+                                  {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Ready for recipient confirmation to reveal direct phone and meeting coordinates.
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-8 gap-1"
+                                  onClick={() => setMapMatch({ match: m })}
+                                >
+                                  <MapPin className="size-3 text-red-600" /> View Map
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm shrink-0"
+                                  disabled={revealMutation.isPending}
+                                  onClick={() => handleReveal(m.match_id)}
+                                >
+                                  {revealMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Unlocking...
+                                    </>
+                                  ) : (
+                                    "Confirm Donor & Unlock Contact"
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Awaiting Response (Pending with Masked Label) */}
+              {pendingMatches.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Awaiting Response ({pendingMatches.length})
+                    </h4>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {pendingMatches.map((m) => {
+                      const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+
+                      return (
+                        <div key={m.match_id} className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+                                  {formatBloodGroup(m.blood_group, "symbol")}
+                                </span>
+                                <span className="text-sm font-semibold text-foreground">
+                                  {maskedLabel}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <MapPin className="size-3" /> ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
                               </p>
-                            )}
-                            {contact.address && (
-                              <p className="text-muted-foreground flex items-center gap-1.5">
-                                <MapPin className="size-3.5" /> {contact.address}
-                              </p>
-                            )}
-                            <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-muted-foreground text-[11px] flex items-center gap-1">
-                                <Clock className="size-3" />
-                                <strong>Preferred Meetup:</strong> {contact.preferred_meetup_time || "Immediate / Coordinate directly via call"}
-                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs text-destructive hover:bg-destructive/10 border-destructive/40 h-7 font-medium"
-                                onClick={() => handleCancelMatch(m.match_id)}
+                                className="text-xs h-7 gap-1"
+                                onClick={() => setMapMatch({ match: m })}
                               >
-                                Cancel Match & Release Donor
+                                <MapPin className="size-3 text-red-600" /> View on Map
                               </Button>
+                              <Badge variant="secondary" className="text-[10px]">
+                                Pending Response
+                              </Badge>
                             </div>
                           </div>
-                        ) : (
-                          <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-background/80 rounded-lg p-3 border border-emerald-500/20">
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">
-                                {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Ready for recipient confirmation to reveal direct phone and meeting coordinates.
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm shrink-0"
-                              disabled={revealMutation.isPending}
-                              onClick={() => handleReveal(m.match_id)}
-                            >
-                              {revealMutation.isPending ? (
-                                <>
-                                  <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Unlocking...
-                                </>
-                              ) : (
-                                "Confirm Donor & Unlock Contact"
-                              )}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          <p className="mt-2 text-[11px] text-muted-foreground italic border-t border-border/40 pt-1.5">
+                            Donor has been alerted. Contact details remain masked until the donor accepts your request.
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 2. Awaiting Response (Pending with Masked Label) */}
-            {pendingMatches.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Awaiting Response ({pendingMatches.length})
+              {/* 3. Declined (Faded State) */}
+              {declinedMatches.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                    Declined ({declinedMatches.length})
                   </h4>
-                </div>
 
-                <div className="space-y-2.5">
-                  {pendingMatches.map((m) => {
-                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
+                  <div className="space-y-2">
+                    {declinedMatches.map((m) => {
+                      const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
 
-                    return (
-                      <div key={m.match_id} className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
-                                {formatBloodGroup(m.blood_group, "symbol")}
-                              </span>
-                              <span className="text-sm font-semibold text-foreground">
-                                {maskedLabel}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin className="size-3" /> ~{m.distance_km.toFixed(1)} km away · Score: {Math.round(m.match_score)}/100
-                            </p>
+                      return (
+                        <div
+                          key={m.match_id}
+                          className="rounded-xl border border-border/40 bg-muted/40 p-3 opacity-60 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-muted-foreground">
+                              {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
+                            </span>
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                              Declined
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="text-[10px]">
-                            Pending Response
-                          </Badge>
+                          <p className="mt-1 text-[11px] text-muted-foreground italic">
+                            Donor declined due to scheduling conflict.
+                          </p>
                         </div>
-                        <p className="mt-2 text-[11px] text-muted-foreground italic border-t border-border/40 pt-1.5">
-                          Donor has been alerted. Contact details remain masked until the donor accepts your request.
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-            {/* 3. Declined (Faded State) */}
-            {declinedMatches.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                  Declined ({declinedMatches.length})
-                </h4>
+      {/* 4. Match Map Dialog (Phase 5: Leaflet Location Workflow) */}
+      <Dialog open={!!mapMatch} onOpenChange={(open) => !open && setMapMatch(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="size-5 text-red-600" />
+              <span>Hospital & Matched Donor Map</span>
+            </DialogTitle>
+            <DialogDescription>
+              Visualize hospital destination and approximate donor location (~1km privacy grid).
+            </DialogDescription>
+          </DialogHeader>
 
-                <div className="space-y-2">
-                  {declinedMatches.map((m) => {
-                    const maskedLabel = `Donor #D-${m.donor_id ? m.donor_id.slice(0, 4).toUpperCase() : m.donor_name_initial}`;
-
-                    return (
-                      <div
-                        key={m.match_id}
-                        className="rounded-xl border border-border/40 bg-muted/40 p-3 opacity-60 text-xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-muted-foreground">
-                            {maskedLabel} ({formatBloodGroup(m.blood_group, "symbol")})
-                          </span>
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                            Declined
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-[11px] text-muted-foreground italic">
-                          Donor declined due to scheduling conflict.
-                        </p>
-                      </div>
-                    );
-                  })}
+          {mapMatch && request && (
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/40 border border-border text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-foreground">
+                  <Building2 className="size-4 text-red-600" />
+                  <span>{request.hospital_name || request.required_location}</span>
                 </div>
+                <Badge variant="secondary" className="font-mono text-xs font-semibold">
+                  ~{mapMatch.match.distance_km.toFixed(1)} km distance
+                </Badge>
               </div>
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+              <Suspense
+                fallback={
+                  <div className="h-[280px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground animate-pulse">
+                    Loading Leaflet map...
+                  </div>
+                }
+              >
+                <DonorMap
+                  hospitalLocation={{
+                    lat: request.latitude,
+                    lng: request.longitude,
+                    name: request.hospital_name || request.required_location,
+                    area: request.area_zone,
+                  }}
+                  donorLocation={{
+                    lat: mapMatch.contact?.latitude ?? mapMatch.match.approx_latitude ?? (request.latitude + 0.015),
+                    lng: mapMatch.contact?.longitude ?? mapMatch.match.approx_longitude ?? (request.longitude + 0.015),
+                    label: mapMatch.contact?.full_name ?? mapMatch.match.donor_name_initial,
+                    bloodGroup: mapMatch.match.blood_group,
+                    isApproximate: !mapMatch.contact,
+                  }}
+                  heightClassName="h-[280px] sm:h-[340px]"
+                />
+              </Suspense>
+
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 justify-center">
+                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                <span>Donor residential coordinates are approximate to protect privacy until confirmed.</span>
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
