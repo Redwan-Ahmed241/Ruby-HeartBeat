@@ -9,6 +9,8 @@ import {
   HeartHandshake,
   UserCheck,
   ShieldCheck,
+  ShieldAlert,
+  CheckCircle2,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +27,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useBloodRequests, useRespondToMatch, useRevealDonorContact } from "@/hooks/useRequests";
+import {
+  useBloodRequests,
+  useRespondToMatch,
+  useRevealDonorContact,
+  useConfirmMatchCompletion,
+} from "@/hooks/useRequests";
 import type {
   BloodRequestResponse,
   MaskedDonorMatchResponse,
@@ -58,6 +65,7 @@ export function NotificationHub() {
   const { data: requests, isLoading: requestsLoading, refetch } = useBloodRequests();
   const respondMutation = useRespondToMatch();
   const revealMutation = useRevealDonorContact();
+  const confirmMatchMutation = useConfirmMatchCompletion();
 
   // Track revealed contacts by match_id for recipients
   const [revealedContacts, setRevealedContacts] = useState<Record<string, DonorContactReveal>>({});
@@ -89,6 +97,14 @@ export function NotificationHub() {
       }
     }
   }
+
+  // Check if donor has an active commitment (ACCEPTED and not yet completed/cancelled)
+  const hasActiveCommitment = donorMatchedItems.some(
+    (item) =>
+      item.match.response_status === "ACCEPTED" &&
+      item.request.status !== "COMPLETED" &&
+      item.request.status !== "CANCELLED"
+  );
 
   // Pending donor requests requiring action
   const pendingDonorMatches = donorMatchedItems.filter(
@@ -210,6 +226,13 @@ export function NotificationHub() {
                   </Badge>
                 </div>
 
+                {hasActiveCommitment && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                    <ShieldAlert className="size-4 text-amber-600 shrink-0" />
+                    <span>You have an active donation commitment in progress. Complete or cancel it before accepting another request.</span>
+                  </div>
+                )}
+
                 {pendingDonorMatches.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                     <ShieldCheck className="mx-auto size-8 text-muted-foreground/60 mb-2" />
@@ -258,7 +281,8 @@ export function NotificationHub() {
                           <Button
                             size="sm"
                             className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white min-w-0"
-                            disabled={respondMutation.isPending}
+                            disabled={respondMutation.isPending || hasActiveCommitment}
+                            title={hasActiveCommitment ? "You have an active donation commitment in progress." : undefined}
                             onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
                           >
                             <Check className="mr-1.5 size-3.5 shrink-0" />
@@ -275,6 +299,11 @@ export function NotificationHub() {
                             <span className="truncate">Decline Request</span>
                           </Button>
                         </div>
+                        {hasActiveCommitment && (
+                          <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                            * You have an active donation commitment in progress.
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -288,29 +317,76 @@ export function NotificationHub() {
                       Previous Responses
                     </h3>
                     <div className="space-y-2">
-                      {resolvedDonorMatches.slice(0, 5).map(({ request, match }) => (
-                        <div
-                          key={match.match_id}
-                          className="flex items-center justify-between text-xs rounded border border-border/50 p-2.5 bg-muted/20"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {formatBloodGroup(request.blood_group)} for {request.required_location}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {match.response_status === "ACCEPTED"
-                                ? "Contact details shared with recipient."
-                                : "You declined this match."}
-                            </p>
-                          </div>
-                          <Badge
-                            variant={match.response_status === "ACCEPTED" ? "default" : "outline"}
-                            className="text-[10px]"
+                      {resolvedDonorMatches.slice(0, 5).map(({ request, match }) => {
+                        const isAccepted = match.response_status === "ACCEPTED";
+                        const isCompleted = request.status === "COMPLETED" || (match.donor_confirmed_completion && match.recipient_confirmed_completion);
+
+                        return (
+                          <div
+                            key={match.match_id}
+                            className="flex flex-col gap-2 text-xs rounded-lg border border-border/50 p-3 bg-muted/20"
                           >
-                            {match.response_status}
-                          </Badge>
-                        </div>
-                      ))}
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">
+                                  {formatBloodGroup(request.blood_group)} for {request.required_location}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {isAccepted
+                                    ? "Contact details shared with recipient."
+                                    : "You declined this match."}
+                                </p>
+                              </div>
+                              <Badge
+                                variant={isCompleted ? "default" : isAccepted ? "secondary" : "outline"}
+                                className={`text-[10px] ${isCompleted ? "bg-purple-600 text-white" : ""}`}
+                              >
+                                {isCompleted ? "COMPLETED" : match.response_status}
+                              </Badge>
+                            </div>
+
+                            {/* Mutual Completion Status & Action for Donor (Part 2.2) */}
+                            {isAccepted && (
+                              isCompleted ? (
+                                <div className="rounded bg-purple-50 dark:bg-purple-950/30 p-2 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1.5">
+                                  <CheckCircle2 className="size-3.5 text-purple-600 shrink-0" />
+                                  <span>Donation verified! Cooldown active until 90 days ahead.</span>
+                                </div>
+                              ) : request.status !== "CANCELLED" && (
+                                <div className="pt-2 border-t border-border/40 space-y-1.5">
+                                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                    <span>Verification Status:</span>
+                                    <span className="font-semibold text-foreground">
+                                      {match.donor_confirmed_completion
+                                        ? "Waiting for Recipient confirmation..."
+                                        : "Awaiting physical completion"}
+                                    </span>
+                                  </div>
+                                  {!match.donor_confirmed_completion && (
+                                    <Button
+                                      size="sm"
+                                      className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-7 cursor-pointer"
+                                      disabled={confirmMatchMutation.isPending}
+                                      onClick={() => {
+                                        confirmMatchMutation.mutate(match.match_id, {
+                                          onSuccess: () => refetch(),
+                                        });
+                                      }}
+                                    >
+                                      {confirmMatchMutation.isPending ? (
+                                        <Loader2 className="size-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <Check className="size-3 mr-1" />
+                                      )}
+                                      Confirm Donation Completed
+                                    </Button>
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -340,6 +416,7 @@ export function NotificationHub() {
                     {acceptedMatchesForRecipient.map(({ request, match }) => {
                       const revealed = revealedContacts[match.match_id];
                       const isRevealing = revealingMatchId === match.match_id;
+                      const isCompleted = request.status === "COMPLETED" || (match.donor_confirmed_completion && match.recipient_confirmed_completion);
 
                       return (
                         <div
@@ -355,8 +432,8 @@ export function NotificationHub() {
                                 A compatible donor has accepted your <strong>{formatBloodGroup(request.blood_group)}</strong> request for <em>{request.required_location}</em>.
                               </p>
                             </div>
-                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]">
-                              ACCEPTED
+                            <Badge className={`text-[10px] ${isCompleted ? "bg-purple-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}>
+                              {isCompleted ? "COMPLETED" : "ACCEPTED"}
                             </Badge>
                           </div>
 
@@ -382,7 +459,7 @@ export function NotificationHub() {
                           ) : (
                             <Button
                               size="sm"
-                              className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                              className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                               disabled={isRevealing}
                               onClick={() => handleRevealContact(match.match_id)}
                             >
@@ -393,6 +470,46 @@ export function NotificationHub() {
                               )}
                               Click to View Contact Details
                             </Button>
+                          )}
+
+                          {/* Mutual Completion Status & Action for Recipient (Part 2.2) */}
+                          {isCompleted ? (
+                            <div className="rounded bg-purple-50 dark:bg-purple-950/30 p-2 text-[11px] text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1.5">
+                              <CheckCircle2 className="size-3.5 text-purple-600 shrink-0" />
+                              <span>Donation verified! Donor placed on 90-day recovery cooldown.</span>
+                            </div>
+                          ) : request.status !== "CANCELLED" && (
+                            <div className="pt-2 border-t border-emerald-500/20 space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>Mutual Verification:</span>
+                                <span className="font-semibold text-foreground">
+                                  {match.recipient_confirmed_completion
+                                    ? "Waiting for Donor confirmation..."
+                                    : match.donor_confirmed_completion
+                                    ? "Donor Confirmed! Awaiting your confirmation."
+                                    : "Awaiting physical completion"}
+                                </span>
+                              </div>
+                              {!match.recipient_confirmed_completion && (
+                                <Button
+                                  size="sm"
+                                  className="w-full text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white h-7 cursor-pointer"
+                                  disabled={confirmMatchMutation.isPending}
+                                  onClick={() => {
+                                    confirmMatchMutation.mutate(match.match_id, {
+                                      onSuccess: () => refetch(),
+                                    });
+                                  }}
+                                >
+                                  {confirmMatchMutation.isPending ? (
+                                    <Loader2 className="size-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Check className="size-3 mr-1" />
+                                  )}
+                                  Confirm Donation Completed
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                       );

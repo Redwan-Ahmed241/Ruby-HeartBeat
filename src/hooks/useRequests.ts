@@ -175,5 +175,47 @@ export function useReopenRequest() {
   });
 }
 
+export function useCancelRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (requestId: string) => requestService.cancelRequest(requestId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      toast.success("Blood request cancelled. Donors have stopped receiving alerts.");
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail || error?.message || "Failed to cancel blood request.";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    },
+  });
+}
+
+export function useConfirmMatchCompletion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (matchId: string) => requestService.confirmMatchCompletion(matchId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-history"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      if (data.is_completed) {
+        toast.success("Donation mutually verified! 90-day recovery cooldown is now active.");
+      } else {
+        toast.info("Your completion confirmation is recorded. Waiting for the other party's confirmation.");
+      }
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail || error?.message || "Failed to confirm completion.";
+      toast.error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    },
+  });
+}
+
+
 
 

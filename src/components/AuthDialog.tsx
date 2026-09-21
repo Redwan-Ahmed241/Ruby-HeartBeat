@@ -112,6 +112,7 @@ export function AuthDialog({
   const [phone, setPhone] = useState("+8801700000000");
   const [address, setAddress] = useState("Banani, Dhaka");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
+  const [nidOrBirthCert, setNidOrBirthCert] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
@@ -153,6 +154,7 @@ export function AuthDialog({
         weight: 68.0,
         latitude: 23.7937,
         longitude: 90.4066,
+        nid_or_birth_cert: nidOrBirthCert.trim() || undefined,
       });
       toast.success("Account created! You may now sign in.");
       setActiveTab("login");
@@ -198,6 +200,11 @@ export function AuthDialog({
           >
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="max-w-[110px] truncate sm:max-w-none">{currentUser.full_name}</span>
+            {currentUser.nid_or_birth_cert && (
+              <span className="hidden sm:inline-flex items-center gap-1 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-1.5 py-0.5 border border-emerald-400/30">
+                <ShieldCheck className="size-3" /> ID Verified
+              </span>
+            )}
             <Badge
               variant="outline"
               className={`ml-1 border-0 text-[10px] uppercase font-semibold ${roleColors[currentUser.role] || "bg-emerald-600 text-white"}`}
@@ -209,7 +216,14 @@ export function AuthDialog({
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{currentUser.full_name}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium leading-none">{currentUser.full_name}</p>
+                {currentUser.nid_or_birth_cert && (
+                  <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 px-1 py-0">
+                    Verified
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
             </div>
           </DropdownMenuLabel>
@@ -467,6 +481,21 @@ export function AuthDialog({
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="e.g. Banani, Dhaka or Dhanmondi, Dhaka"
                   required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="reg-nid">National ID (NID) or Birth Certificate Number</Label>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    (Optional - Speeds up verification)
+                  </span>
+                </div>
+                <Input
+                  id="reg-nid"
+                  value={nidOrBirthCert}
+                  onChange={(e) => setNidOrBirthCert(e.target.value)}
+                  placeholder="e.g. 19982692... or NID number"
                 />
               </div>
 

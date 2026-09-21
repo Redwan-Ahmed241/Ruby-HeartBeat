@@ -42,6 +42,7 @@ import {
   useRevealDonorContact,
   useCompleteRequest,
   useReopenRequest,
+  useCancelRequest,
 } from "@/hooks/useRequests";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
@@ -76,9 +77,20 @@ const URGENCY_VARIANT: Record<string, "destructive" | "secondary" | "outline"> =
 function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewMatches: (id: string) => void }) {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
   const completeMutation = useCompleteRequest();
   const reopenMutation = useReopenRequest();
+  const cancelMutation = useCancelRequest();
+
+  const handleCancelConfirm = async () => {
+    try {
+      await cancelMutation.mutateAsync(req.request_id);
+      setCancelDialogOpen(false);
+    } catch {
+      // Toast handled by mutation
+    }
+  };
 
   const renderStatusBadge = () => {
     switch (req.status) {
@@ -123,6 +135,13 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
                 <Phone className="size-3 text-muted-foreground shrink-0" /> {req.attendant_phone_number}
               </span>
             )}
+            {req.is_contact_public && req.attendant_phone_number && !req.attendant_phone_number.includes("*") && (
+              <a href={`tel:${req.attendant_phone_number}`}>
+                <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1 border-emerald-500/40 text-emerald-600 hover:bg-emerald-50">
+                  <Phone className="size-2.5" /> Call Directly
+                </Button>
+              </a>
+            )}
             {req.request_date && (
               <span className="flex items-center gap-1">
                 <Clock className="size-3 shrink-0" /> {new Date(req.request_date).toLocaleDateString()}
@@ -130,7 +149,17 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+          {req.status === "OPEN" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              Cancel Request
+            </Button>
+          )}
           <Link to="/request/$requestId" params={{ requestId: req.request_id }}>
             <Button variant="ghost" size="sm" className="text-xs">
               Direct Link
@@ -324,6 +353,40 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
             >
               {reopenMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
               Cancel Match & Re-Open
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Search Confirmation Dialog (Part 1.3) */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base text-destructive">
+              <AlertCircle className="size-5" />
+              <span>Cancel Blood Request Search?</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this search? Donors will stop receiving alerts.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-muted-foreground">
+            Cancelling this search will immediately release all pending candidate matches, stop broadcast alerts, and restore your daily patient request limit.
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setCancelDialogOpen(false)}>
+              Keep Search Active
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={cancelMutation.isPending}
+              onClick={handleCancelConfirm}
+            >
+              {cancelMutation.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+              Confirm Cancel Search
             </Button>
           </div>
         </DialogContent>

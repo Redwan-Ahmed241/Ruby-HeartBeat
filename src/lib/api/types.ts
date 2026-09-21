@@ -39,7 +39,7 @@ export type StockStatus = "HEALTHY" | "LOW_STOCK" | "CRITICAL" | "OUT_OF_STOCK";
 
 export type AvailabilityStatus = "AVAILABLE" | "UNAVAILABLE";
 
-export type MatchResponseStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+export type MatchResponseStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "COMPLETED" | "CANCELLED";
 
 export type EventStatus = "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED";
 
@@ -115,6 +115,7 @@ export interface UserRegisterRequest {
   latitude?: number;
   longitude?: number;
   nid_passport_no?: string;
+  nid_or_birth_cert?: string;
   donor_profile?: DonorProfileCreate | null;
   recipient_profile?: RecipientProfileCreate | null;
   hospital_profile?: HospitalProfileCreate | null;
@@ -158,6 +159,7 @@ export interface UserResponse {
   phone: string;
   role: UserRole;
   status: UserStatus;
+  nid_or_birth_cert?: string | null;
   created_at: string;
   updated_at: string;
   donor?: DonorBriefResponse | null;
@@ -282,6 +284,7 @@ export interface BloodRequestCreate {
   area_zone?: string | undefined;
   attendant_phone_number?: string | undefined;
   volume_ml?: number | undefined;
+  is_contact_public?: boolean;
 }
 
 export interface MaskedDonorMatchResponse {
@@ -296,6 +299,9 @@ export interface MaskedDonorMatchResponse {
   start_date?: string | null;
   donor_name_initial: string;
   contact_revealed: boolean;
+  donor_confirmed_completion?: boolean;
+  recipient_confirmed_completion?: boolean;
+  completed_at?: string | null;
   approx_latitude?: number | null | undefined;
   approx_longitude?: number | null | undefined;
   approx_area?: string | null | undefined;
@@ -329,7 +335,24 @@ export interface BloodRequestResponse {
   volume_ml?: number | null | undefined;
   accepted_donor_id?: string | null | undefined;
   accepted_donor?: AcceptedDonorSummary | null | undefined;
+  is_contact_public?: boolean;
   matches?: MaskedDonorMatchResponse[] | null | undefined;
+}
+
+export interface MatchCompletionStatusResponse {
+  match_id: string;
+  request_id: string;
+  status: MatchResponseStatus;
+  donor_confirmed_completion: boolean;
+  recipient_confirmed_completion: boolean;
+  is_completed: boolean;
+  completed_at?: string | null;
+  cooldown_until?: string | null;
+}
+
+export interface BloodRequestUpdate {
+  is_contact_public?: boolean;
+  notes?: string;
 }
 
 export interface RequestStatusUpdate {

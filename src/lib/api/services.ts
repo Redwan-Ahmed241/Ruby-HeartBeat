@@ -22,6 +22,7 @@ import type {
   BloodRequestResponse,
   MaskedDonorMatchResponse,
   MatchRespondRequest,
+  MatchCompletionStatusResponse,
   DonorContactReveal,
   BloodInventoryResponse,
   InventoryTransactionCreate,
@@ -207,6 +208,18 @@ export const requestService = {
     });
   },
 
+
+  cancelRequest: async (requestId: string): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/requests/${requestId}/cancel`, {
+      method: "POST",
+    });
+  },
+
+  confirmMatchCompletion: async (matchId: string): Promise<MatchCompletionStatusResponse> => {
+    return apiClient<MatchCompletionStatusResponse>(`/matches/${matchId}/confirm-completion`, {
+      method: "POST",
+    });
+  },
 
   updateRequestStatus: async (
     requestId: string,

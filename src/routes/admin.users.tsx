@@ -151,7 +151,16 @@ function AdminUsersPage() {
                     const isCurrentUser = u.user_id === currentUser?.user_id;
                     return (
                       <TableRow key={u.user_id}>
-                        <TableCell className="font-medium text-sm">{u.full_name}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{u.full_name}</span>
+                            {u.nid_or_birth_cert && (
+                              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1 px-1.5 py-0 font-bold">
+                                <ShieldCheck className="size-3" /> ID Verified
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">{u.email}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{u.phone}</TableCell>
                         <TableCell>

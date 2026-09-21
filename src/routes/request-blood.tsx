@@ -153,12 +153,15 @@ function RequestBlood() {
     location: "Emergency Ward, Room 302",
     phone: "01711223344",
     notes: "",
+    is_contact_public: false,
   });
 
   const [createdRequest, setCreatedRequest] = useState<BloodRequestResponse | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<MaskedDonorMatchResponse | null>(null);
   const [selectedMapMatch, setSelectedMapMatch] = useState<MaskedDonorMatchResponse | null>(null);
   const [revealedContact, setRevealedContact] = useState<DonorContactReveal | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [rateLimitModalOpen, setRateLimitModalOpen] = useState(false);
 
   const createRequestMutation = useCreateBloodRequest();
   const createEmergencyMutation = useCreateEmergencyRequest();
@@ -184,7 +187,7 @@ function RequestBlood() {
     }));
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const handleOpenReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       toast.error("Please sign in to submit a request.");
@@ -197,6 +200,10 @@ function RequestBlood() {
       return;
     }
 
+    setReviewModalOpen(true);
+  };
+
+  const executeDispatch = async () => {
     const apiGroup = toApiBloodGroup(form.group);
 
     // Approximate coordinates for Dhaka hospital areas
@@ -214,6 +221,7 @@ function RequestBlood() {
       hospital_name: form.hospital_name.trim(),
       area_zone: form.area_zone.trim(),
       attendant_phone_number: form.phone.trim(),
+      is_contact_public: form.is_contact_public,
     };
 
     try {
@@ -225,13 +233,20 @@ function RequestBlood() {
       }
       setCreatedRequest(res);
       setRevealedContact(null);
+      setReviewModalOpen(false);
+      toast.success("Request broadcasted successfully! Notifying matching donors.");
       // Route / scroll immediately to live match tracking screen
       setTimeout(() => {
         const el = document.getElementById("live-matches-section");
         if (el) el.scrollIntoView({ behavior: "smooth" });
       }, 150);
-    } catch {
-      // toast handled in hook
+    } catch (err: any) {
+      setReviewModalOpen(false);
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail || err?.message || "";
+      if (status === 429 || (typeof detail === "string" && detail.includes("Daily limit reached"))) {
+        setRateLimitModalOpen(true);
+      }
     }
   };
 
@@ -343,7 +358,7 @@ function RequestBlood() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
+              <form onSubmit={handleOpenReview} className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="patient">Patient Full Name</Label>
                   <Input
@@ -571,21 +586,43 @@ function RequestBlood() {
                   />
                 </div>
 
+                {/* Public Contact Number Visibility Toggle */}
+                <div className="flex items-start space-x-2.5 sm:col-span-2 rounded-lg border border-border bg-muted/20 p-3">
+                  <input
+                    type="checkbox"
+                    id="is_contact_public"
+                    checked={form.is_contact_public}
+                    onChange={(e) => setForm((f) => ({ ...f, is_contact_public: e.target.checked }))}
+                    className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <div className="grid gap-1 leading-none">
+                    <label
+                      htmlFor="is_contact_public"
+                      className="text-xs font-bold leading-none cursor-pointer"
+                    >
+                      Display contact number publicly on emergency feeds
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Enable this if you want nearby donors to call directly without waiting for in-app approval.
+                    </p>
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
-                  className="sm:col-span-2"
+                  className="sm:col-span-2 font-bold"
                   variant={isEmergency ? "destructive" : "default"}
                   disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
                 >
                   {createRequestMutation.isPending || createEmergencyMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
-                      Dispatching request & searching donors...
+                      Validating & broadcasting request...
                     </>
                   ) : form.urgency === "EMERGENCY" ? (
-                    "Dispatch Emergency Request (50 km broadcast)"
+                    "Review & Broadcast Emergency Request (50 km broadcast)"
                   ) : (
-                    "Find matching donors"
+                    "Review & Broadcast Request"
                   )}
                 </Button>
               </form>
@@ -865,6 +902,156 @@ function RequestBlood() {
               </p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Summary & Dispatch Confirmation Modal (Part 1.1) */}
+      <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Zap className="size-5 text-primary" />
+              <span>Review Blood Request Before Broadcasting</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Confirm all clinical details and patient requirements before broadcasting instant alerts to compatible donors.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* Urgency & Patient Banner */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">Patient Name</span>
+                <p className="text-sm font-bold text-foreground">{form.patient}</p>
+              </div>
+              <Badge
+                variant={form.urgency === "EMERGENCY" ? "destructive" : "secondary"}
+                className="font-bold text-xs uppercase"
+              >
+                {form.urgency}
+              </Badge>
+            </div>
+
+            {/* Grid of Key Clinical Details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">Blood Group & Component</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="font-extrabold text-base text-primary">
+                    {formatBloodGroup(form.group, "symbol")}
+                  </span>
+                  <span className="text-xs font-medium text-foreground">
+                    ({form.component.replace("_", " ")})
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">Units Required</span>
+                <p className="text-sm font-bold text-foreground mt-0.5">
+                  {form.units} Unit(s) <span className="font-normal text-muted-foreground">({form.volume_ml} mL)</span>
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">Hospital / Medical Facility</span>
+                <p className="text-xs font-bold text-foreground mt-0.5 truncate">{form.hospital_name}</p>
+                <p className="text-[10px] text-muted-foreground">{form.area_zone}</p>
+              </div>
+
+              <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">Ward / Room / Bed</span>
+                <p className="text-xs font-bold text-foreground mt-0.5">{form.location}</p>
+              </div>
+            </div>
+
+            {/* Public Contact Status Indicator */}
+            <div className={`rounded-lg border p-3 flex items-start gap-2.5 ${form.is_contact_public ? "border-emerald-500/40 bg-emerald-500/10" : "border-amber-500/40 bg-amber-500/10"}`}>
+              <ShieldCheck className={`size-4 mt-0.5 shrink-0 ${form.is_contact_public ? "text-emerald-600" : "text-amber-600"}`} />
+              <div className="space-y-0.5">
+                <p className="font-bold text-xs text-foreground">
+                  Public Contact Status: {form.is_contact_public ? "Public on Emergency Feeds" : "Private (Masked)"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {form.is_contact_public
+                    ? `Direct phone (${form.phone}) will be visible to all nearby donors on public feeds for direct calling.`
+                    : `Phone number is masked from public. Revealed only when a compatible donor accepts.`}
+                </p>
+              </div>
+            </div>
+
+            {form.notes && (
+              <div className="rounded-lg bg-muted/40 p-2.5 text-[11px] text-muted-foreground">
+                <strong className="text-foreground">Clinical Instructions: </strong>
+                {form.notes}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReviewModalOpen(false)}
+              disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
+            >
+              Edit Details
+            </Button>
+            <Button
+              type="button"
+              className="font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              onClick={executeDispatch}
+              disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
+            >
+              {(createRequestMutation.isPending || createEmergencyMutation.isPending) ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Dispatching...
+                </>
+              ) : (
+                <>
+                  <Zap className="size-4" />
+                  Confirm & Dispatch
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recipient Patient Rate Limiting Modal (Part 1.4) */}
+      <Dialog open={rateLimitModalOpen} onOpenChange={setRateLimitModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="size-5" />
+              <span>Daily Request Limit Reached</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-foreground/90 font-medium pt-1">
+              Daily request limit reached (2 requests per patient per 24 hours). You can cancel an existing open request to start a new emergency search.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-muted-foreground space-y-2">
+            <p>
+              To prevent queue flooding and system spam, a maximum of 2 active requests are allowed for <strong>{form.patient}</strong> within any 24-hour rolling window.
+            </p>
+            <p className="font-semibold text-foreground">
+              If an earlier blood search is no longer required or has outdated hospital details, cancel it from your recipient dashboard to free up quota.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setRateLimitModalOpen(false)}>
+              Close
+            </Button>
+            <Link to="/dashboard" search={{ tab: "request" }}>
+              <Button size="sm" className="bg-primary text-primary-foreground font-bold">
+                Review Active Requests
+              </Button>
+            </Link>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

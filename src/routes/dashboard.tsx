@@ -48,6 +48,8 @@ import {
   useBloodRequests,
   useCompleteRequest,
   useReopenRequest,
+  useCancelRequest,
+  useConfirmMatchCompletion,
 } from "@/hooks/useRequests";
 import { formatBloodGroup } from "@/lib/formatters";
 import { getDonorTier } from "@/lib/gamification";
@@ -172,10 +174,15 @@ export default function UnifiedDashboardPage() {
         <div className="max-w-7xl 2xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                   Welcome, {user.full_name}
                 </h1>
+                {user.nid_or_birth_cert && (
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[11px] font-bold gap-1">
+                    <ShieldCheck className="size-3.5" /> ID Verified
+                  </Badge>
+                )}
                 {user.donor?.blood_group && (
                   <Badge variant="outline" className="border-primary/40 text-primary font-bold">
                     {formatBloodGroup(user.donor.blood_group, "symbol")}
@@ -525,6 +532,21 @@ export default function UnifiedDashboardPage() {
                               {req.volume_ml ?? Number(req.quantity) * 450} mL)
                             </p>
                           </div>
+
+                          {/* Direct Public Call action if is_contact_public is true */}
+                          {req.is_contact_public && req.attendant_phone_number && !req.attendant_phone_number.includes("*") && (
+                            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500/40 p-2 flex items-center justify-between gap-2">
+                              <span className="font-mono text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-1">
+                                <Phone className="size-3 text-emerald-600" />
+                                {req.attendant_phone_number}
+                              </span>
+                              <a href={`tel:${req.attendant_phone_number}`}>
+                                <Button size="sm" className="h-6 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2">
+                                  Call Directly
+                                </Button>
+                              </a>
+                            </div>
+                          )}
                         </div>
 
                         {/* Direct Response CTA */}
@@ -772,15 +794,35 @@ function DashboardRequestRow({
 }) {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
 
   const completeMutation = useCompleteRequest();
   const reopenMutation = useReopenRequest();
+  const cancelMutation = useCancelRequest();
+  const confirmMatchMutation = useConfirmMatchCompletion();
+
+  const activeMatch = req.matches?.find(
+    (m) => m.donor_id === req.accepted_donor_id || m.response_status === "ACCEPTED"
+  );
 
   const handleCompleteConfirm = async () => {
     try {
-      await completeMutation.mutateAsync(req.request_id);
+      if (activeMatch) {
+        await confirmMatchMutation.mutateAsync(activeMatch.match_id);
+      } else {
+        await completeMutation.mutateAsync(req.request_id);
+      }
       setCompleteDialogOpen(false);
+    } catch {
+      // Toast handled by mutation
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    try {
+      await cancelMutation.mutateAsync(req.request_id);
+      setCancelDialogOpen(false);
     } catch {
       // Toast handled by mutation
     }
@@ -893,15 +935,36 @@ function DashboardRequestRow({
             )}
           </div>
 
+          {/* Mutual Completion Status details (Part 2.2) */}
+          {activeMatch && (
+            <div className="rounded-lg bg-background/80 border border-emerald-500/30 p-2.5 text-xs space-y-1">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="font-medium">Mutual Verification Status:</span>
+                <span className="font-semibold text-foreground">
+                  {activeMatch.donor_confirmed_completion && activeMatch.recipient_confirmed_completion
+                    ? "Both Parties Confirmed"
+                    : activeMatch.recipient_confirmed_completion
+                    ? "Waiting for Donor confirmation..."
+                    : activeMatch.donor_confirmed_completion
+                    ? "Donor Confirmed! Awaiting your confirmation."
+                    : "Pending completion confirmation"}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Action buttons: Complete Donation (Phase 6) & Re-Open (Phase 8) */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-emerald-500/20">
             <Button
               size="sm"
               className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
+              disabled={activeMatch?.recipient_confirmed_completion || confirmMatchMutation.isPending || completeMutation.isPending}
               onClick={() => setCompleteDialogOpen(true)}
             >
               <CheckCircle2 className="size-3.5 mr-1" />
-              Confirm Donation Completed
+              {activeMatch?.recipient_confirmed_completion
+                ? "Waiting for Donor Confirmation..."
+                : "Confirm Donation Completed"}
             </Button>
 
             <Button
@@ -919,18 +982,49 @@ function DashboardRequestRow({
 
       {/* Special State 2: Request is OPEN and looking for donors */}
       {req.status === "OPEN" && (
-        <div className="rounded-lg bg-muted/40 p-3 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="rounded-lg bg-muted/40 p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-blue-500 animate-ping" />
             <span>Search Active — Intelligent Matching Engine alerting nearby candidates.</span>
           </div>
-          <Link
-            to="/request/$requestId"
-            params={{ requestId: req.request_id }}
-            className="font-semibold text-primary hover:underline"
-          >
-            Direct Emergency Link →
-          </Link>
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold cursor-pointer"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              Cancel Request
+            </Button>
+            <Link
+              to="/request/$requestId"
+              params={{ requestId: req.request_id }}
+              className="font-semibold text-primary hover:underline ml-1"
+            >
+              Direct Emergency Link →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Special State 3: Completed Banner */}
+      {req.status === "COMPLETED" && (
+        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3 text-xs text-purple-950 dark:text-purple-100 flex items-center justify-between gap-2 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-purple-600 shrink-0" />
+            <span className="font-medium">
+              Donation verified & completed! Donor credited and placed on mandatory 90-day recovery cooldown.
+            </span>
+          </div>
+          <Badge className="bg-purple-600 text-white text-[10px]">Fulfilled</Badge>
+        </div>
+      )}
+
+      {/* Special State 4: Cancelled Banner */}
+      {req.status === "CANCELLED" && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-muted-foreground flex items-center justify-between gap-2">
+          <span>Search cancelled by recipient. Donors are no longer alerted.</span>
+          <Badge variant="destructive" className="text-[10px]">CANCELLED</Badge>
         </div>
       )}
 
@@ -995,6 +1089,37 @@ function DashboardRequestRow({
               disabled={reopenMutation.isPending}
             >
               {reopenMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Cancel Match & Re-Open"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Request Confirmation Modal (Part 1.3) */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-destructive">
+              <AlertCircle className="size-5" />
+              Cancel Blood Request Search?
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Are you sure you want to cancel this search? Donors will stop receiving alerts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-muted-foreground">
+            Cancelling this search will immediately release all pending donor matches, stop broadcast alerts, and free up your daily patient request quota.
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setCancelDialogOpen(false)}>
+              Keep Search Active
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCancelConfirm}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Confirm Cancel Search"}
             </Button>
           </DialogFooter>
         </DialogContent>
