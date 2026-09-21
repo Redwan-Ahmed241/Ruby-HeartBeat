@@ -10,6 +10,9 @@ import {
   Filter,
   Users,
   ShieldAlert,
+  Check,
+  X,
+  RotateCcw,
 } from "lucide-react";
 import { useTopDonors } from "@/hooks/useDonor";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { formatBloodGroup } from "@/lib/formatters";
 import { CANONICAL_BLOOD_GROUPS, BloodGroup } from "@/lib/api/types";
 import type { TopDonorResponse } from "@/lib/api/types";
@@ -69,6 +73,37 @@ const TIER_STYLES: Record<string, TierStyle> = {
   },
   Bronze: DEFAULT_TIER_STYLE,
 };
+
+const TIERS = [
+  {
+    key: "DIAMOND",
+    label: "💎 Diamond (10+)",
+    shortLabel: "Diamond",
+    inactiveClass: "bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50 border-purple-200 dark:border-purple-800",
+    activeClass: "bg-purple-600 text-white dark:bg-purple-500 dark:text-white border-purple-600 dark:border-purple-500 shadow-sm ring-2 ring-purple-400/70 ring-offset-1 dark:ring-offset-background",
+  },
+  {
+    key: "PLATINUM",
+    label: "⚡ Platinum (6–9)",
+    shortLabel: "Platinum",
+    inactiveClass: "bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-900/50 border-cyan-200 dark:border-cyan-800",
+    activeClass: "bg-cyan-600 text-white dark:bg-cyan-500 dark:text-white border-cyan-600 dark:border-cyan-500 shadow-sm ring-2 ring-cyan-400/70 ring-offset-1 dark:ring-offset-background",
+  },
+  {
+    key: "SILVER",
+    label: "🥈 Silver (3–5)",
+    shortLabel: "Silver",
+    inactiveClass: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700",
+    activeClass: "bg-slate-700 text-white dark:bg-slate-200 dark:text-slate-900 border-slate-700 dark:border-slate-200 shadow-sm ring-2 ring-slate-400/70 ring-offset-1 dark:ring-offset-background",
+  },
+  {
+    key: "BRONZE",
+    label: "🥉 Bronze (1–2)",
+    shortLabel: "Bronze",
+    inactiveClass: "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/50 border-amber-200 dark:border-amber-800",
+    activeClass: "bg-amber-600 text-white dark:bg-amber-500 dark:text-white border-amber-600 dark:border-amber-500 shadow-sm ring-2 ring-amber-400/70 ring-offset-1 dark:ring-offset-background",
+  },
+] as const;
 
 function getTierStyle(tier: string): TierStyle {
   return TIER_STYLES[tier] ?? DEFAULT_TIER_STYLE;
@@ -136,20 +171,44 @@ export function TopDonorsLeaderboard({
           </p>
         </div>
 
-        {/* Tier Badges Legend */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-medium">
-            💎 Diamond (10+)
-          </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 font-medium">
-            ⚡ Platinum (6–9)
-          </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-medium">
-            🥈 Silver (3–5)
-          </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-medium">
-            🥉 Bronze (1–2)
-          </span>
+        {/* Tier Badges Legend & Quick Filter Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          {selectedTier !== "ALL" && (
+            <button
+              type="button"
+              onClick={() => setSelectedTier("ALL")}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-border cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs"
+              title="Clear tier filter and show all donors"
+            >
+              <X className="w-3 h-3" />
+              All Tiers
+            </button>
+          )}
+          {TIERS.map((tier) => {
+            const isSelected = selectedTier === tier.key;
+            return (
+              <button
+                key={tier.key}
+                type="button"
+                onClick={() => setSelectedTier((prev) => (prev === tier.key ? "ALL" : tier.key))}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border cursor-pointer transition-all hover:scale-105 active:scale-95 select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
+                  isSelected
+                    ? `${tier.activeClass} font-semibold`
+                    : `${tier.inactiveClass}`
+                )}
+                aria-pressed={isSelected}
+                title={
+                  isSelected
+                    ? `Active filter: click to clear ${tier.shortLabel} filter`
+                    : `Filter leaderboard by ${tier.shortLabel} tier`
+                }
+              >
+                {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                {tier.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -162,13 +221,23 @@ export function TopDonorsLeaderboard({
               placeholder="Search donor name or district..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 text-sm"
+              className="pl-9 pr-8 text-sm"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-sm"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
             <Select value={selectedTier} onValueChange={setSelectedTier}>
-              <SelectTrigger className="w-[140px] text-xs">
+              <SelectTrigger className="w-[140px] text-xs cursor-pointer">
                 <SelectValue placeholder="All Tiers" />
               </SelectTrigger>
               <SelectContent>
@@ -181,7 +250,7 @@ export function TopDonorsLeaderboard({
             </Select>
 
             <Select value={selectedBloodGroup} onValueChange={setSelectedBloodGroup}>
-              <SelectTrigger className="w-[130px] text-xs">
+              <SelectTrigger className="w-[130px] text-xs cursor-pointer">
                 <SelectValue placeholder="Blood Group" />
               </SelectTrigger>
               <SelectContent>
@@ -193,6 +262,23 @@ export function TopDonorsLeaderboard({
                 ))}
               </SelectContent>
             </Select>
+
+            {(selectedTier !== "ALL" || selectedBloodGroup !== "ALL" || searchQuery.trim()) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedTier("ALL");
+                  setSelectedBloodGroup("ALL");
+                  setSearchQuery("");
+                }}
+                className="text-xs h-9 px-2.5 text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                title="Reset all filters"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
