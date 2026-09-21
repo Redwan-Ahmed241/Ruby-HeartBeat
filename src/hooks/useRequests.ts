@@ -59,7 +59,7 @@ export function useCreateEmergencyRequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       const matchCount = data.matches?.length || 0;
-      toast.error(
+      toast.success(
         `EMERGENCY broadcast dispatched across 50km! ${matchCount} compatible donor(s) notified.`,
       );
     },

@@ -361,6 +361,15 @@ export function SiteNav() {
                   Dashboard
                 </Link>
                 <Link
+                  to="/request-blood"
+                  search={{ urgency: "EMERGENCY" }}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-3 py-2 text-sm font-semibold shadow-sm"
+                >
+                  <AlertCircle className="size-4" />
+                  Emergency Request
+                </Link>
+                <Link
                   to="/events"
                   onClick={() => setOpen(false)}
                   className={getMobileLinkClass("/events")}

@@ -1,5 +1,5 @@
-import { createFileRoute, useSearch, Link } from "@tanstack/react-router";
-import { useState, lazy, Suspense } from "react";
+import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -59,9 +59,11 @@ import {
 import { formatBloodGroup } from "@/lib/formatters";
 
 export const Route = createFileRoute("/request-blood")({
-  validateSearch: (search: Record<string, unknown>): { urgency?: "NORMAL" | "URGENT" | "EMERGENCY" } => ({
-    urgency: (search["urgency"] as "NORMAL" | "URGENT" | "EMERGENCY") || undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { urgency?: "NORMAL" | "URGENT" | "EMERGENCY" | undefined } => {
+    const raw = typeof search["urgency"] === "string" ? (search["urgency"] as string).trim().toUpperCase() : undefined;
+    const urgency = raw === "EMERGENCY" || raw === "URGENT" || raw === "NORMAL" ? (raw as "NORMAL" | "URGENT" | "EMERGENCY") : undefined;
+    return { urgency };
+  },
   head: () => ({
     meta: [
       { title: "Request Blood & Match Donors — LifeDrop" },
@@ -127,7 +129,10 @@ const schema = z.object({
   group: z.string().min(1, "Blood group is required"),
   component: z.enum(["WHOLE_BLOOD", "PLASMA", "PLATELETS"]),
   units: z.coerce.number().min(0.5, "At least 0.5 unit").max(20, "Maximum 20 units"),
-  volume_ml: z.coerce.number().min(100, "Volume must be at least 100 mL").max(10000).optional(),
+  volume_ml: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? undefined : Number(v)),
+    z.number().min(100, "Volume must be at least 100 mL").max(10000).optional()
+  ),
   urgency: z.enum(["NORMAL", "URGENT", "EMERGENCY"]),
   hospital_name: z.string().trim().min(2, "Hospital name is required").max(150),
   area_zone: z.string().trim().min(2, "Area zone is required").max(100),
@@ -138,7 +143,7 @@ const schema = z.object({
 
 function RequestBlood() {
   const { data: currentUser } = useCurrentUser();
-  const search = useSearch({ from: "/request-blood" });
+  const search = Route.useSearch();
   const isEmergencyLocked = search.urgency === "EMERGENCY";
 
   const [form, setForm] = useState({
@@ -147,7 +152,7 @@ function RequestBlood() {
     component: "WHOLE_BLOOD" as ComponentType,
     units: "1",
     volume_ml: "450",
-    urgency: (isEmergencyLocked ? "EMERGENCY" : "NORMAL") as RequestUrgency,
+    urgency: (isEmergencyLocked ? "EMERGENCY" : (search.urgency || "NORMAL")) as RequestUrgency,
     hospital_name: "United Hospital",
     area_zone: "Gulshan",
     location: "Emergency Ward, Room 302",
@@ -156,12 +161,23 @@ function RequestBlood() {
     is_contact_public: false,
   });
 
+  // Keep form urgency in sync with URL query params
+  useEffect(() => {
+    if (search.urgency) {
+      setForm((f) => ({
+        ...f,
+        urgency: search.urgency!,
+      }));
+    }
+  }, [search.urgency]);
+
   const [createdRequest, setCreatedRequest] = useState<BloodRequestResponse | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<MaskedDonorMatchResponse | null>(null);
   const [selectedMapMatch, setSelectedMapMatch] = useState<MaskedDonorMatchResponse | null>(null);
   const [revealedContact, setRevealedContact] = useState<DonorContactReveal | null>(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [rateLimitModalOpen, setRateLimitModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const createRequestMutation = useCreateBloodRequest();
   const createEmergencyMutation = useCreateEmergencyRequest();
@@ -190,7 +206,8 @@ function RequestBlood() {
   const handleOpenReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
-      toast.error("Please sign in to submit a request.");
+      toast.error("Please sign in or create an account to broadcast a request.");
+      setAuthModalOpen(true);
       return;
     }
 
@@ -205,6 +222,7 @@ function RequestBlood() {
 
   const executeDispatch = async () => {
     const apiGroup = toApiBloodGroup(form.group);
+    const finalUrgency = isEmergencyLocked ? "EMERGENCY" : form.urgency;
 
     // Approximate coordinates for Dhaka hospital areas
     const payload = {
@@ -212,7 +230,7 @@ function RequestBlood() {
       component_type: form.component,
       quantity: Number(form.units),
       volume_ml: Number(form.volume_ml) || (Number(form.units) * 450),
-      urgency: form.urgency,
+      urgency: finalUrgency,
       required_location: `${form.hospital_name}, ${form.location}`,
       latitude: 23.7998,
       longitude: 90.4208,
@@ -226,7 +244,7 @@ function RequestBlood() {
 
     try {
       let res: BloodRequestResponse;
-      if (form.urgency === "EMERGENCY") {
+      if (finalUrgency === "EMERGENCY") {
         res = await createEmergencyMutation.mutateAsync(payload);
       } else {
         res = await createRequestMutation.mutateAsync(payload);
@@ -242,10 +260,29 @@ function RequestBlood() {
       }, 150);
     } catch (err: any) {
       setReviewModalOpen(false);
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.detail || err?.message || "";
-      if (status === 429 || (typeof detail === "string" && detail.includes("Daily limit reached"))) {
+      const status = err?.status ?? err?.response?.status;
+      const detail =
+        (err?.data && typeof err.data === "object" && "detail" in err.data
+          ? (err.data as any).detail
+          : null) ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "";
+
+      if (status === 401) {
+        toast.error("Authentication required to broadcast blood request.");
+        setAuthModalOpen(true);
+      } else if (
+        status === 429 ||
+        (typeof detail === "string" && (detail.includes("Daily limit reached") || detail.includes("limit")))
+      ) {
         setRateLimitModalOpen(true);
+      } else {
+        toast.error(
+          typeof detail === "string" && detail.length > 0
+            ? detail
+            : "Failed to dispatch request. Please verify your hospital and contact details."
+        );
       }
     }
   };
@@ -878,22 +915,30 @@ function RequestBlood() {
                   </div>
                 }
               >
-                <DonorMap
-                  hospitalLocation={{
-                    lat: createdRequest?.latitude ?? 23.8103,
-                    lng: createdRequest?.longitude ?? 90.4125,
-                    name: createdRequest?.hospital_name || createdRequest?.required_location || form.hospital_name,
-                    area: createdRequest?.area_zone || form.area_zone,
-                  }}
-                  donorLocation={{
-                    lat: selectedMapMatch.approx_latitude ?? ((createdRequest?.latitude ?? 23.8103) + 0.015),
-                    lng: selectedMapMatch.approx_longitude ?? ((createdRequest?.longitude ?? 90.4125) + 0.015),
-                    label: selectedMapMatch.donor_name_initial,
-                    bloodGroup: selectedMapMatch.blood_group,
-                    isApproximate: true,
-                  }}
-                  heightClassName="h-[280px] sm:h-[340px]"
-                />
+                <ClientOnly
+                  fallback={
+                    <div className="h-[280px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground">
+                      Map loading in browser...
+                    </div>
+                  }
+                >
+                  <DonorMap
+                    hospitalLocation={{
+                      lat: createdRequest?.latitude ?? 23.8103,
+                      lng: createdRequest?.longitude ?? 90.4125,
+                      name: createdRequest?.hospital_name || createdRequest?.required_location || form.hospital_name,
+                      area: createdRequest?.area_zone || form.area_zone,
+                    }}
+                    donorLocation={{
+                      lat: selectedMapMatch.approx_latitude ?? ((createdRequest?.latitude ?? 23.8103) + 0.015),
+                      lng: selectedMapMatch.approx_longitude ?? ((createdRequest?.longitude ?? 90.4125) + 0.015),
+                      label: selectedMapMatch.donor_name_initial,
+                      bloodGroup: selectedMapMatch.blood_group,
+                      isApproximate: true,
+                    }}
+                    heightClassName="h-[280px] sm:h-[340px]"
+                  />
+                </ClientOnly>
               </Suspense>
 
               <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 justify-center">
@@ -926,10 +971,10 @@ function RequestBlood() {
                 <p className="text-sm font-bold text-foreground">{form.patient}</p>
               </div>
               <Badge
-                variant={form.urgency === "EMERGENCY" ? "destructive" : "secondary"}
+                variant={(isEmergencyLocked || form.urgency === "EMERGENCY") ? "destructive" : "secondary"}
                 className="font-bold text-xs uppercase"
               >
-                {form.urgency}
+                {(isEmergencyLocked || form.urgency === "EMERGENCY") ? "EMERGENCY" : form.urgency}
               </Badge>
             </div>
 
@@ -1054,6 +1099,14 @@ function RequestBlood() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Controlled Auth Dialog for Unauthenticated Guests */}
+      <AuthDialog
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        defaultRole="RECIPIENT"
+        defaultTab="login"
+      />
     </div>
   );
 }

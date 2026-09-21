@@ -29,8 +29,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatBloodGroup } from "@/lib/formatters";
-import { CANONICAL_BLOOD_GROUPS, BloodGroup } from "@/lib/api/types";
-import type { TopDonorResponse } from "@/lib/api/types";
+import { CANONICAL_BLOOD_GROUPS, toDisplayBloodGroup } from "@/lib/api/types";
+import type { BloodGroup, TopDonorResponse } from "@/lib/api/types";
 
 interface TopDonorsLeaderboardProps {
   limit?: number;
@@ -122,19 +122,29 @@ export function TopDonorsLeaderboard({
   const filteredDonors = useMemo(() => {
     return donors.filter((donor) => {
       // Filter by tier
-      if (selectedTier !== "ALL" && donor.tier.toUpperCase() !== selectedTier.toUpperCase()) {
-        return false;
+      if (selectedTier !== "ALL") {
+        const donorTier = donor.tier ? donor.tier.trim().toUpperCase() : "";
+        const targetTier = selectedTier.trim().toUpperCase();
+        if (donorTier !== targetTier) {
+          return false;
+        }
       }
-      // Filter by blood group
-      if (selectedBloodGroup !== "ALL" && donor.blood_group !== selectedBloodGroup) {
-        return false;
+      // Filter by blood group (handles canonical UI strings like 'O+' vs API enum strings like 'O_POSITIVE' or 'O_PLUS')
+      if (selectedBloodGroup !== "ALL") {
+        const donorDisplay = toDisplayBloodGroup(donor.blood_group).trim().toUpperCase();
+        const targetDisplay = toDisplayBloodGroup(selectedBloodGroup).trim().toUpperCase();
+        if (donorDisplay !== targetDisplay) {
+          return false;
+        }
       }
-      // Filter by query (name or area)
+      // Filter by query (name, district, area, or blood group)
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = donor.full_name.toLowerCase().includes(q);
-        const matchesArea = donor.area_zone?.toLowerCase().includes(q);
-        if (!matchesName && !matchesArea) return false;
+        const q = searchQuery.trim().toLowerCase();
+        const matchesName = donor.full_name ? donor.full_name.toLowerCase().includes(q) : false;
+        const matchesArea = donor.area_zone ? donor.area_zone.toLowerCase().includes(q) : false;
+        const donorDisplay = toDisplayBloodGroup(donor.blood_group).toLowerCase();
+        const matchesBlood = donorDisplay.includes(q) || donor.blood_group.toLowerCase().includes(q);
+        if (!matchesName && !matchesArea && !matchesBlood) return false;
       }
       return true;
     });
