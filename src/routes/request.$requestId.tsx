@@ -97,11 +97,23 @@ function RequestLandingPage() {
   }
 
   const isEmergency = req.urgency === "EMERGENCY";
-  const isAccepted = req.status === "ACCEPTED";
+  const isAccepted = req.status === "ACCEPTED" || req.status === "MATCHED";
   const isCompleted = req.status === "COMPLETED";
   const isCancelled = req.status === "CANCELLED";
-  const isAcceptedByMe = isAccepted && currentUser && req.accepted_donor_id === currentUser.user_id;
-  const isAcceptedByOther = isAccepted && (!currentUser || req.accepted_donor_id !== currentUser.user_id);
+  const isAcceptedByMe =
+    isAccepted &&
+    currentUser &&
+    (req.accepted_donor_id === currentUser.user_id ||
+      (req.matches &&
+        req.matches.some(
+          (m) => m.donor_id === currentUser.user_id && m.response_status === "ACCEPTED"
+        )));
+  const isAcceptedByOther =
+    isAccepted &&
+    (!currentUser ||
+      (req.accepted_donor_id
+        ? req.accepted_donor_id !== currentUser.user_id
+        : !isAcceptedByMe));
   const isOwner = currentUser && req.recipient_id === currentUser.user_id;
 
   // Phone unmasked check: unmasked if not containing '*'

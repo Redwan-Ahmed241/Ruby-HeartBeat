@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import {
   useRespondToMatch,
   useRevealDonorContact,
   useConfirmMatchCompletion,
+  useReopenRequest,
 } from "@/hooks/useRequests";
 import type {
   BloodRequestResponse,
@@ -66,6 +68,7 @@ export function NotificationHub() {
   const respondMutation = useRespondToMatch();
   const revealMutation = useRevealDonorContact();
   const confirmMatchMutation = useConfirmMatchCompletion();
+  const reopenMutation = useReopenRequest();
 
   // Track revealed contacts by match_id for recipients
   const [revealedContacts, setRevealedContacts] = useState<Record<string, DonorContactReveal>>({});
@@ -98,13 +101,15 @@ export function NotificationHub() {
     }
   }
 
-  // Check if donor has an active commitment (ACCEPTED and not yet completed/cancelled)
-  const hasActiveCommitment = donorMatchedItems.some(
+  // Check if donor has an active commitment (ACCEPTED and not yet completed/cancelled/reopened)
+  const activeCommitments = donorMatchedItems.filter(
     (item) =>
       item.match.response_status === "ACCEPTED" &&
       item.request.status !== "COMPLETED" &&
-      item.request.status !== "CANCELLED"
+      item.request.status !== "CANCELLED" &&
+      item.request.status !== "OPEN"
   );
+  const hasActiveCommitment = activeCommitments.length > 0;
 
   // Pending donor requests requiring action
   const pendingDonorMatches = donorMatchedItems.filter(
@@ -153,6 +158,30 @@ export function NotificationHub() {
         },
       }
     );
+  };
+
+  // Cancel / Release active commitment handler
+  const handleCancelCommitment = async (matchId: string, requestId: string) => {
+    try {
+      await reopenMutation.mutateAsync({
+        requestId,
+        reason: "Donor released commitment from notification hub",
+      });
+      refetch();
+    } catch {
+      respondMutation.mutate(
+        { matchId, payload: { response: "DECLINED", response_status: "DECLINED" } },
+        {
+          onSuccess: () => {
+            refetch();
+            toast.success("Commitment released. You can now accept other requests.");
+          },
+          onError: () => {
+            toast.error("Unable to release commitment. Please try again or refresh.");
+          },
+        }
+      );
+    }
   };
 
   // Recipient action handler to reveal donor contact
@@ -219,6 +248,106 @@ export function NotificationHub() {
                * DONOR NOTIFICATION VIEW
                * ==================================================================== */}
               <TabsContent value="donor" className="space-y-4">
+                {/* Active Commitment Card(s) - Prominently Displayed at Top */}
+                {activeCommitments.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Active Donation Commitment
+                      </h3>
+                      <Badge className="bg-emerald-600 text-white text-[10px]">
+                        In Progress
+                      </Badge>
+                    </div>
+
+                    {activeCommitments.map(({ request, match }) => (
+                      <div
+                        key={match.match_id}
+                        className="rounded-xl border-2 border-emerald-500/50 bg-emerald-500/10 dark:bg-emerald-950/20 p-4 shadow-sm space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-base text-primary">
+                                {formatBloodGroup(request.blood_group)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({request.component_type.replace("_", " ")})
+                              </span>
+                              {getUrgencyBadge(request.urgency)}
+                            </div>
+                            <p className="text-xs font-medium text-foreground mt-0.5 flex items-center gap-1">
+                              <MapPin className="size-3 text-muted-foreground shrink-0" />
+                              <span className="truncate">{request.hospital_name || request.required_location}</span>
+                            </p>
+                            {request.area_zone && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Zone: {request.area_zone}
+                              </p>
+                            )}
+                            {request.attendant_phone_number && !request.attendant_phone_number.includes("*") && (
+                              <p className="text-xs font-semibold text-foreground flex items-center gap-1 mt-1">
+                                <Phone className="size-3 text-emerald-600 shrink-0" />
+                                <span>Attendant: {request.attendant_phone_number}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {request.notes && (
+                          <p className="text-xs text-muted-foreground bg-background/50 rounded p-2 italic break-words border border-border/40">
+                            "{request.notes}"
+                          </p>
+                        )}
+
+                        <div className="pt-2 border-t border-emerald-500/30 flex flex-col sm:flex-row gap-2">
+                          {!match.donor_confirmed_completion ? (
+                            <Button
+                              size="sm"
+                              className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                              disabled={confirmMatchMutation.isPending}
+                              onClick={() => {
+                                confirmMatchMutation.mutate(match.match_id, {
+                                  onSuccess: () => refetch(),
+                                });
+                              }}
+                            >
+                              {confirmMatchMutation.isPending ? (
+                                <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                              ) : (
+                                <Check className="size-3.5 mr-1.5" />
+                              )}
+                              Confirm Donation Completed
+                            </Button>
+                          ) : (
+                            <div className="flex-1 rounded bg-purple-100 dark:bg-purple-950/40 p-2 text-[11px] text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1.5">
+                              <CheckCircle2 className="size-3.5 text-purple-600 shrink-0" />
+                              <span>Awaiting Recipient Confirmation</span>
+                            </div>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/40 h-8"
+                            disabled={reopenMutation.isPending || respondMutation.isPending}
+                            onClick={() => handleCancelCommitment(match.match_id, request.request_id)}
+                          >
+                            {reopenMutation.isPending || respondMutation.isPending ? (
+                              <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="size-3.5 mr-1.5" />
+                            )}
+                            Cancel & Release
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <Separator className="my-2" />
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Incoming Match Requests</h3>
                   <Badge variant={pendingDonorMatches.length > 0 ? "default" : "secondary"}>
@@ -227,9 +356,14 @@ export function NotificationHub() {
                 </div>
 
                 {hasActiveCommitment && (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                    <ShieldAlert className="size-4 text-amber-600 shrink-0" />
-                    <span>You have an active donation commitment in progress. Complete or cancel it before accepting another request.</span>
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <ShieldAlert className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">You have an active donation commitment shown above.</p>
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                        Complete your donation or click <strong>Cancel & Release</strong> above before accepting another request.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -320,6 +454,7 @@ export function NotificationHub() {
                       {resolvedDonorMatches.slice(0, 5).map(({ request, match }) => {
                         const isAccepted = match.response_status === "ACCEPTED";
                         const isCompleted = request.status === "COMPLETED" || (match.donor_confirmed_completion && match.recipient_confirmed_completion);
+                        const isCanRelease = isAccepted && !isCompleted && request.status !== "CANCELLED" && request.status !== "OPEN";
 
                         return (
                           <div
@@ -362,25 +497,39 @@ export function NotificationHub() {
                                         : "Awaiting physical completion"}
                                     </span>
                                   </div>
-                                  {!match.donor_confirmed_completion && (
-                                    <Button
-                                      size="sm"
-                                      className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-7 cursor-pointer"
-                                      disabled={confirmMatchMutation.isPending}
-                                      onClick={() => {
-                                        confirmMatchMutation.mutate(match.match_id, {
-                                          onSuccess: () => refetch(),
-                                        });
-                                      }}
-                                    >
-                                      {confirmMatchMutation.isPending ? (
-                                        <Loader2 className="size-3 mr-1 animate-spin" />
-                                      ) : (
-                                        <Check className="size-3 mr-1" />
-                                      )}
-                                      Confirm Donation Completed
-                                    </Button>
-                                  )}
+                                  <div className="flex flex-col sm:flex-row gap-1.5 pt-1">
+                                    {!match.donor_confirmed_completion && (
+                                      <Button
+                                        size="sm"
+                                        className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-7 cursor-pointer"
+                                        disabled={confirmMatchMutation.isPending}
+                                        onClick={() => {
+                                          confirmMatchMutation.mutate(match.match_id, {
+                                            onSuccess: () => refetch(),
+                                          });
+                                        }}
+                                      >
+                                        {confirmMatchMutation.isPending ? (
+                                          <Loader2 className="size-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <Check className="size-3 mr-1" />
+                                        )}
+                                        Confirm Donation Completed
+                                      </Button>
+                                    )}
+                                    {isCanRelease && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30 h-7"
+                                        disabled={reopenMutation.isPending || respondMutation.isPending}
+                                        onClick={() => handleCancelCommitment(match.match_id, request.request_id)}
+                                      >
+                                        <RotateCcw className="size-3 mr-1" />
+                                        Cancel & Release
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               )
                             )}
