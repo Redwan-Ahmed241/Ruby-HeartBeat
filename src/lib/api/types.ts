@@ -115,7 +115,7 @@ export interface UserRegisterRequest {
   latitude?: number;
   longitude?: number;
   nid_passport_no?: string;
-  nid_or_birth_cert?: string;
+  nid_or_birth_cert?: string | undefined;
   donor_profile?: DonorProfileCreate | null;
   recipient_profile?: RecipientProfileCreate | null;
   hospital_profile?: HospitalProfileCreate | null;
