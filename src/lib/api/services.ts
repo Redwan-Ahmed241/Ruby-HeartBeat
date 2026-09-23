@@ -39,6 +39,8 @@ import type {
   CommunicationResponse,
   BloodBankContactRequest,
   BloodBankContactResponse,
+  UserProfileUpdate,
+  ClearAllNotificationsResponse,
 } from "./types";
 
 // ============================================================================
@@ -160,6 +162,10 @@ export const requestService = {
 
     const qs = params.toString();
     return apiClient<BloodRequestResponse[]>(`/requests/${qs ? `?${qs}` : ""}`);
+  },
+
+  getMyRequests: async (): Promise<BloodRequestResponse[]> => {
+    return apiClient<BloodRequestResponse[]>("/requests/my-requests");
   },
 
   getRequest: async (requestId: string): Promise<BloodRequestResponse> => {
@@ -405,6 +411,36 @@ export const userService = {
     return apiClient<UserResponse>(`/users/${userId}/status`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    });
+  },
+
+  updateProfile: async (payload: UserProfileUpdate): Promise<UserResponse> => {
+    return apiClient<UserResponse>("/users/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+export const notificationService = {
+  clearAll: async (): Promise<ClearAllNotificationsResponse> => {
+    return apiClient<ClearAllNotificationsResponse>("/notifications/clear-all", {
+      method: "POST",
+    });
+  },
+};
+
+export const adminService = {
+  resetDonorCooldown: async (userId: string): Promise<UserResponse> => {
+    return apiClient<UserResponse>(`/admin/donors/${userId}/reset-cooldown`, {
+      method: "POST",
+    });
+  },
+
+  cancelRequest: async (requestId: string, reason: string): Promise<BloodRequestResponse> => {
+    return apiClient<BloodRequestResponse>(`/admin/requests/${requestId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
     });
   },
 };

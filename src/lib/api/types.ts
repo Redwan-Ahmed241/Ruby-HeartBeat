@@ -157,6 +157,7 @@ export interface UserResponse {
   full_name: string;
   email: string;
   phone: string;
+  backup_phone?: string | null;
   role: UserRole;
   status: UserStatus;
   nid_or_birth_cert?: string | null;
@@ -165,6 +166,16 @@ export interface UserResponse {
   donor?: DonorBriefResponse | null;
   recipient?: RecipientBriefResponse | null;
   hospital?: HospitalBriefResponse | null;
+}
+
+export interface UserProfileUpdate {
+  full_name?: string;
+  phone?: string;
+  backup_phone?: string | null;
+  address?: string;
+  location_zone?: string;
+  blood_group?: BloodGroup;
+  last_donation_date?: string | null;
 }
 
 // ============================================================================
@@ -223,6 +234,14 @@ export interface DonationHistoryResponse {
   center_name: string;
   notes?: string | null;
   created_at?: string | null;
+  completed_at?: string | null;
+  units_donated?: number | null;
+  facility_name?: string | null;
+}
+
+export interface ClearAllNotificationsResponse {
+  cleared_count: number;
+  message: string;
 }
 
 export interface EligibilityCheckResponse {

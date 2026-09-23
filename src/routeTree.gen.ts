@@ -20,6 +20,7 @@ import { Route as HospitalRouteImport } from './routes/hospital'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PartnerRouteImport } from './routes/partner'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RecipientRouteImport } from './routes/recipient'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RequestBloodRouteImport } from './routes/request-blood'
@@ -90,6 +91,11 @@ const LoginRoute = LoginRouteImport.update({
 const PartnerRoute = PartnerRouteImport.update({
   id: '/partner',
   path: '/partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipientRoute = RecipientRouteImport.update({
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/partner': typeof PartnerRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/recipient': typeof RecipientRouteWithChildren
   '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/hospital': typeof HospitalRouteWithChildren
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/recipient': typeof RecipientRouteWithChildren
   '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
   '/partner': typeof PartnerRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/recipient': typeof RecipientRouteWithChildren
   '/register': typeof RegisterRoute
   '/request-blood': typeof RequestBloodRoute
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/partner'
+    | '/profile'
     | '/recipient'
     | '/register'
     | '/request-blood'
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/hospital'
     | '/inventory'
     | '/login'
+    | '/profile'
     | '/recipient'
     | '/register'
     | '/request-blood'
@@ -329,6 +340,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/login'
     | '/partner'
+    | '/profile'
     | '/recipient'
     | '/register'
     | '/request-blood'
@@ -359,6 +371,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
   PartnerRoute: typeof PartnerRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   RecipientRoute: typeof RecipientRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   RequestBloodRoute: typeof RequestBloodRoute
@@ -444,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/partner'
       fullPath: '/partner'
       preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipient': {
@@ -638,6 +658,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
   PartnerRoute: PartnerRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   RecipientRoute: RecipientRouteWithChildren,
   RegisterRoute: RegisterRoute,
   RequestBloodRoute: RequestBloodRoute,

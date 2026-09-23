@@ -14,6 +14,9 @@ import {
   Megaphone,
   ExternalLink,
   PlusCircle,
+  Trash2,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,15 +30,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useBloodRequests } from "@/hooks/useRequests";
 import { useBloodInventory } from "@/hooks/useInventory";
-import { useSystemLogs, useCampaignNotices } from "@/hooks/useAdmin";
+import { useSystemLogs, useCampaignNotices, useAdminCancelRequest } from "@/hooks/useAdmin";
 import { useCreateCampaignNotice } from "@/hooks/useEventsNotices";
 import { toDisplayBloodGroup } from "@/lib/api/types";
+import { formatDateTime, formatExactWithRelative } from "@/lib/dateUtils";
+import type { BloodRequestResponse } from "@/lib/api/types";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -115,6 +135,28 @@ function AdminDashboard() {
           setNoticeLink("");
         },
       },
+    );
+  };
+
+  const cancelRequestMutation = useAdminCancelRequest();
+  const [cancelTargetRequest, setCancelTargetRequest] = useState<BloodRequestResponse | null>(null);
+  const [cancelReasonCategory, setCancelReasonCategory] = useState("Spam / False Alert");
+  const [cancelReasonNotes, setCancelReasonNotes] = useState("");
+
+  const handleConfirmCancelRequest = () => {
+    if (!cancelTargetRequest) return;
+    const finalReason = cancelReasonNotes.trim()
+      ? `${cancelReasonCategory}: ${cancelReasonNotes.trim()}`
+      : cancelReasonCategory;
+    cancelRequestMutation.mutate(
+      { requestId: cancelTargetRequest.request_id, reason: finalReason },
+      {
+        onSuccess: () => {
+          setCancelTargetRequest(null);
+          setCancelReasonNotes("");
+          refetchRequests();
+        },
+      }
     );
   };
 
@@ -238,6 +280,8 @@ function AdminDashboard() {
                   <TableHead>Urgency</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Admin Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -263,14 +307,32 @@ function AdminDashboard() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={r.status === "COMPLETED" ? "default" : "outline"}
+                        variant={r.status === "COMPLETED" ? "default" : r.status === "CANCELLED" ? "destructive" : "outline"}
                         className="text-[10px]"
                       >
                         {r.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                      {r.required_location}
+                    <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                      {r.hospital_name || r.required_location}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatExactWithRelative(r.request_date)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {r.status !== "CANCELLED" && r.status !== "COMPLETED" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold cursor-pointer"
+                          onClick={() => setCancelTargetRequest(r)}
+                        >
+                          <Trash2 className="mr-1 size-3" />
+                          Cancel / Delete
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground italic">Closed</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -458,11 +520,11 @@ function AdminDashboard() {
                     <TableRow key={n.notice_id}>
                       <TableCell className="font-medium text-sm">{n.title}</TableCell>
                       <TableCell className="text-xs">{n.source}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(n.publish_date).toLocaleDateString()}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDateTime(n.publish_date)}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(n.expiry_date).toLocaleDateString()}
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatDateTime(n.expiry_date)}
                       </TableCell>
                       <TableCell>
                         {n.link ? (
@@ -487,6 +549,89 @@ function AdminDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Admin Cancel / Delete Request Modal (Task 5.1) */}
+      <Dialog
+        open={!!cancelTargetRequest}
+        onOpenChange={(open) => !open && setCancelTargetRequest(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-destructive">
+              <AlertCircle className="size-5" />
+              Cancel & Moderate Blood Request?
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Moderating Request ID: <code className="font-mono text-foreground font-semibold">{cancelTargetRequest?.request_id.slice(0, 8)}...</code> for patient at <strong>{cancelTargetRequest?.hospital_name || cancelTargetRequest?.required_location}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Reason for Removal *</Label>
+              <Select value={cancelReasonCategory} onValueChange={setCancelReasonCategory}>
+                <SelectTrigger className="text-xs">
+                  <SelectValue placeholder="Select removal reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Spam / False Alert" className="text-xs">
+                    Spam / False Alert
+                  </SelectItem>
+                  <SelectItem value="Outdated / No Longer Required" className="text-xs">
+                    Outdated / No Longer Required
+                  </SelectItem>
+                  <SelectItem value="Fulfilled Externally" className="text-xs">
+                    Fulfilled Externally
+                  </SelectItem>
+                  <SelectItem value="Administrative Duplicate" className="text-xs">
+                    Administrative Duplicate
+                  </SelectItem>
+                  <SelectItem value="Policy Violation" className="text-xs">
+                    Policy Violation
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Additional Details / Notes (Optional)</Label>
+              <Input
+                placeholder="e.g. Verified that patient was fulfilled externally or request is duplicate"
+                value={cancelReasonNotes}
+                onChange={(e) => setCancelReasonNotes(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
+              This will immediately transition the request status to <strong>CANCELLED</strong>, release all candidate donors from obligations, and record an immutable entry in the administrative audit logs.
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCancelTargetRequest(null)}
+            >
+              Back
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={cancelRequestMutation.isPending}
+              onClick={handleConfirmCancelRequest}
+              className="font-bold"
+            >
+              {cancelRequestMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Confirm Cancellation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

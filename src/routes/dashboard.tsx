@@ -54,6 +54,8 @@ import {
 import { formatBloodGroup } from "@/lib/formatters";
 import { getDonorTier } from "@/lib/gamification";
 import { TopDonorsLeaderboard } from "@/components/TopDonorsLeaderboard";
+import { ActivityLedger } from "@/components/ActivityLedger";
+import { formatExactWithRelative } from "@/lib/dateUtils";
 import type { BloodRequestResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -232,28 +234,6 @@ export default function UnifiedDashboardPage() {
                     </Badge>
                   )}
                 </button>
-              </div>
-
-              {/* Quick Availability Switch */}
-              <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/80">
-                <Switch
-                  id="header-availability-switch"
-                  checked={isAvailable}
-                  onCheckedChange={handleAvailabilityToggle}
-                  disabled={toggleAvailabilityMutation.isPending}
-                />
-                <label
-                  htmlFor="header-availability-switch"
-                  className="text-xs font-medium cursor-pointer text-muted-foreground"
-                >
-                  {isAvailable ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Available
-                    </span>
-                  ) : (
-                    "Unavailable"
-                  )}
-                </label>
               </div>
             </div>
           </div>
@@ -531,6 +511,10 @@ export default function UnifiedDashboardPage() {
                               Units needed: <strong className="text-foreground">{req.quantity} bag(s)</strong> (
                               {req.volume_ml ?? Number(req.quantity) * 450} mL)
                             </p>
+                            <p className="text-[11px] pl-5 text-muted-foreground flex items-center gap-1">
+                              <Clock className="size-3 text-muted-foreground shrink-0" />
+                              <span>Posted: <strong className="text-foreground">{formatExactWithRelative(req.request_date)}</strong></span>
+                            </p>
                           </div>
 
                           {/* Direct Public Call action if is_contact_public is true */}
@@ -572,58 +556,9 @@ export default function UnifiedDashboardPage() {
               )}
             </div>
 
-            {/* My Donation History Section */}
-            <div className="space-y-3 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <History className="size-4 text-primary" />
-                  My Completed Donation History
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  {historyItems?.length ?? 0} verified record(s)
-                </span>
-              </div>
-
-              {historyLoading ? (
-                <div className="p-4 text-xs text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" /> Loading history...
-                </div>
-              ) : !historyItems || historyItems.length === 0 ? (
-                <div className="rounded-xl border border-border bg-card p-5 text-center text-xs text-muted-foreground">
-                  No previous donations recorded yet. When you complete a donation through LifeDrop, your official record will appear here.
-                </div>
-              ) : (
-                <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-muted/60 text-muted-foreground uppercase font-semibold border-b border-border text-[10px]">
-                        <tr>
-                          <th className="px-4 py-3">Date</th>
-                          <th className="px-4 py-3">Center / Hospital</th>
-                          <th className="px-4 py-3">Component</th>
-                          <th className="px-4 py-3">Units</th>
-                          <th className="px-4 py-3">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {historyItems.map((item) => (
-                          <tr key={item.history_id} className="hover:bg-muted/30 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-foreground">{item.donation_date}</td>
-                            <td className="px-4 py-3">{item.center_name}</td>
-                            <td className="px-4 py-3">{item.component_type.replace("_", " ")}</td>
-                            <td className="px-4 py-3">{item.quantity} unit(s)</td>
-                            <td className="px-4 py-3">
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-600/30">
-                                Verified
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+            {/* Unified Activity & Donation Ledger (Task 2) */}
+            <div className="pt-4 border-t border-border">
+              <ActivityLedger defaultTab="donated" />
             </div>
           </div>
         ) : (
@@ -701,6 +636,11 @@ export default function UnifiedDashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Expanded Activity & Request Ledger (Task 2) */}
+            <div className="pt-4 border-t border-border">
+              <ActivityLedger defaultTab="received" />
             </div>
           </div>
         )}
@@ -875,6 +815,10 @@ function DashboardRequestRow({
           <p className="text-xs text-muted-foreground">
             Hospital: <strong className="text-foreground">{req.hospital_name || req.required_location}</strong> •{" "}
             {req.area_zone} • {req.quantity} unit(s) ({req.volume_ml ?? Number(req.quantity) * 450} mL)
+          </p>
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <Clock className="size-3 text-muted-foreground shrink-0" />
+            <span>Posted: <strong className="text-foreground">{formatExactWithRelative(req.request_date)}</strong></span>
           </p>
         </div>
 

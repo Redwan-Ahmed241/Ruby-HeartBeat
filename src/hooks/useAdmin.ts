@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { auditService, noticeService, eventService, userService } from "@/lib/api/services";
+import { auditService, noticeService, eventService, userService, adminService } from "@/lib/api/services";
 import { toast } from "sonner";
 
 export const ADMIN_KEYS = {
@@ -65,5 +65,39 @@ export function useMyRegisteredEvents(enabled = true) {
     queryKey: ADMIN_KEYS.myRegistrations,
     queryFn: () => eventService.getMyRegistrations(),
     enabled,
+  });
+}
+
+export function useAdminResetCooldown() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => adminService.resetDonorCooldown(userId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.users });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-profile"] });
+      toast.success(`Donation cooldown cleared for ${data.full_name}. Now qualified to donate.`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to reset donor cooldown.");
+    },
+  });
+}
+
+export function useAdminCancelRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ requestId, reason }: { requestId: string; reason: string }) =>
+      adminService.cancelRequest(requestId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.logs(50, 0) });
+      toast.success("Blood request cancelled and candidate matches released.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to cancel request.");
+    },
   });
 }

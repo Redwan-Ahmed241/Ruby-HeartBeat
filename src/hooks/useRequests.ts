@@ -3,16 +3,40 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { requestService } from "@/lib/api/services";
+import { requestService, notificationService } from "@/lib/api/services";
 import type { BloodRequestCreate, MatchRespondRequest, DonorContactReveal } from "@/lib/api/types";
 import { toast } from "sonner";
 
 export const REQUEST_KEYS = {
   all: ["requests"] as const,
+  my: ["requests", "my"] as const,
   list: (filters?: Record<string, string | undefined>) => ["requests", "list", filters] as const,
   detail: (id: string) => ["requests", "detail", id] as const,
   matches: (id: string) => ["requests", "matches", id] as const,
 };
+
+export function useMyRequests(enabled = true) {
+  return useQuery({
+    queryKey: REQUEST_KEYS.my,
+    queryFn: () => requestService.getMyRequests(),
+    enabled,
+  });
+}
+
+export function useClearAllNotifications() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => notificationService.clearAll(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
+      toast.success(data.message || "All notifications dismissed.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to clear notifications.");
+    },
+  });
+}
 
 export function useBloodRequests(filters?: {
   blood_group?: string;

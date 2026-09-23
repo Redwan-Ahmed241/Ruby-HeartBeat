@@ -34,7 +34,9 @@ import {
   useRevealDonorContact,
   useConfirmMatchCompletion,
   useReopenRequest,
+  useClearAllNotifications,
 } from "@/hooks/useRequests";
+import { formatDateTime, formatRelativeTime, formatExactWithRelative } from "@/lib/dateUtils";
 import type {
   BloodRequestResponse,
   MaskedDonorMatchResponse,
@@ -73,6 +75,8 @@ export function NotificationHub() {
   // Track revealed contacts by match_id for recipients
   const [revealedContacts, setRevealedContacts] = useState<Record<string, DonorContactReveal>>({});
   const [revealingMatchId, setRevealingMatchId] = useState<string | null>(null);
+  const [isClearedLocally, setIsClearedLocally] = useState(false);
+  const clearAllMutation = useClearAllNotifications();
 
   const isRegularUser = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
 
@@ -141,7 +145,18 @@ export function NotificationHub() {
   }
 
   // Count active badge notifications across both capabilities
-  const notificationCount = pendingDonorMatches.length + acceptedMatchesForRecipient.length;
+  const rawCount = pendingDonorMatches.length + acceptedMatchesForRecipient.length;
+  const notificationCount = isClearedLocally ? 0 : rawCount;
+
+  const handleClearAll = async () => {
+    try {
+      await clearAllMutation.mutateAsync();
+      setIsClearedLocally(true);
+      refetch();
+    } catch {
+      // Handled by mutation toast
+    }
+  };
 
   // Donor action handlers
   const handleDonorResponse = (matchId: string, response: "ACCEPTED" | "DECLINED") => {
@@ -217,11 +232,27 @@ export function NotificationHub() {
       </SheetTrigger>
 
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg p-4 sm:p-6">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Bell className="size-4 text-primary" />
-            Notifications Hub
-          </SheetTitle>
+        <SheetHeader className="border-b border-border/50 pb-3">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <Bell className="size-4 text-primary" />
+              Notifications Hub
+            </SheetTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={clearAllMutation.isPending || notificationCount === 0}
+              onClick={handleClearAll}
+              className="text-xs text-muted-foreground hover:text-foreground h-7 px-2 font-medium cursor-pointer"
+            >
+              {clearAllMutation.isPending ? (
+                <Loader2 className="size-3 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-3 mr-1 text-emerald-600" />
+              )}
+              Clear All
+            </Button>
+          </div>
           <SheetDescription>
             Live alerts for incoming donation matches and your active blood requests.
           </SheetDescription>
@@ -232,6 +263,27 @@ export function NotificationHub() {
             <div className="py-12 text-center text-muted-foreground">
               <Loader2 className="mx-auto size-6 animate-spin text-primary" />
               <p className="mt-2 text-xs">Checking live notifications...</p>
+            </div>
+          ) : isClearedLocally && notificationCount === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-3 mt-4">
+              <div className="size-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="size-6" />
+              </div>
+              <h4 className="text-base font-bold text-foreground">All caught up! No active notifications.</h4>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                You've cleared all alerts. New match dispatches and patient updates will appear here automatically.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsClearedLocally(false);
+                  refetch();
+                }}
+                className="text-xs cursor-pointer"
+              >
+                Refresh Notifications
+              </Button>
             </div>
           ) : (
             <Tabs defaultValue={pendingDonorMatches.length > 0 ? "donor" : "recipient"} className="w-full">
@@ -292,6 +344,10 @@ export function NotificationHub() {
                                 <span>Attendant: {request.attendant_phone_number}</span>
                               </p>
                             )}
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1">
+                              <Clock className="size-3 shrink-0" />
+                              <span>Dispatched: <strong>{formatDateTime(request.request_date)}</strong> • {formatRelativeTime(request.request_date)}</span>
+                            </p>
                           </div>
                         </div>
 
@@ -384,6 +440,12 @@ export function NotificationHub() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
+                            {request.urgency === "EMERGENCY" && (
+                              <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-bold mb-1">
+                                <span className="size-2 rounded-full bg-red-600 animate-ping inline-block shrink-0" />
+                                <span>CRITICAL EMERGENCY MATCH</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-base text-primary">
                                 {formatBloodGroup(request.blood_group)}
@@ -399,6 +461,10 @@ export function NotificationHub() {
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               <Clock className="size-3 shrink-0" />
                               Distance: ~{match.distance_km} km
+                            </p>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <Clock className="size-3 shrink-0" />
+                              <span>Dispatched: <strong>{formatDateTime(request.request_date)}</strong> • {formatRelativeTime(request.request_date)}</span>
                             </p>
                           </div>
                           <div className="shrink-0">
@@ -580,6 +646,10 @@ export function NotificationHub() {
                               <p className="text-xs text-foreground mt-1">
                                 A compatible donor has accepted your <strong>{formatBloodGroup(request.blood_group)}</strong> request for <em>{request.required_location}</em>.
                               </p>
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                                <Clock className="size-3 shrink-0" />
+                                <span>Accepted: <strong>{formatDateTime(match.completed_at || request.request_date)}</strong> • {formatRelativeTime(match.completed_at || request.request_date)}</span>
+                              </p>
                             </div>
                             <Badge className={`text-[10px] ${isCompleted ? "bg-purple-600 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}>
                               {isCompleted ? "COMPLETED" : "ACCEPTED"}
@@ -688,6 +758,9 @@ export function NotificationHub() {
                             </p>
                             <p className="text-[11px] text-muted-foreground">
                               {r.hospital_name || r.required_location} {r.area_zone ? `· ${r.area_zone}` : ""}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              Dispatched: {formatDateTime(r.request_date)} • {formatRelativeTime(r.request_date)}
                             </p>
                           </div>
                           <Badge

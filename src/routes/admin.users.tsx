@@ -7,11 +7,21 @@ import {
   Loader2,
   ShieldCheck,
   ShieldBan,
+  RotateCcw,
+  Heart,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -28,8 +38,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { useAllUsers, useUpdateUserStatus } from "@/hooks/useAdmin";
-import type { UserRole } from "@/lib/api/types";
+import { useAllUsers, useUpdateUserStatus, useAdminResetCooldown } from "@/hooks/useAdmin";
+import type { UserRole, UserResponse } from "@/lib/api/types";
 
 export const Route = createFileRoute("/admin/users")({
   head: () => ({
@@ -68,6 +78,8 @@ function AdminUsersPage() {
     isSysAdmin,
   );
   const updateStatusMutation = useUpdateUserStatus();
+  const resetCooldownMutation = useAdminResetCooldown();
+  const [selectedDonorForReset, setSelectedDonorForReset] = useState<UserResponse | null>(null);
 
   if (!isSysAdmin) {
     return (
@@ -169,52 +181,81 @@ function AdminUsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={u.status === "ACTIVE" ? "default" : "destructive"}
-                            className="text-[10px]"
-                          >
-                            {u.status}
-                          </Badge>
+                          <div className="flex flex-col gap-1 items-start">
+                            <Badge
+                              variant={u.status === "ACTIVE" ? "default" : "destructive"}
+                              className="text-[10px]"
+                            >
+                              {u.status}
+                            </Badge>
+                            {u.role === "DONOR" && (
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] px-1.5 py-0 ${
+                                  u.donor?.last_donation_date && (new Date().getTime() - new Date(u.donor.last_donation_date).getTime()) < 90 * 24 * 60 * 60 * 1000
+                                    ? "bg-amber-500/10 text-amber-600 border-amber-500/30 font-semibold"
+                                    : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-semibold"
+                                }`}
+                              >
+                                {u.donor?.last_donation_date && (new Date().getTime() - new Date(u.donor.last_donation_date).getTime()) < 90 * 24 * 60 * 60 * 1000
+                                  ? "Cooldown Active"
+                                  : "Eligible to Donate"}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {new Date(u.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCurrentUser ? (
-                            <span className="text-xs text-muted-foreground">You</span>
-                          ) : u.status === "ACTIVE" ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs text-destructive hover:text-destructive"
-                              disabled={updateStatusMutation.isPending}
-                              onClick={() =>
-                                updateStatusMutation.mutate({
-                                  userId: u.user_id,
-                                  status: "BLOCKED",
-                                })
-                              }
-                            >
-                              <ShieldBan className="mr-1 size-3" />
-                              Block
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs text-emerald-600 hover:text-emerald-700"
-                              disabled={updateStatusMutation.isPending}
-                              onClick={() =>
-                                updateStatusMutation.mutate({
-                                  userId: u.user_id,
-                                  status: "ACTIVE",
-                                })
-                              }
-                            >
-                              <ShieldCheck className="mr-1 size-3" />
-                              Unblock
-                            </Button>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {u.role === "DONOR" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 border-amber-500/30 font-semibold cursor-pointer"
+                                onClick={() => setSelectedDonorForReset(u)}
+                              >
+                                <RotateCcw className="mr-1 size-3" />
+                                Reset Cooldown
+                              </Button>
+                            )}
+                            {isCurrentUser ? (
+                              <span className="text-xs text-muted-foreground">You</span>
+                            ) : u.status === "ACTIVE" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs text-destructive hover:text-destructive cursor-pointer"
+                                disabled={updateStatusMutation.isPending}
+                                onClick={() =>
+                                  updateStatusMutation.mutate({
+                                    userId: u.user_id,
+                                    status: "BLOCKED",
+                                  })
+                                }
+                              >
+                                <ShieldBan className="mr-1 size-3" />
+                                Block
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                                disabled={updateStatusMutation.isPending}
+                                onClick={() =>
+                                  updateStatusMutation.mutate({
+                                    userId: u.user_id,
+                                    status: "ACTIVE",
+                                  })
+                                }
+                              >
+                                <ShieldCheck className="mr-1 size-3" />
+                                Unblock
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -229,6 +270,54 @@ function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Cooldown Confirmation Modal (Task 5.2) */}
+      <Dialog
+        open={!!selectedDonorForReset}
+        onOpenChange={(open) => !open && setSelectedDonorForReset(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-amber-600">
+              <RotateCcw className="size-5" />
+              Reset Donation Cooldown?
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Reset donation cooldown for <strong>{selectedDonorForReset?.full_name}</strong>? This will immediately mark them as <strong>Qualified to Donate</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-900 dark:text-amber-200">
+            This administrative medical override clears their previous donation interval and marks the donor active in the automated matching queue. An audit log entry will be saved.
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedDonorForReset(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              disabled={resetCooldownMutation.isPending}
+              onClick={() => {
+                if (selectedDonorForReset) {
+                  resetCooldownMutation.mutate(selectedDonorForReset.user_id, {
+                    onSuccess: () => setSelectedDonorForReset(null),
+                  });
+                }
+              }}
+            >
+              {resetCooldownMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Confirm Reset"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

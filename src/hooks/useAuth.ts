@@ -3,9 +3,9 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService } from "@/lib/api/services";
+import { authService, userService } from "@/lib/api/services";
 import { tokenStorage } from "@/lib/api/client";
-import type { LoginRequest, UserRegisterRequest, UserResponse } from "@/lib/api/types";
+import type { LoginRequest, UserRegisterRequest, UserResponse, UserProfileUpdate } from "@/lib/api/types";
 import { toast } from "sonner";
 
 export const AUTH_KEYS = {
@@ -67,4 +67,24 @@ export function useLogout() {
     queryClient.setQueryData(AUTH_KEYS.me, null);
     toast.info("Logged out.");
   };
+}
+
+export function useUpdateUserProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UserProfileUpdate) => userService.updateProfile(payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(AUTH_KEYS.me, data);
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-history"] });
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+      toast.success("Profile and donation records updated successfully.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update profile.");
+    },
+  });
 }

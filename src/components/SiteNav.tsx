@@ -1,5 +1,14 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Droplet, Menu, AlertCircle, LogOut } from "lucide-react";
+import {
+  Droplet,
+  Menu,
+  AlertCircle,
+  LogOut,
+  User as UserIcon,
+  History,
+  ChevronDown,
+  LayoutDashboard,
+} from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
@@ -8,6 +17,28 @@ import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { useToggleAvailability } from "@/hooks/useDonor";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function formatRoleBadge(role: string): string {
+  switch (role) {
+    case "DONOR":
+      return "Donor";
+    case "RECIPIENT":
+      return "Recipient";
+    case "SYSTEM_ADMIN":
+      return "Admin";
+    case "HOSPITAL_ADMIN":
+      return "Hospital";
+    default:
+      return "Member";
+  }
+}
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
@@ -252,30 +283,75 @@ export function SiteNav() {
               />
             </div>
           ) : (
-            /* Authenticated User Actions: compact identity + logout */
+            /* Authenticated User Actions: compact identity + Dropdown Menu */
             <div className="flex items-center gap-2">
-              <Link
-                to={userDashboardPath}
-                className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary-glow/50 transition-colors"
-                title="Go to Dashboard"
-              >
-                <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="font-semibold max-w-[120px] truncate">
-                  {user.full_name.split(" ")[0]}
-                </span>
-                <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
-                  {isRegularUser ? "Member" : "Admin"}
-                </span>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary-glow/50 transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-white/40"
+                    title="User Account Menu"
+                  >
+                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span className="font-semibold max-w-[120px] truncate">
+                      {user.full_name.split(" ")[0]}
+                    </span>
+                    <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-medium tracking-wide shrink-0">
+                      {formatRoleBadge(user.role)}
+                    </span>
+                    <ChevronDown className="size-3 opacity-70 ml-0.5 shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg rounded-xl">
+                  <div className="px-2 py-1.5 border-b border-border/40 mb-1">
+                    <p className="text-xs font-bold text-foreground truncate">{user.full_name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                    <span className="inline-block mt-1 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      {formatRoleBadge(user.role)}
+                    </span>
+                  </div>
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center gap-2 text-xs py-2 cursor-pointer font-medium">
+                      <UserIcon className="size-3.5 text-primary" />
+                      <span>My Profile & Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" search={{ tab: "history" }} className="flex items-center gap-2 text-xs py-2 cursor-pointer font-medium">
+                      <History className="size-3.5 text-primary" />
+                      <span>Donation History</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link to={userDashboardPath} className="flex items-center gap-2 text-xs py-2 cursor-pointer font-medium">
+                      <LayoutDashboard className="size-3.5 text-primary" />
+                      <span>Dashboard Workspace</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1" />
+
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer font-medium"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-xs"
                 title="Logout of current session"
               >
                 <LogOut className="size-3.5" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden md:inline">Logout</span>
               </button>
             </div>
           )}
