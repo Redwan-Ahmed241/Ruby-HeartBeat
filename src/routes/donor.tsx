@@ -102,6 +102,7 @@ function DonorDashboardPage() {
 
   // Local form state
   const [bloodGroup, setBloodGroup] = useState("O+");
+  const [age, setAge] = useState("22");
   const [weight, setWeight] = useState("68");
   const [address, setAddress] = useState("Banani, Dhaka");
   const [gender, setGender] = useState("Male");
@@ -120,6 +121,7 @@ function DonorDashboardPage() {
   useEffect(() => {
     if (donor) {
       setBloodGroup(toDisplayBloodGroup(donor.blood_group));
+      if (donor.age) setAge(String(donor.age));
       setWeight(donor.weight ? String(donor.weight) : "68");
       setAddress(donor.address || "Banani, Dhaka");
       setGender(donor.gender || "Male");
@@ -152,6 +154,7 @@ function DonorDashboardPage() {
     try {
       await updateProfileMutation.mutateAsync({
         gender,
+        age: Number(age),
         weight: Number(weight),
         address,
         last_donation_date: lastDonation || null,
@@ -170,11 +173,13 @@ function DonorDashboardPage() {
   };
 
   // Clinical Eligibility Rule Engine
+  const numAge = Number(age) || (eligibility?.age ?? 22);
   const numWeight = Number(weight) || 0;
   const numHemoglobin = Number(hemoglobin) || 0;
+  const isAgePassed = numAge >= 18 && numAge <= 65;
   const isWeightPassed = numWeight >= 50;
   const isHemoglobinPassed = numHemoglobin >= 12.5;
-  const isClinicallyPassed = isWeightPassed && isHemoglobinPassed;
+  const isClinicallyPassed = isAgePassed && isWeightPassed && isHemoglobinPassed;
 
   const isEligible = eligibility
     ? eligibility.is_eligible && isClinicallyPassed
@@ -497,6 +502,22 @@ function DonorDashboardPage() {
                   </div>
 
                   <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="age">Age (Years) *</Label>
+                      <span className="text-[10px] text-muted-foreground font-medium">18-65 yrs</span>
+                    </div>
+                    <Input
+                      id="age"
+                      type="number"
+                      min={18}
+                      max={65}
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      placeholder="e.g. 22"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
                     <Label htmlFor="weight">Body Weight (kg)</Label>
                     <Input
                       id="weight"
@@ -629,6 +650,20 @@ function DonorDashboardPage() {
                   )}
 
                   <div className="space-y-2 text-xs">
+                    {/* Age Row */}
+                    <div className="flex items-center justify-between border-b border-border/40 py-2">
+                      <span className="text-muted-foreground">Age Requirement (18 – 65 Years)</span>
+                      <span
+                        className={
+                          isAgePassed
+                            ? "text-emerald-600 font-semibold"
+                            : "text-destructive font-semibold"
+                        }
+                      >
+                        Age: {numAge} Years ({isAgePassed ? "Eligible" : numAge < 18 ? "Underage (< 18)" : "Overage (> 65)"})
+                      </span>
+                    </div>
+
                     <div className="flex items-center justify-between border-b border-border/40 py-2">
                       <span className="text-muted-foreground">Weight Standard (&ge; 50 kg)</span>
                       <span

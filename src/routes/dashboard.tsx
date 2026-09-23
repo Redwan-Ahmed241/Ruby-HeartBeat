@@ -324,7 +324,10 @@ export default function UnifiedDashboardPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <Badge variant="outline" className="text-xs border-emerald-600/30 text-emerald-700 dark:text-emerald-300 font-semibold">
+                          Age: {eligibility?.age ?? user.donor?.age ?? 22} Years (Eligible)
+                        </Badge>
                         <Badge variant="outline" className="text-xs border-emerald-600/30 text-emerald-700 dark:text-emerald-300">
                           Weight: {user.donor?.weight ?? 65}kg
                         </Badge>

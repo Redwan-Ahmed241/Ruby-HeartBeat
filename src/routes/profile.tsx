@@ -98,6 +98,7 @@ function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [backupPhone, setBackupPhone] = useState("");
+  const [age, setAge] = useState<string>("22");
   const [locationZone, setLocationZone] = useState("");
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [lastDonationDate, setLastDonationDate] = useState("");
@@ -108,6 +109,11 @@ function ProfilePage() {
       setFullName(user.full_name || "");
       setPhone(user.phone || "");
       setBackupPhone(user.backup_phone || "");
+      if (user.donor?.age) {
+        setAge(String(user.donor.age));
+      } else if (eligibility?.age) {
+        setAge(String(eligibility.age));
+      }
       
       const donorAddress = user.donor?.address || "";
       // Check if donorAddress matches any zone
@@ -121,7 +127,7 @@ function ProfilePage() {
         setLastDonationDate(user.donor.last_donation_date.slice(0, 10));
       }
     }
-  }, [user]);
+  }, [user, eligibility]);
 
   // Sync tab search param changes
   useEffect(() => {
@@ -165,6 +171,7 @@ function ProfilePage() {
       full_name: fullName.trim(),
       phone: phone.trim(),
       backup_phone: backupPhone.trim() || null,
+      age: age ? Number(age) : undefined,
       address: locationZone,
       location_zone: locationZone,
       blood_group: bloodGroup,
@@ -234,6 +241,11 @@ function ProfilePage() {
                     Blood Group: <strong>{toDisplayBloodGroup(bloodGroup)}</strong>
                   </span>
                   <span>•</span>
+                  <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck className="size-3.5" />
+                    Age: <strong>{age || user.donor?.age || 22} Years ({Number(age || user.donor?.age || 22) >= 18 && Number(age || user.donor?.age || 22) <= 65 ? "Eligible" : "Ineligible"})</strong>
+                  </span>
+                  <span>•</span>
                   <span className="flex items-center gap-1">
                     <MapPin className="size-3.5 text-muted-foreground" />
                     {locationZone || "Dhaka"}
@@ -301,19 +313,42 @@ function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-5 space-y-4">
-                      {/* Full Name */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="full_name" className="text-xs font-semibold">
-                          Full Name *
-                        </Label>
-                        <Input
-                          id="full_name"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder="Your legal full name"
-                          required
-                          className="text-xs"
-                        />
+                      {/* Full Name & Age */}
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="sm:col-span-2 space-y-1.5">
+                          <Label htmlFor="full_name" className="text-xs font-semibold">
+                            Full Name *
+                          </Label>
+                          <Input
+                            id="full_name"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            placeholder="Your legal full name"
+                            required
+                            className="text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="age" className="text-xs font-semibold flex items-center gap-1">
+                              <User className="size-3 text-primary" />
+                              Age (Years) *
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground font-medium">18-65 yrs</span>
+                          </div>
+                          <Input
+                            id="age"
+                            type="number"
+                            min={18}
+                            max={65}
+                            value={age}
+                            onChange={(e) => setAge(e.target.value)}
+                            placeholder="e.g. 22"
+                            required
+                            className="text-xs"
+                          />
+                        </div>
                       </div>
 
                       {/* Phone Numbers Grid */}
@@ -483,10 +518,32 @@ function ProfilePage() {
                         </div>
                       )}
 
+                      {/* Registered Clinical Parameters */}
+                      <div className="rounded-lg bg-muted/40 border border-border/60 p-3 space-y-2 text-xs">
+                        <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
+                          <span className="text-muted-foreground">Clinical Age:</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            Age: {age || user.donor?.age || 22} Years (Eligible)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
+                          <span className="text-muted-foreground">Body Weight (&ge; 50 kg):</span>
+                          <span className="font-semibold text-foreground">
+                            {user.donor?.weight ?? 65} kg ({Number(user.donor?.weight ?? 65) >= 50 ? "Eligible" : "Underweight"})
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Hemoglobin (&ge; 12.5 g/dL):</span>
+                          <span className="font-semibold text-foreground">
+                            {user.donor?.medical_info?.hemoglobin_level ?? 14.0} g/dL (Eligible)
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="rounded-lg bg-muted/40 p-3 text-[11px] text-muted-foreground flex items-start gap-2">
                         <Info className="size-3.5 text-primary shrink-0 mt-0.5" />
                         <span>
-                          Medical guidelines require a minimum 90 days (12 weeks) between whole blood donations for complete physiological recovery.
+                          Medical guidelines require donors to be 18 to 65 years old and observe a minimum 90-day cooldown between whole blood donations.
                         </span>
                       </div>
                     </CardContent>

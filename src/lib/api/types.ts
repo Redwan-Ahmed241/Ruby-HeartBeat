@@ -107,6 +107,7 @@ export interface UserRegisterRequest {
   phone: string;
   password: string;
   role?: UserRole;
+  age?: number | undefined;
   blood_group?: BloodGroup;
   date_of_birth?: string;
   gender?: string;
@@ -125,6 +126,7 @@ export interface DonorBriefResponse {
   donor_id: string;
   blood_group: BloodGroup;
   date_of_birth: string;
+  age?: number | null | undefined;
   gender: string;
   weight: number;
   address: string;
@@ -173,6 +175,7 @@ export interface UserProfileUpdate {
   full_name?: string;
   phone?: string;
   backup_phone?: string | null;
+  age?: number | undefined;
   address?: string;
   location_zone?: string;
   blood_group?: BloodGroup;
@@ -184,6 +187,7 @@ export interface UserProfileUpdate {
 // ============================================================================
 
 export interface DonorProfileUpdate {
+  age?: number | undefined;
   gender?: string;
   weight?: number;
   address?: string;
@@ -262,6 +266,7 @@ export interface DonorResponse {
   donor_id: string;
   blood_group: BloodGroup;
   date_of_birth: string;
+  age?: number | null | undefined;
   gender: string;
   weight: number;
   address: string;

@@ -19,7 +19,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCurrentUser, useLogin, useLogout, useRegister } from "@/hooks/useAuth";
+import { useCurrentUser, useLogin, useLogout } from "@/hooks/useAuth";
 import { authService } from "@/lib/api/services";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { UserRole, BloodGroup } from "@/lib/api/types";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 import { toast } from "sonner";
 
 // Pre-seeded production-grade evaluation credentials
@@ -105,20 +106,13 @@ export function AuthDialog({
 
   const [activeTab, setActiveTab] = useState<"login" | "register">(defaultTab);
 
-  // Form states
+  // Form states for login
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("+8801700000000");
-  const [address, setAddress] = useState("Banani, Dhaka");
-  const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
-  const [nidOrBirthCert, setNidOrBirthCert] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const { data: currentUser, isLoading } = useCurrentUser();
   const loginMutation = useLogin();
-  const registerMutation = useRegister();
   const logout = useLogout();
   const navigate = useNavigate();
 
@@ -134,30 +128,6 @@ export function AuthDialog({
           : me.role === "HOSPITAL_ADMIN" ? "/hospital"
             : "/dashboard";
       navigate({ to: dest });
-    } catch {
-      // Error handled by mutation toast
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await registerMutation.mutateAsync({
-        full_name: fullName,
-        email,
-        phone,
-        password,
-        blood_group: selectedBloodGroup || "O_POSITIVE",
-        address: address || "Dhaka, Bangladesh",
-        date_of_birth: "1998-05-20",
-        gender: "Other",
-        weight: 68.0,
-        latitude: 23.7937,
-        longitude: 90.4066,
-        nid_or_birth_cert: nidOrBirthCert.trim() || undefined,
-      });
-      toast.success("Account created! You may now sign in.");
-      setActiveTab("login");
     } catch {
       // Error handled by mutation toast
     }
@@ -389,124 +359,8 @@ export function AuthDialog({
           </TabsContent>
 
           {/* Register Tab */}
-          <TabsContent value="register" className="pt-2">
-            <form onSubmit={handleRegister} className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="reg-name">Full Name</Label>
-                <Input
-                  id="reg-name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Dr. Ayesha Rahman"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="reg-email">Email Address</Label>
-                  <Input
-                    id="reg-email"
-                    type="email"
-                    placeholder="ayesha@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="reg-phone">Phone Number</Label>
-                  <Input
-                    id="reg-phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+8801700000000"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor="reg-pass">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="reg-pass"
-                      type={showRegisterPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => setShowRegisterPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showRegisterPassword ? "Hide password" : "Show password"}
-                    >
-                      {showRegisterPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="reg-blood-group">Blood Group</Label>
-                  <Select
-                    value={selectedBloodGroup}
-                    onValueChange={(v) => setSelectedBloodGroup(v as BloodGroup)}
-                  >
-                    <SelectTrigger id="reg-blood-group">
-                      <SelectValue placeholder="Select blood group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="O_POSITIVE">O+ (O Positive)</SelectItem>
-                      <SelectItem value="O_NEGATIVE">O- (O Negative)</SelectItem>
-                      <SelectItem value="A_POSITIVE">A+ (A Positive)</SelectItem>
-                      <SelectItem value="A_NEGATIVE">A- (A Negative)</SelectItem>
-                      <SelectItem value="B_POSITIVE">B+ (B Positive)</SelectItem>
-                      <SelectItem value="B_NEGATIVE">B- (B Negative)</SelectItem>
-                      <SelectItem value="AB_POSITIVE">AB+ (AB Positive)</SelectItem>
-                      <SelectItem value="AB_NEGATIVE">AB- (AB Negative)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="reg-address">Area / City (Dhaka)</Label>
-                <Input
-                  id="reg-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. Banani, Dhaka or Dhanmondi, Dhaka"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="reg-nid">National ID (NID) or Birth Certificate Number</Label>
-                  <span className="text-[10px] text-muted-foreground font-medium">
-                    (Optional - Speeds up verification)
-                  </span>
-                </div>
-                <Input
-                  id="reg-nid"
-                  value={nidOrBirthCert}
-                  onChange={(e) => setNidOrBirthCert(e.target.value)}
-                  placeholder="e.g. 19982692... or NID number"
-                />
-              </div>
-
-              <p className="text-[11px] text-muted-foreground">
-                Unified account: Every member can volunteer to donate blood and request emergency blood with full privacy protection.
-              </p>
-
-              <Button type="submit" className="w-full mt-2" disabled={registerMutation.isPending}>
-                {registerMutation.isPending ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
+          <TabsContent value="register" className="pt-2 max-h-[75vh] overflow-y-auto px-1">
+            <RegisterForm onSuccess={() => setActiveTab("login")} />
           </TabsContent>
         </Tabs>
       </DialogContent>
