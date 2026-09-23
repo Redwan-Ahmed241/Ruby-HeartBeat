@@ -132,6 +132,7 @@ export interface DonorBriefResponse {
   longitude: number;
   last_donation_date?: string | null;
   availability_status: AvailabilityStatus;
+  total_donations?: number;
   medical_info?: MedicalInfoResponse | null | undefined;
 }
 
@@ -268,6 +269,7 @@ export interface DonorResponse {
   longitude: number;
   last_donation_date?: string | null;
   availability_status: AvailabilityStatus;
+  total_donations?: number;
   created_at?: string | null;
   updated_at?: string | null;
   medical_info?: MedicalInfoResponse | null;

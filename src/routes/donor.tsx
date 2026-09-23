@@ -144,7 +144,7 @@ function DonorDashboardPage() {
   const { data: donationHistory } = useDonorHistory(!!user && (user.role === "DONOR" || user.role === "RECIPIENT"));
 
   const scheduledEventsCount = registeredEvents?.length || 0;
-  const lifetimeCount = donationHistory?.length || 0;
+  const lifetimeCount = Math.max(user?.donor?.total_donations ?? 0, donationHistory?.length ?? 0);
   const tierInfo = getDonorTier(lifetimeCount);
 
   const handleSaveProfile = async () => {

@@ -164,7 +164,7 @@ export default function UnifiedDashboardPage() {
   );
 
   // Donor Gamification calculation
-  const donationCount = historyItems?.length ?? 0;
+  const donationCount = Math.max(user?.donor?.total_donations ?? 0, historyItems?.length ?? 0);
   const tierInfo = getDonorTier(donationCount);
 
   return (

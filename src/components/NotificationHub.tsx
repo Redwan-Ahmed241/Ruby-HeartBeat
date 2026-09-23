@@ -95,6 +95,8 @@ export function NotificationHub() {
 
   if (requests) {
     for (const req of requests) {
+      // Strictly prevent requester from receiving alerts for their own request
+      if (req.recipient_id === user.user_id) continue;
       if (req.matches && req.matches.length > 0) {
         for (const m of req.matches) {
           if (m.donor_id === donorId) {

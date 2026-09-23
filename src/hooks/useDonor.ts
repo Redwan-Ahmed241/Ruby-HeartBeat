@@ -14,10 +14,19 @@ import { toast } from "sonner";
 import { AUTH_KEYS } from "./useAuth";
 
 export const DONOR_KEYS = {
+  profile: ["donor", "profile"] as const,
   eligibility: ["donor", "eligibility"] as const,
   history: ["donor", "history"] as const,
   top: (limit: number) => ["donor", "top", limit] as const,
 };
+
+export function useDonorProfile(enabled = true) {
+  return useQuery({
+    queryKey: DONOR_KEYS.profile,
+    queryFn: () => donorService.getProfile(),
+    enabled,
+  });
+}
 
 export function useTopDonors(limit: number = 10, enabled = true) {
   return useQuery({

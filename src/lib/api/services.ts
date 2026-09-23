@@ -129,6 +129,14 @@ export const donorService = {
   getTopDonors: async (limit: number = 10): Promise<TopDonorResponse[]> => {
     return apiClient<TopDonorResponse[]>(`/donors/top?limit=${limit}`);
   },
+
+  getProfile: async (): Promise<DonorResponse> => {
+    return apiClient<DonorResponse>("/donors/profile");
+  },
+
+  getMe: async (): Promise<DonorResponse> => {
+    return apiClient<DonorResponse>("/donors/me");
+  },
 };
 
 // ============================================================================

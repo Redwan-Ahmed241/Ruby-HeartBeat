@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { requestService, notificationService } from "@/lib/api/services";
 import type { BloodRequestCreate, MatchRespondRequest, DonorContactReveal } from "@/lib/api/types";
 import { toast } from "sonner";
+import { AUTH_KEYS } from "./useAuth";
+import { DONOR_KEYS } from "./useDonor";
 
 export const REQUEST_KEYS = {
   all: ["requests"] as const,
@@ -166,9 +168,15 @@ export function useCompleteRequest() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.history });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.eligibility });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.profile });
+      queryClient.invalidateQueries({ queryKey: ["donorProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["donorHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
       queryClient.invalidateQueries({ queryKey: ["donor-history"] });
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       toast.success("Blood donation confirmed as completed! Donor profile & recovery cooldown updated.");
     },
     onError: (error: any) => {
@@ -224,9 +232,15 @@ export function useConfirmMatchCompletion() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.all });
       queryClient.invalidateQueries({ queryKey: REQUEST_KEYS.detail(data.request_id) });
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.history });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.eligibility });
+      queryClient.invalidateQueries({ queryKey: DONOR_KEYS.profile });
+      queryClient.invalidateQueries({ queryKey: ["donorProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["donorHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
       queryClient.invalidateQueries({ queryKey: ["donor-history"] });
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       if (data.is_completed) {
         toast.success("Donation mutually verified! 90-day recovery cooldown is now active.");
       } else {
