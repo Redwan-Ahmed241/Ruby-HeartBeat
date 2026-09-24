@@ -138,8 +138,8 @@ function RequestLandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-muted/40 to-background pb-16 pt-6 sm:pt-10">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-6">
+    <div className="min-h-screen bg-linear-to-b from-muted/40 to-background pb-16 pt-6 sm:pt-10 w-full overflow-x-hidden">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-6 min-w-0">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between">
           <Link
@@ -159,19 +159,19 @@ function RequestLandingPage() {
 
         {/* Emergency Alert Banner */}
         {isEmergency && !isCompleted && !isCancelled && (
-          <div className="rounded-2xl border-2 border-red-500/40 bg-red-500/10 p-4 sm:p-5 text-red-950 dark:text-red-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
+          <div className="rounded-2xl border-2 border-red-500/40 bg-red-500/10 p-4 sm:p-5 text-red-950 dark:text-red-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+            <div className="flex items-start gap-3 min-w-0">
               <div className="size-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <AlertCircle className="size-5 animate-pulse" />
               </div>
-              <div>
-                <h3 className="text-base font-bold flex items-center gap-2">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold flex items-center gap-2 flex-wrap">
                   <span>CRITICAL EMERGENCY BLOOD REQUEST</span>
                   <Badge variant="destructive" className="text-[10px] uppercase font-mono">
                     High Priority
                   </Badge>
                 </h3>
-                <p className="text-xs opacity-90 mt-0.5">
+                <p className="text-xs opacity-90 mt-0.5 break-words">
                   A patient requires immediate transfusion at {req.hospital_name || req.required_location}. Donors in the area are alerted simultaneously.
                 </p>
               </div>
@@ -180,10 +180,10 @@ function RequestLandingPage() {
         )}
 
         {/* Main Request Hero Card */}
-        <Card className="border-border shadow-md overflow-hidden">
-          <div className="bg-linear-to-r from-red-600 via-red-700 to-rose-700 p-6 sm:p-8 text-white relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-2">
+        <Card className="border-border shadow-md overflow-hidden min-w-0">
+          <div className="bg-linear-to-r from-red-600 via-red-700 to-rose-700 p-5 sm:p-8 text-white relative">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-2 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs backdrop-blur-xs font-semibold">
                     {req.urgency}
@@ -208,73 +208,73 @@ function RequestLandingPage() {
                   )}
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight break-words">
                   {req.patient_name ? `Blood Required for ${req.patient_name}` : "Urgent Blood Donation Required"}
                 </h1>
-                <p className="text-sm opacity-90 flex items-center gap-1.5">
+                <p className="text-sm opacity-90 flex items-center gap-1.5 flex-wrap">
                   <Building2 className="size-4 shrink-0" />
-                  <span>{req.hospital_name || req.required_location}</span>
+                  <span className="break-words">{req.hospital_name || req.required_location}</span>
                   {req.area_zone && <span>· ({req.area_zone})</span>}
                 </p>
               </div>
 
               {/* Large Blood Group Badge */}
-              <div className="flex flex-col items-center justify-center size-24 sm:size-28 rounded-2xl bg-white text-red-700 shadow-lg shrink-0 self-start sm:self-auto border-2 border-white/50">
-                <span className="text-3xl sm:text-4xl font-black leading-none tracking-tight">
+              <div className="flex flex-col items-center justify-center size-20 sm:size-28 rounded-2xl bg-white text-red-700 shadow-lg shrink-0 self-start sm:self-auto border-2 border-white/50">
+                <span className="text-2xl sm:text-4xl font-black leading-none tracking-tight">
                   {formatBloodGroup(req.blood_group, "symbol")}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
                   Required Group
                 </span>
               </div>
             </div>
           </div>
 
-          <CardContent className="p-6 sm:p-8 space-y-6">
+          <CardContent className="p-4 sm:p-6 md:p-8 space-y-6">
             {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Droplet className="size-3.5 text-red-600" /> Units Required
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="rounded-xl border border-border bg-muted/30 p-3 sm:p-3.5 space-y-1 min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Droplet className="size-3.5 text-red-600 shrink-0" /> Units Required
                 </span>
-                <p className="text-base font-bold text-foreground">
+                <p className="text-sm sm:text-base font-bold text-foreground">
                   {req.quantity} Unit{Number(req.quantity) > 1 ? "s" : ""}
                 </p>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block truncate">
                   {req.volume_ml ? `${req.volume_ml} mL total` : `${Number(req.quantity) * 450} mL total`}
                 </span>
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="size-3.5 text-blue-600" /> Component Type
+              <div className="rounded-xl border border-border bg-muted/30 p-3 sm:p-3.5 space-y-1 min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <ShieldCheck className="size-3.5 text-blue-600 shrink-0" /> Component Type
                 </span>
-                <p className="text-base font-bold text-foreground">
+                <p className="text-sm sm:text-base font-bold text-foreground truncate">
                   {req.component_type.replace("_", " ")}
                 </p>
-                <span className="text-[11px] text-muted-foreground">Standard packaging</span>
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block truncate">Standard packaging</span>
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <MapPin className="size-3.5 text-amber-600" /> Hospital Zone
+              <div className="rounded-xl border border-border bg-muted/30 p-3 sm:p-3.5 space-y-1 min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <MapPin className="size-3.5 text-amber-600 shrink-0" /> Hospital Zone
                 </span>
-                <p className="text-base font-bold text-foreground truncate">
+                <p className="text-sm sm:text-base font-bold text-foreground truncate">
                   {req.area_zone || "Dhaka Metro"}
                 </p>
-                <span className="text-[11px] text-muted-foreground truncate">
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block truncate">
                   {req.hospital_name || "General Center"}
                 </span>
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="size-3.5 text-purple-600" /> Dispatched Date
+              <div className="rounded-xl border border-border bg-muted/30 p-3 sm:p-3.5 space-y-1 min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="size-3.5 text-purple-600 shrink-0" /> Dispatched Date
                 </span>
-                <p className="text-base font-bold text-foreground">
+                <p className="text-sm sm:text-base font-bold text-foreground truncate">
                   {req.request_date ? new Date(req.request_date).toLocaleDateString() : "Today"}
                 </p>
-                <span className="text-[11px] text-muted-foreground">Immediate action</span>
+                <span className="text-[10px] sm:text-[11px] text-muted-foreground block truncate">Immediate action</span>
               </div>
             </div>
 
@@ -396,33 +396,33 @@ function RequestLandingPage() {
             )}
 
             {isAcceptedByMe && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-emerald-600 text-white p-2 px-3 text-xs font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="size-4" />
-                  You Accepted This Request
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto flex-wrap">
+                <Badge className="bg-emerald-600 text-white p-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 w-full sm:w-auto">
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  <span>You Accepted This Request</span>
                 </Badge>
                 {req.attendant_phone_number && (
-                  <a href={`tel:${req.attendant_phone_number}`}>
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                      <Phone className="size-3 mr-1" /> Call
+                  <a href={`tel:${req.attendant_phone_number}`} className="w-full sm:w-auto">
+                    <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                      <Phone className="size-3 mr-1" /> Call Attendant
                     </Button>
                   </a>
                 )}
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
+                  className="w-full sm:w-auto border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
                   onClick={() => setReopenModalOpen(true)}
                 >
-                  <RotateCcw className="size-3.5" /> Unable to Donate / Cancel Commitment
+                  <RotateCcw className="size-3.5 shrink-0" /> Unable to Donate / Cancel Commitment
                 </Button>
               </div>
             )}
 
             {isAcceptedByOther && (
-              <Badge variant="outline" className="text-xs font-semibold p-2 px-3 text-muted-foreground border-border">
-                <UserCheck className="size-4 mr-1 text-emerald-600" />
-                A volunteer donor has already accepted this request
+              <Badge variant="outline" className="w-full sm:w-auto justify-center text-xs font-semibold p-2 px-3 text-muted-foreground border-border">
+                <UserCheck className="size-4 mr-1 text-emerald-600 shrink-0" />
+                <span>A volunteer donor has already accepted this request</span>
               </Badge>
             )}
 
@@ -430,16 +430,16 @@ function RequestLandingPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
+                className="w-full sm:w-auto border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 font-semibold text-xs gap-1"
                 onClick={() => setReopenModalOpen(true)}
               >
-                <RotateCcw className="size-3.5" /> Cancel Match & Re-Open Search
+                <RotateCcw className="size-3.5 shrink-0" /> Cancel Match & Re-Open Search
               </Button>
             )}
 
             {isOwner && req.status === "OPEN" && (
-              <Link to="/recipient" search={{ tab: "requests" }}>
-                <Button variant="outline" size="sm">
+              <Link to="/recipient" search={{ tab: "requests" }} className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   Manage in Recipient Portal
                 </Button>
               </Link>

@@ -158,9 +158,13 @@
     border-color: var(--color-border);
   }
 
+  html,
   body {
+    max-width: 100%;
+    overflow-x: hidden;
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -179,11 +183,12 @@
 }
 
 /* ==========================================================================
-   Leaflet.js z-index Isolation Bugfix
+   Leaflet.js z-index Isolation Bugfix & Mobile Containment
    ========================================================================== */
 .leaflet-container {
   isolation: isolate !important;
   z-index: 0 !important;
+  max-width: 100% !important;
 }
 
 .leaflet-pane {

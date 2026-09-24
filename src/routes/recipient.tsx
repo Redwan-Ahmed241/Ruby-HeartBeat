@@ -110,8 +110,8 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
         <div className="space-y-1.5 min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-base font-bold text-primary">{formatBloodGroup(req.blood_group, "symbol")}</span>
@@ -121,7 +121,7 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
               <span className="text-xs font-semibold text-foreground">for {req.patient_name}</span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground break-words">
             {req.quantity} unit(s) ({req.volume_ml ? `${req.volume_ml} mL` : `${Number(req.quantity) * 450} mL`}) · {req.component_type.replace("_", " ")}
             {req.hospital_name ? ` · ${req.hospital_name}` : ""}
             {req.area_zone ? ` (${req.area_zone})` : ""}
@@ -149,23 +149,23 @@ function RequestRow({ req, onViewMatches }: { req: BloodRequestResponse; onViewM
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap w-full sm:w-auto">
           {req.status === "OPEN" && (
             <Button
               variant="outline"
               size="sm"
-              className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
+              className="text-xs text-destructive hover:bg-destructive/10 border-destructive/30 w-full sm:w-auto"
               onClick={() => setCancelDialogOpen(true)}
             >
               Cancel Request
             </Button>
           )}
-          <Link to="/request/$requestId" params={{ requestId: req.request_id }}>
-            <Button variant="ghost" size="sm" className="text-xs">
+          <Link to="/request/$requestId" params={{ requestId: req.request_id }} className="w-full sm:w-auto">
+            <Button variant="ghost" size="sm" className="text-xs w-full sm:w-auto">
               Direct Link
             </Button>
           </Link>
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => onViewMatches(req.request_id)}>
+          <Button variant="outline" size="sm" className="text-xs w-full sm:w-auto" onClick={() => onViewMatches(req.request_id)}>
             View matches ({req.matches?.length || 0})
           </Button>
         </div>

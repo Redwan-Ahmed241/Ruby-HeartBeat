@@ -373,7 +373,7 @@ function RequestBlood() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           {/* Request Form */}
-          <Card className={`h-fit shadow-[var(--shadow-elegant)] ${isEmergency ? "border-destructive/40" : ""}`}>
+          <Card className={`h-fit shadow-[var(--shadow-elegant)] min-w-0 ${isEmergency ? "border-destructive/40" : ""}`}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -591,12 +591,12 @@ function RequestBlood() {
                 </div>
 
                 {/* Immediate Contact Phone Number - High Priority */}
-                <div className="grid gap-2 sm:col-span-2">
-                  <div className="flex items-center justify-between">
+                <div className="grid gap-2 sm:col-span-2 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <Label htmlFor="phone" className={isEmergency ? "font-semibold text-foreground" : ""}>
                       Attendant Phone Number (Direct Contact)
                     </Label>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                       <ShieldCheck className="size-3 text-primary" /> Masked from public until accepted
                     </span>
                   </div>
@@ -667,7 +667,7 @@ function RequestBlood() {
           </Card>
 
           {/* Matches & Contact Safeguard View */}
-          <section id="live-matches-section">
+          <section id="live-matches-section" className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-semibold">Matched donors</h2>
               {createdRequest && (
@@ -684,7 +684,7 @@ function RequestBlood() {
             </p>
 
             {createdRequest && (
-              <Card className="mt-4 border-primary/30 bg-primary/5">
+              <Card className="mt-4 border-primary/30 bg-primary/5 min-w-0">
                 <CardContent className="p-4 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -711,7 +711,7 @@ function RequestBlood() {
                       {createdRequest.status}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-muted-foreground">
                     <p>
                       <strong className="text-foreground">Hospital:</strong>{" "}
                       {createdRequest.hospital_name || createdRequest.required_location}
@@ -735,7 +735,7 @@ function RequestBlood() {
             )}
 
             {!createdRequest && (
-              <Card className="mt-4 border-dashed">
+              <Card className="mt-4 border-dashed min-w-0">
                 <CardContent className="p-8 text-center text-muted-foreground text-sm">
                   Submit the form to find compatible donors.
                 </CardContent>
@@ -748,7 +748,7 @@ function RequestBlood() {
                 const isDeclined = match.response_status === "DECLINED";
 
                 return (
-                  <Card key={match.match_id} className="shadow-[var(--shadow-elegant)]">
+                  <Card key={match.match_id} className="shadow-[var(--shadow-elegant)] min-w-0">
                     <CardContent className="space-y-3 p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -910,14 +910,14 @@ function RequestBlood() {
 
               <Suspense
                 fallback={
-                  <div className="h-[280px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground animate-pulse">
+                  <div className="h-[240px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground animate-pulse">
                     Loading Leaflet map...
                   </div>
                 }
               >
                 <ClientOnly
                   fallback={
-                    <div className="h-[280px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground">
+                    <div className="h-[240px] sm:h-[340px] rounded-xl bg-muted/30 border border-border flex items-center justify-center text-xs text-muted-foreground">
                       Map loading in browser...
                     </div>
                   }
@@ -936,7 +936,7 @@ function RequestBlood() {
                       bloodGroup: selectedMapMatch.blood_group,
                       isApproximate: true,
                     }}
-                    heightClassName="h-[280px] sm:h-[340px]"
+                    heightClassName="h-[240px] sm:h-[340px]"
                   />
                 </ClientOnly>
               </Suspense>
@@ -979,7 +979,7 @@ function RequestBlood() {
             </div>
 
             {/* Grid of Key Clinical Details */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
                 <span className="text-[10px] font-semibold text-muted-foreground uppercase">Blood Group & Component</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -1034,10 +1034,11 @@ function RequestBlood() {
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border">
             <Button
               type="button"
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setReviewModalOpen(false)}
               disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
             >
@@ -1045,7 +1046,7 @@ function RequestBlood() {
             </Button>
             <Button
               type="button"
-              className="font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+              className="w-full sm:w-auto font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
               onClick={executeDispatch}
               disabled={createRequestMutation.isPending || createEmergencyMutation.isPending}
             >

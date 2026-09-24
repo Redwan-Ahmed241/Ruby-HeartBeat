@@ -69,7 +69,7 @@ function FindDonors() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[280px_1fr]">
-          <Card className="h-fit">
+          <Card className="h-fit min-w-0">
             <CardHeader>
               <CardTitle className="text-base">Blood bank map</CardTitle>
             </CardHeader>
@@ -115,7 +115,7 @@ function FindDonors() {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden relative isolate z-0 rounded-2xl">
+          <Card className="overflow-hidden relative isolate z-0 rounded-2xl min-w-0">
             <CardContent className="p-0">
               <ClientOnly fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>
                 <Suspense fallback={<Skeleton className="h-[320px] sm:h-[420px] lg:h-[520px] 2xl:h-[600px] w-full" />}>

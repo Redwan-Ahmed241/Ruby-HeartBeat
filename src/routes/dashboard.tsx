@@ -570,7 +570,7 @@ export default function UnifiedDashboardPage() {
           /* ========================================================================= */
           <div className="space-y-8">
             {/* Quick Action CTA Banner */}
-            <div className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/10 via-background to-primary/5 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+            <div className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/10 via-background to-primary/5 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs min-w-0">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge className="bg-primary text-primary-foreground text-[10px]">RECIPIENT PORTAL</Badge>
@@ -581,10 +581,10 @@ export default function UnifiedDashboardPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
                 <Link
                   to="/request-blood"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+                  className="w-full sm:w-auto justify-center inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
                 >
                   <PlusCircle className="size-4" />
                   <span>Create Blood Request</span>
@@ -680,7 +680,7 @@ export default function UnifiedDashboardPage() {
                 {selectedMapRequest.hospital_name || selectedMapRequest.required_location} • {selectedMapRequest.area_zone}
               </DialogDescription>
             </DialogHeader>
-            <div className="h-[350px] w-full rounded-lg overflow-hidden border border-border">
+            <div className="h-[240px] sm:h-[350px] w-full rounded-lg overflow-hidden border border-border">
               <Suspense
                 fallback={
                   <div className="h-full w-full flex items-center justify-center bg-muted">
@@ -802,11 +802,11 @@ function DashboardRequestRow({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs flex flex-col gap-3">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs flex flex-col gap-3 min-w-0">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-lg font-black text-primary">
               {formatBloodGroup(req.blood_group, "symbol")}
             </span>
@@ -815,21 +815,21 @@ function DashboardRequestRow({
             </Badge>
             {renderStatusBadge()}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground break-words">
             Hospital: <strong className="text-foreground">{req.hospital_name || req.required_location}</strong> •{" "}
             {req.area_zone} • {req.quantity} unit(s) ({req.volume_ml ?? Number(req.quantity) * 450} mL)
           </p>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 flex-wrap">
             <Clock className="size-3 text-muted-foreground shrink-0" />
             <span>Posted: <strong className="text-foreground">{formatExactWithRelative(req.request_date)}</strong></span>
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
-            className="text-xs font-semibold cursor-pointer"
+            className="text-xs font-semibold cursor-pointer w-full sm:w-auto"
             onClick={() => onViewMap(req)}
           >
             <MapPin className="size-3.5 text-primary mr-1" /> View Map
@@ -838,7 +838,7 @@ function DashboardRequestRow({
           <Link
             to="/request/$requestId"
             params={{ requestId: req.request_id }}
-            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
+            className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors w-full sm:w-auto"
           >
             <span>Landing Page</span>
             <ExternalLink className="size-3 text-muted-foreground" />
@@ -848,17 +848,17 @@ function DashboardRequestRow({
 
       {/* Special State 1: Request is ACCEPTED by a Donor */}
       {req.status === "ACCEPTED" && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 space-y-3 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="p-2 rounded-full bg-emerald-500/20 text-emerald-600 shrink-0">
                 <CheckCircle2 className="size-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h4 className="text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-200">
                   Donor Accepted! Call them to coordinate donation.
                 </h4>
-                <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 break-words">
                   {req.accepted_donor ? (
                     <>
                       <strong>{req.accepted_donor.full_name}</strong> from{" "}
@@ -875,7 +875,7 @@ function DashboardRequestRow({
             {req.accepted_donor?.phone && (
               <a
                 href={`tel:${req.accepted_donor.phone}`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors shrink-0"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors shrink-0"
               >
                 <Phone className="size-3.5" /> Call Donor
               </a>
@@ -885,7 +885,7 @@ function DashboardRequestRow({
           {/* Mutual Completion Status details (Part 2.2) */}
           {activeMatch && (
             <div className="rounded-lg bg-background/80 border border-emerald-500/30 p-2.5 text-xs space-y-1">
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-muted-foreground">
                 <span className="font-medium">Mutual Verification Status:</span>
                 <span className="font-semibold text-foreground">
                   {activeMatch.donor_confirmed_completion && activeMatch.recipient_confirmed_completion
@@ -904,7 +904,7 @@ function DashboardRequestRow({
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-emerald-500/20">
             <Button
               size="sm"
-              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
+              className="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
               disabled={activeMatch?.recipient_confirmed_completion || confirmMatchMutation.isPending || completeMutation.isPending}
               onClick={() => setCompleteDialogOpen(true)}
             >
@@ -917,7 +917,7 @@ function DashboardRequestRow({
             <Button
               size="sm"
               variant="outline"
-              className="text-xs text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+              className="w-full sm:w-auto text-xs text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
               onClick={() => setReopenDialogOpen(true)}
             >
               <RotateCcw className="size-3.5 mr-1" />
@@ -929,12 +929,12 @@ function DashboardRequestRow({
 
       {/* Special State 2: Request is OPEN and looking for donors */}
       {req.status === "OPEN" && (
-        <div className="rounded-lg bg-muted/40 p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="rounded-lg bg-muted/40 p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground min-w-0">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-blue-500 animate-ping" />
-            <span>Search Active — Intelligent Matching Engine alerting nearby candidates.</span>
+            <span className="size-2 rounded-full bg-blue-500 animate-ping shrink-0" />
+            <span className="break-words">Search Active — Intelligent Matching Engine alerting nearby candidates.</span>
           </div>
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
             <Button
               variant="outline"
               size="sm"
@@ -946,7 +946,7 @@ function DashboardRequestRow({
             <Link
               to="/request/$requestId"
               params={{ requestId: req.request_id }}
-              className="font-semibold text-primary hover:underline ml-1"
+              className="font-semibold text-primary hover:underline text-xs"
             >
               Direct Emergency Link →
             </Link>
