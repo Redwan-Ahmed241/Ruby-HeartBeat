@@ -347,11 +347,11 @@ export function SiteNav() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-xs"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white border border-white/40 rounded-full hover:bg-white hover:text-[#800000] focus:ring-2 focus:ring-white/50 transition-all duration-200 cursor-pointer shadow-xs"
                 title="Logout of current session"
               >
                 <LogOut className="size-3.5" />
-                <span className="hidden md:inline">Logout</span>
+                <span>Logout</span>
               </button>
             </div>
           )}
