@@ -326,6 +326,19 @@ function ProfilePage() {
           {/* TAB 1: EDITABLE PROFILE & SETTINGS                                        */}
           {/* ========================================================================= */}
           <TabsContent value="profile" className="space-y-6">
+            {/* Notice for older or default Date of Birth accounts */}
+            {(!dateOfBirth || dateOfBirth === "2000-01-01") && (
+              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2.5 shadow-xs animate-in fade-in duration-200">
+                <Info className="size-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold">Verify Your Date of Birth</p>
+                  <p className="text-[11px] text-blue-800 dark:text-blue-300">
+                    Please verify your Date of Birth to ensure accurate donation eligibility.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSaveChanges} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Left 2 Columns: Editable Inputs */}
