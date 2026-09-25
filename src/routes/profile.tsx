@@ -33,8 +33,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityLedger } from "@/components/ActivityLedger";
 import { useCurrentUser, useUpdateUserProfile } from "@/hooks/useAuth";
-import { useDonorEligibility } from "@/hooks/useDonor";
-import { formatDateOnly } from "@/lib/dateUtils";
+import { formatDateOnly, calculateAge } from "@/lib/dateUtils";
+import { toast } from "sonner";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import type { BloodGroup } from "@/lib/api/types";
 
@@ -98,10 +98,14 @@ function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [backupPhone, setBackupPhone] = useState("");
-  const [age, setAge] = useState<string>("22");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [weight, setWeight] = useState<string>("65");
+  const [hemoglobin, setHemoglobin] = useState<string>("13.5");
   const [locationZone, setLocationZone] = useState("");
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [lastDonationDate, setLastDonationDate] = useState("");
+
+  const calculatedAge = calculateAge(dateOfBirth) ?? (user?.age ?? user?.donor?.age ?? null);
 
   // Populate initial state from user
   useEffect(() => {
@@ -109,10 +113,17 @@ function ProfilePage() {
       setFullName(user.full_name || "");
       setPhone(user.phone || "");
       setBackupPhone(user.backup_phone || "");
-      if (user.donor?.age) {
-        setAge(String(user.donor.age));
-      } else if (eligibility?.age) {
-        setAge(String(eligibility.age));
+
+      const dob = user.date_of_birth || user.donor?.date_of_birth || "";
+      if (dob) {
+        setDateOfBirth(dob.slice(0, 10));
+      }
+
+      if (user.donor?.weight !== undefined && user.donor?.weight !== null) {
+        setWeight(String(user.donor.weight));
+      }
+      if (user.donor?.medical_info?.hemoglobin_level !== undefined && user.donor?.medical_info?.hemoglobin_level !== null) {
+        setHemoglobin(String(user.donor.medical_info.hemoglobin_level));
       }
       
       const donorAddress = user.donor?.address || "";
@@ -167,11 +178,28 @@ function ProfilePage() {
 
   const handleSaveChanges = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (user?.role === "DONOR" && dateOfBirth) {
+      const liveAge = calculateAge(dateOfBirth);
+      if (liveAge !== null && liveAge < 18) {
+        toast.error(`Donor must be at least 18 years old (Current age: ${liveAge} years).`);
+        return;
+      }
+      if (liveAge !== null && liveAge > 65) {
+        toast.error(`Maximum eligible age for regular blood donation is 65 years (Current age: ${liveAge} years).`);
+        return;
+      }
+    }
+
     updateProfileMutation.mutate({
       full_name: fullName.trim(),
       phone: phone.trim(),
       backup_phone: backupPhone.trim() || null,
-      age: age ? Number(age) : undefined,
+      date_of_birth: dateOfBirth || null,
+      age: calculatedAge ?? undefined,
+      weight: weight ? parseFloat(weight) : undefined,
+      hemoglobin: hemoglobin ? parseFloat(hemoglobin) : undefined,
+      hemoglobin_level: hemoglobin ? parseFloat(hemoglobin) : undefined,
       address: locationZone,
       location_zone: locationZone,
       blood_group: bloodGroup,
@@ -243,7 +271,7 @@ function ProfilePage() {
                   <span>•</span>
                   <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
                     <ShieldCheck className="size-3.5" />
-                    Age: <strong>{age || user.donor?.age || 22} Years ({Number(age || user.donor?.age || 22) >= 18 && Number(age || user.donor?.age || 22) <= 65 ? "Eligible" : "Ineligible"})</strong>
+                    Age: <strong>{calculatedAge ? `${calculatedAge} Years` : "N/A"} ({calculatedAge && calculatedAge >= 18 && calculatedAge <= 65 ? "Eligible" : "Ineligible"})</strong>
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
@@ -313,7 +341,7 @@ function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-5 space-y-4">
-                      {/* Full Name & Age */}
+                      {/* Full Name & Date of Birth */}
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div className="sm:col-span-2 space-y-1.5">
                           <Label htmlFor="full_name" className="text-xs font-semibold">
@@ -331,20 +359,20 @@ function ProfilePage() {
 
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <Label htmlFor="age" className="text-xs font-semibold flex items-center gap-1">
-                              <User className="size-3 text-primary" />
-                              Age (Years) *
+                            <Label htmlFor="date_of_birth" className="text-xs font-semibold flex items-center gap-1">
+                              <Calendar className="size-3 text-primary" />
+                              Date of Birth *
                             </Label>
-                            <span className="text-[10px] text-muted-foreground font-medium">18-65 yrs</span>
+                            <Badge variant="outline" className="text-[10px] font-semibold text-primary border-primary/30">
+                              Calculated Age: {calculatedAge ? `${calculatedAge} years` : 'N/A'}
+                            </Badge>
                           </div>
                           <Input
-                            id="age"
-                            type="number"
-                            min={18}
-                            max={65}
-                            value={age}
-                            onChange={(e) => setAge(e.target.value)}
-                            placeholder="e.g. 22"
+                            id="date_of_birth"
+                            type="date"
+                            max={new Date().toISOString().slice(0, 10)}
+                            value={dateOfBirth}
+                            onChange={(e) => setDateOfBirth(e.target.value)}
                             required
                             className="text-xs"
                           />
@@ -419,10 +447,10 @@ function ProfilePage() {
                     <CardHeader className="pb-4 border-b border-border/50">
                       <CardTitle className="text-base font-bold flex items-center gap-2">
                         <Droplet className="size-4 text-red-500" />
-                        Blood Group & Donation Cooldown
+                        Medical Details & Clinical Information
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Configure your blood group and manually update previous donation dates to calculate recovery cooldown.
+                        Configure your blood group, clinical metrics (weight & hemoglobin), and recovery cooldown.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-5 space-y-4">
@@ -468,6 +496,50 @@ function ProfilePage() {
                           />
                           <p className="text-[10px] text-muted-foreground">
                             Record a prior donation outside LifeDrop to initiate your 90-day recovery window.
+                          </p>
+                        </div>
+
+                        {/* Weight (kg) */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="weight" className="text-xs font-semibold flex items-center gap-1">
+                              <span>Weight (kg) *</span>
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground font-medium">&ge; 50.0 kg</span>
+                          </div>
+                          <Input
+                            id="weight"
+                            type="number"
+                            step="0.5"
+                            placeholder="e.g. 62"
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            className="text-xs"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            Standard clinical minimum for safe donor blood donation is 50.0 kg.
+                          </p>
+                        </div>
+
+                        {/* Hemoglobin (g/dL) */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="hemoglobin" className="text-xs font-semibold flex items-center gap-1">
+                              <span>Hemoglobin (g/dL) *</span>
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground font-medium">&ge; 12.5 g/dL</span>
+                          </div>
+                          <Input
+                            id="hemoglobin"
+                            type="number"
+                            step="0.1"
+                            placeholder="e.g. 13.5"
+                            value={hemoglobin}
+                            onChange={(e) => setHemoglobin(e.target.value)}
+                            className="text-xs"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            Safe clinical donation threshold is &ge; 12.5 g/dL.
                           </p>
                         </div>
                       </div>
@@ -522,20 +594,20 @@ function ProfilePage() {
                       <div className="rounded-lg bg-muted/40 border border-border/60 p-3 space-y-2 text-xs">
                         <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
                           <span className="text-muted-foreground">Clinical Age:</span>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            Age: {age || user.donor?.age || 22} Years (Eligible)
+                          <span className={`font-semibold ${calculatedAge && calculatedAge >= 18 && calculatedAge <= 65 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                            Age: {calculatedAge ? `${calculatedAge} Years` : "N/A"} ({calculatedAge && calculatedAge >= 18 && calculatedAge <= 65 ? "Eligible" : "Ineligible"})
                           </span>
                         </div>
                         <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
                           <span className="text-muted-foreground">Body Weight (&ge; 50 kg):</span>
-                          <span className="font-semibold text-foreground">
-                            {user.donor?.weight ?? 65} kg ({Number(user.donor?.weight ?? 65) >= 50 ? "Eligible" : "Underweight"})
+                          <span className={`font-semibold ${Number(weight) >= 50 ? "text-foreground" : "text-destructive"}`}>
+                            {weight ? `${weight} kg` : "N/A"} ({Number(weight) >= 50 ? "Eligible" : "Underweight"})
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Hemoglobin (&ge; 12.5 g/dL):</span>
-                          <span className="font-semibold text-foreground">
-                            {user.donor?.medical_info?.hemoglobin_level ?? 14.0} g/dL (Eligible)
+                          <span className={`font-semibold ${Number(hemoglobin) >= 12.5 ? "text-foreground" : "text-destructive"}`}>
+                            {hemoglobin ? `${hemoglobin} g/dL` : "N/A"} ({Number(hemoglobin) >= 12.5 ? "Eligible" : "Low"})
                           </span>
                         </div>
                       </div>

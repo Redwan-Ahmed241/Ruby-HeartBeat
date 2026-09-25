@@ -106,10 +106,10 @@ export interface UserRegisterRequest {
   email: string;
   phone: string;
   password: string;
+  date_of_birth: string; // Strictly mandatory (YYYY-MM-DD)
   role?: UserRole;
   age?: number | undefined;
   blood_group?: BloodGroup;
-  date_of_birth?: string;
   gender?: string;
   weight?: number;
   address?: string;
@@ -163,6 +163,8 @@ export interface UserResponse {
   backup_phone?: string | null;
   role: UserRole;
   status: UserStatus;
+  date_of_birth?: string | null;
+  age?: number | null;
   nid_or_birth_cert?: string | null;
   created_at: string;
   updated_at: string;
@@ -176,6 +178,10 @@ export interface UserProfileUpdate {
   phone?: string;
   backup_phone?: string | null;
   age?: number | undefined;
+  date_of_birth?: string | null;
+  weight?: number | null;
+  hemoglobin?: number | null;
+  hemoglobin_level?: number | null;
   address?: string;
   location_zone?: string;
   blood_group?: BloodGroup;

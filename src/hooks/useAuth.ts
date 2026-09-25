@@ -77,8 +77,11 @@ export function useUpdateUserProfile() {
     onSuccess: (data) => {
       queryClient.setQueryData(AUTH_KEYS.me, data);
       queryClient.invalidateQueries({ queryKey: AUTH_KEYS.me });
-      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["donorProfile"] });
       queryClient.invalidateQueries({ queryKey: ["donor-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["medicalInfo"] });
+      queryClient.invalidateQueries({ queryKey: ["donor-eligibility"] });
       queryClient.invalidateQueries({ queryKey: ["donor-history"] });
       queryClient.invalidateQueries({ queryKey: ["requests"] });
       toast.success("Profile and donation records updated successfully.");

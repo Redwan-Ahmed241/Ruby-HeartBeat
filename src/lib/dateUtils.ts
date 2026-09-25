@@ -75,3 +75,20 @@ export function formatExactWithRelative(isoString: string | null | undefined): s
   if (!relative || relative === "Just now") return exact;
   return `${exact} (${relative})`;
 }
+
+export function calculateAge(dobString: string | null | undefined): number | null {
+  if (!dobString) return null;
+  try {
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return null;
+  }
+}

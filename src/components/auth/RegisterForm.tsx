@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { UserRole, BloodGroup } from "@/lib/api/types";
+import { calculateAge } from "@/lib/dateUtils";
 import { toast } from "sonner";
 
 interface RegisterFormProps {
@@ -28,33 +29,41 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
   const [phone, setPhone] = useState("+8801700000000");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [age, setAge] = useState<string>("22");
+  const [dateOfBirth, setDateOfBirth] = useState<string>("");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [address, setAddress] = useState("Banani, Dhaka");
   const [nidOrBirthCert, setNidOrBirthCert] = useState("");
 
-  const numAge = age ? Number(age) : undefined;
+  const calculatedAge = calculateAge(dateOfBirth);
   const isDonor = role === "DONOR";
-  const isUnderage = isDonor && numAge !== undefined && numAge < 18;
-  const isOverage = isDonor && numAge !== undefined && numAge > 65;
-  const isAgeValid = !isDonor || (numAge !== undefined && numAge >= 18 && numAge <= 65);
+  const isUnderage = isDonor && calculatedAge !== null && calculatedAge < 18;
+  const isOverage = isDonor && calculatedAge !== null && calculatedAge > 65;
+  const isAgeValid = !isDonor 
+    ? (calculatedAge !== null && calculatedAge >= 1) 
+    : (calculatedAge !== null && calculatedAge >= 18 && calculatedAge <= 65);
 
-  const isSubmitDisabled = registerMutation.isPending || (isDonor && !isAgeValid);
+  const isSubmitDisabled = registerMutation.isPending || !dateOfBirth || (isDonor && !isAgeValid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!dateOfBirth) {
+      toast.error("Date of birth is required.");
+      return;
+    }
+
+    if (calculatedAge === null || calculatedAge < 1) {
+      toast.error("Please provide a valid date of birth.");
+      return;
+    }
+
     if (isDonor) {
-      if (!numAge) {
-        toast.error("Age is required for blood donor registration.");
+      if (calculatedAge < 18) {
+        toast.error(`You must be at least 18 years old to register as a blood donor (Selected age: ${calculatedAge} years old).`);
         return;
       }
-      if (numAge < 18) {
-        toast.error("You must be at least 18 years old to register as a blood donor.");
-        return;
-      }
-      if (numAge > 65) {
-        toast.error("Maximum eligible age for regular blood donation is 65 years.");
+      if (calculatedAge > 65) {
+        toast.error(`Maximum eligible age for regular blood donation is 65 years (Selected age: ${calculatedAge} years old).`);
         return;
       }
     }
@@ -66,7 +75,8 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
         phone: phone.trim(),
         password,
         role,
-        age: numAge,
+        date_of_birth: dateOfBirth,
+        age: calculatedAge ?? undefined,
         blood_group: selectedBloodGroup || "O_POSITIVE",
         address: address.trim() || "Dhaka, Bangladesh",
         gender: "Other",
@@ -219,26 +229,25 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
         </div>
       </div>
 
-      {/* Dynamic Age Input Field */}
+      {/* Mandatory Date of Birth Field */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <Label htmlFor="reg-age" className="text-xs font-semibold flex items-center gap-1">
-            <span>Age (Years)</span>
-            {isDonor && <span className="text-destructive">*</span>}
+          <Label htmlFor="reg-dob" className="text-xs font-semibold flex items-center gap-1">
+            <span>Date of Birth</span>
+            <span className="text-destructive">*</span>
           </Label>
           <span className="text-[10px] text-muted-foreground">
-            {isDonor ? "Donors must be 18 to 65 years old to donate." : "Optional"}
+            {isDonor ? "Donors must be 18 to 65 years old." : "Strictly required"}
           </span>
         </div>
         <Input
-          id="reg-age"
-          type="number"
-          min="1"
-          max="100"
-          placeholder="e.g. 21"
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-          required={isDonor}
+          id="reg-dob"
+          name="date_of_birth"
+          type="date"
+          required
+          max={new Date().toISOString().split("T")[0]}
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
           className={`text-xs h-9 ${
             isUnderage || isOverage
               ? "border-destructive focus-visible:ring-destructive"
@@ -246,26 +255,30 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
           }`}
         />
 
-        {/* Client-Side Instant Validation Feedback */}
-        {isUnderage && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive mt-1 p-1.5 rounded-md bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>⚠️ You must be at least 18 years old to donate blood.</span>
-          </div>
-        )}
+        {/* Real-time Dynamic Age Feedback */}
+        {calculatedAge !== null && (
+          <div className="mt-1">
+            {isUnderage && (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive p-2 rounded-md bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>⚠️ You must be at least 18 years old to register as a blood donor (Selected age: {calculatedAge} years old)</span>
+              </div>
+            )}
 
-        {isOverage && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive mt-1 p-1.5 rounded-md bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">
-            <AlertCircle className="size-3.5 shrink-0" />
-            <span>⚠️ Maximum eligible age for regular blood donation is 65 years.</span>
-          </div>
-        )}
+            {isOverage && (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive p-2 rounded-md bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>⚠️ Maximum eligible age for regular blood donation is 65 years (Selected age: {calculatedAge} years old)</span>
+              </div>
+            )}
 
-        {isDonor && !isUnderage && !isOverage && numAge !== undefined && numAge >= 18 && (
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-            <ShieldCheck className="size-3.5" />
-            <span>Age {numAge} meets legal & clinical donation requirements.</span>
-          </p>
+            {((isDonor && !isUnderage && !isOverage) || (!isDonor && calculatedAge >= 1)) && (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                <ShieldCheck className="size-3.5" />
+                <span>✓ Age: {calculatedAge} years old {isDonor ? "(Eligible for donation)" : "(Valid)"}</span>
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -317,8 +330,12 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
       >
         {registerMutation.isPending
           ? "Creating Account..."
+          : !dateOfBirth
+          ? "Select Date of Birth"
           : isUnderage
           ? "Cannot Register Under 18"
+          : isOverage
+          ? "Exceeds Eligible Age (65)"
           : "Create Account"}
       </Button>
     </form>
