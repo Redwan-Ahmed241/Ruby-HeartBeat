@@ -28,6 +28,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useDonorEligibility } from "@/hooks/useDonor";
 import {
   useBloodRequests,
   useRespondToMatch,
@@ -66,6 +67,7 @@ function getUrgencyBadge(urgency: RequestUrgency) {
 
 export function NotificationHub() {
   const { data: user } = useCurrentUser();
+  const { data: eligibility } = useDonorEligibility(!!user && user.role === "DONOR");
   const { data: requests, isLoading: requestsLoading, refetch } = useBloodRequests();
   const respondMutation = useRespondToMatch();
   const revealMutation = useRevealDonorContact();
@@ -117,6 +119,27 @@ export function NotificationHub() {
   );
   const hasActiveCommitment = activeCommitments.length > 0;
 
+  // Clinical recovery cooldown check (from server eligibility or donor last_donation_date fallback)
+  const isCooldownActive = Boolean(
+    eligibility?.cooldown_active ||
+    (user?.donor?.last_donation_date && (
+      (Date.now() - new Date(user.donor.last_donation_date).getTime()) < 90 * 24 * 60 * 60 * 1000 &&
+      (Date.now() - new Date(user.donor.last_donation_date).getTime()) >= 0
+    ))
+  );
+
+  const cooldownDaysRemaining = eligibility?.cooldown_days_remaining ?? (
+    user?.donor?.last_donation_date
+      ? Math.max(0, 90 - Math.floor((Date.now() - new Date(user.donor.last_donation_date).getTime()) / (24 * 60 * 60 * 1000)))
+      : 0
+  );
+
+  const nextEligibleDate = eligibility?.next_eligible_date ?? (
+    user?.donor?.last_donation_date
+      ? new Date(new Date(user.donor.last_donation_date).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null
+  );
+
   // Pending donor requests requiring action
   const pendingDonorMatches = donorMatchedItems.filter(
     (item) => item.match.response_status === "PENDING"
@@ -162,6 +185,13 @@ export function NotificationHub() {
 
   // Donor action handlers
   const handleDonorResponse = (matchId: string, response: "ACCEPTED" | "DECLINED") => {
+    if (response === "ACCEPTED" && isCooldownActive) {
+      toast.error(
+        `Clinical Safety Cooldown: You donated recently (${cooldownDaysRemaining} days remaining until ${nextEligibleDate}). You cannot accept new donation requests during your recovery period.`
+      );
+      return;
+    }
+
     respondMutation.mutate(
       { matchId, payload: { response, response_status: response } },
       {
@@ -413,6 +443,21 @@ export function NotificationHub() {
                   </Badge>
                 </div>
 
+                {/* Clinical Recovery Cooldown Banner */}
+                {isCooldownActive && (
+                  <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2.5">
+                    <ShieldAlert className="size-4 shrink-0 mt-0.5 text-destructive" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-destructive">
+                        Clinical Recovery Cooldown Active ({cooldownDaysRemaining} days remaining)
+                      </p>
+                      <p className="text-[11px] opacity-90 leading-relaxed">
+                        You recently completed a blood donation. To protect donor health and ensure red blood cell recovery, a 90-day recovery interval is strictly enforced. You will become eligible to donate again on <strong>{nextEligibleDate}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {hasActiveCommitment && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
                     <ShieldAlert className="size-4 text-amber-600 shrink-0 mt-0.5" />
@@ -482,13 +527,21 @@ export function NotificationHub() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 w-full">
                           <Button
                             size="sm"
-                            className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white min-w-0"
-                            disabled={respondMutation.isPending || hasActiveCommitment}
-                            title={hasActiveCommitment ? "You have an active donation commitment in progress." : undefined}
+                            className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white min-w-0 disabled:opacity-50"
+                            disabled={respondMutation.isPending || hasActiveCommitment || isCooldownActive}
+                            title={
+                              isCooldownActive
+                                ? `In 90-day recovery cooldown (${cooldownDaysRemaining} days remaining)`
+                                : hasActiveCommitment
+                                ? "You have an active donation commitment in progress."
+                                : undefined
+                            }
                             onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
                           >
                             <Check className="mr-1.5 size-3.5 shrink-0" />
-                            <span className="truncate">Accept Request</span>
+                            <span className="truncate">
+                              {isCooldownActive ? "In Cooldown" : "Accept Request"}
+                            </span>
                           </Button>
                           <Button
                             size="sm"
@@ -501,7 +554,13 @@ export function NotificationHub() {
                             <span className="truncate">Decline Request</span>
                           </Button>
                         </div>
-                        {hasActiveCommitment && (
+                        {isCooldownActive && (
+                          <p className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                            <ShieldAlert className="size-3 shrink-0" />
+                            <span>Cooldown active until {nextEligibleDate} ({cooldownDaysRemaining} days remaining). Acceptance disabled.</span>
+                          </p>
+                        )}
+                        {hasActiveCommitment && !isCooldownActive && (
                           <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
                             * You have an active donation commitment in progress.
                           </p>

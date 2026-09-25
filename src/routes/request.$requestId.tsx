@@ -13,13 +13,16 @@ import {
   Phone,
   PhoneCall,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   UserCheck,
   RotateCcw,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useBloodRequest, useAcceptRequest, useReopenRequest } from "@/hooks/useRequests";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useDonorEligibility } from "@/hooks/useDonor";
 import { formatBloodGroup } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +62,29 @@ function RequestLandingPage() {
   const navigate = useNavigate();
   const { data: req, isLoading, error } = useBloodRequest(requestId);
   const { data: currentUser } = useCurrentUser();
+  const { data: eligibility } = useDonorEligibility(!!currentUser && currentUser.role === "DONOR");
   const acceptMutation = useAcceptRequest();
+
+  // Clinical recovery cooldown check (from server eligibility or donor last_donation_date fallback)
+  const isCooldownActive = Boolean(
+    eligibility?.cooldown_active ||
+    (currentUser?.donor?.last_donation_date && (
+      (Date.now() - new Date(currentUser.donor.last_donation_date).getTime()) < 90 * 24 * 60 * 60 * 1000 &&
+      (Date.now() - new Date(currentUser.donor.last_donation_date).getTime()) >= 0
+    ))
+  );
+
+  const cooldownDaysRemaining = eligibility?.cooldown_days_remaining ?? (
+    currentUser?.donor?.last_donation_date
+      ? Math.max(0, 90 - Math.floor((Date.now() - new Date(currentUser.donor.last_donation_date).getTime()) / (24 * 60 * 60 * 1000)))
+      : 0
+  );
+
+  const nextEligibleDate = eligibility?.next_eligible_date ?? (
+    currentUser?.donor?.last_donation_date
+      ? new Date(new Date(currentUser.donor.last_donation_date).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null
+  );
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
@@ -122,6 +147,12 @@ function RequestLandingPage() {
   const handleDonateClick = () => {
     if (!currentUser) {
       setAuthPromptOpen(true);
+      return;
+    }
+    if (isCooldownActive) {
+      toast.error(
+        `Clinical Safety Cooldown: You donated recently (${cooldownDaysRemaining} days remaining until ${nextEligibleDate}). You cannot accept new donation requests during your recovery period.`
+      );
       return;
     }
     setConfirmModalOpen(true);
@@ -384,15 +415,27 @@ function RequestLandingPage() {
 
             {/* CTA Flow Buttons */}
             {req.status === "OPEN" && !isOwner && (
-              <Button
-                size="lg"
-                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-6 py-6 shadow-md shrink-0"
-                onClick={handleDonateClick}
-                disabled={acceptMutation.isPending}
-              >
-                <HeartHandshake className="size-5 mr-2" />
-                {acceptMutation.isPending ? "Accepting..." : "I Want to Donate & Share My Contact"}
-              </Button>
+              isCooldownActive ? (
+                <div className="flex flex-col items-center sm:items-end gap-1.5 w-full sm:w-auto">
+                  <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 text-xs px-3 py-1.5 flex items-center gap-1.5 font-semibold">
+                    <ShieldAlert className="size-3.5 shrink-0" />
+                    <span>In 90-Day Cooldown ({cooldownDaysRemaining} days remaining)</span>
+                  </Badge>
+                  <p className="text-[11px] text-muted-foreground text-center sm:text-right">
+                    Eligible to donate again on <strong>{nextEligibleDate}</strong>
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-6 py-6 shadow-md shrink-0"
+                  onClick={handleDonateClick}
+                  disabled={acceptMutation.isPending}
+                >
+                  <HeartHandshake className="size-5 mr-2" />
+                  {acceptMutation.isPending ? "Accepting..." : "I Want to Donate & Share My Contact"}
+                </Button>
+              )
             )}
 
             {isAcceptedByMe && (
