@@ -174,18 +174,18 @@ export interface UserResponse {
 }
 
 export interface UserProfileUpdate {
-  full_name?: string;
-  phone?: string;
-  backup_phone?: string | null;
+  full_name?: string | undefined;
+  phone?: string | undefined;
+  backup_phone?: string | null | undefined;
   age?: number | undefined;
-  date_of_birth?: string | null;
-  weight?: number | null;
-  hemoglobin?: number | null;
-  hemoglobin_level?: number | null;
-  address?: string;
-  location_zone?: string;
-  blood_group?: BloodGroup;
-  last_donation_date?: string | null;
+  date_of_birth?: string | null | undefined;
+  weight?: number | null | undefined;
+  hemoglobin?: number | null | undefined;
+  hemoglobin_level?: number | null | undefined;
+  address?: string | undefined;
+  location_zone?: string | undefined;
+  blood_group?: BloodGroup | undefined;
+  last_donation_date?: string | null | undefined;
 }
 
 // ============================================================================

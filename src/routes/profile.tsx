@@ -33,6 +33,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityLedger } from "@/components/ActivityLedger";
 import { useCurrentUser, useUpdateUserProfile } from "@/hooks/useAuth";
+import { useDonorEligibility } from "@/hooks/useDonor";
 import { formatDateOnly, calculateAge } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { toDisplayBloodGroup } from "@/lib/api/types";
