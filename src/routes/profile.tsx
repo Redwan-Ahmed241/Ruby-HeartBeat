@@ -33,7 +33,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityLedger } from "@/components/ActivityLedger";
 import { useCurrentUser, useUpdateUserProfile } from "@/hooks/useAuth";
-import { useDonorEligibility } from "@/hooks/useDonor";
+import { useDonorEligibility, useDonorHistory } from "@/hooks/useDonor";
 import { formatDateOnly, calculateAge } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { toDisplayBloodGroup } from "@/lib/api/types";
@@ -93,6 +93,7 @@ function ProfilePage() {
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const { data: eligibility } = useDonorEligibility(!!user);
+  const { data: historyItems } = useDonorHistory(!!user);
   const updateProfileMutation = useUpdateUserProfile();
 
   // Form states
@@ -108,7 +109,7 @@ function ProfilePage() {
 
   const calculatedAge = calculateAge(dateOfBirth) ?? (user?.age ?? user?.donor?.age ?? null);
 
-  // Populate initial state from user
+  // Populate initial state from user, eligibility, and history
   useEffect(() => {
     if (user) {
       setFullName(user.full_name || "");
@@ -135,11 +136,19 @@ function ProfilePage() {
       if (user.donor?.blood_group) {
         setBloodGroup(user.donor.blood_group as BloodGroup);
       }
-      if (user.donor?.last_donation_date) {
-        setLastDonationDate(user.donor.last_donation_date.slice(0, 10));
+      
+      // Determine newest donation date from history, eligibility, or profile
+      const historyLatest = historyItems?.[0]?.donation_date ?? null;
+      const eligibilityLastDonation = eligibility?.last_donation_date ?? null;
+      const profileLastDonation = user.donor?.last_donation_date ?? null;
+      const candidates = [historyLatest, eligibilityLastDonation, profileLastDonation].filter(Boolean) as string[];
+      candidates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      const newestCandidate = candidates[0];
+      if (newestCandidate) {
+        setLastDonationDate(newestCandidate.slice(0, 10));
       }
     }
-  }, [user, eligibility]);
+  }, [user, eligibility, historyItems]);
 
   // Sync tab search param changes
   useEffect(() => {
@@ -148,23 +157,36 @@ function ProfilePage() {
     }
   }, [tab]);
 
-  // Calculate dynamic cooldown based on lastDonationDate
+  // Calculate dynamic cooldown based on eligibility authority or newest donation date
   const calculateCooldown = () => {
-    if (!lastDonationDate) {
+    if (eligibility?.cooldown_active) {
+      return {
+        isCooldownActive: true,
+        daysRemaining: eligibility.cooldown_days_remaining ?? 90,
+        nextEligibleDate: eligibility.next_eligible_date ?? null,
+      };
+    }
+
+    const historyLatest = historyItems?.[0]?.donation_date ?? null;
+    const candidate = lastDonationDate || user?.donor?.last_donation_date || historyLatest;
+    if (!candidate) {
       return { isCooldownActive: false, daysRemaining: 0, nextEligibleDate: null };
     }
-    const donationDate = new Date(lastDonationDate);
+    const donationDate = new Date(candidate);
     if (isNaN(donationDate.getTime())) {
       return { isCooldownActive: false, daysRemaining: 0, nextEligibleDate: null };
     }
+
     const today = new Date();
-    const diffTime = today.getTime() - donationDate.getTime();
+    const donationDay = new Date(donationDate.getFullYear(), donationDate.getMonth(), donationDate.getDate());
+    const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = currentDay.getTime() - donationDay.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 90 && diffDays >= 0) {
       const daysRemaining = 90 - diffDays;
-      const nextDate = new Date(donationDate);
-      nextDate.setDate(donationDate.getDate() + 90);
+      const nextDate = new Date(donationDay);
+      nextDate.setDate(donationDay.getDate() + 90);
       return {
         isCooldownActive: true,
         daysRemaining,
@@ -286,19 +308,19 @@ function ProfilePage() {
             {/* Quick Status Pill */}
             <div className="shrink-0 self-start sm:self-auto">
               {cooldownStatus.isCooldownActive ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <Clock className="size-3.5 text-amber-600" />
-                    <span>Cooldown Active</span>
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-950 dark:text-amber-200 space-y-1 shadow-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
+                    <Clock className="size-4 animate-pulse shrink-0" />
+                    <span>Cooldown Active ({cooldownStatus.daysRemaining} {cooldownStatus.daysRemaining === 1 ? "day" : "days"} left)</span>
                   </div>
                   <p className="text-[11px] text-amber-800 dark:text-amber-300">
-                    Eligible in <strong>{cooldownStatus.daysRemaining} days</strong> ({formatDateOnly(cooldownStatus.nextEligibleDate)})
+                    Eligible to donate on <strong>{formatDateOnly(cooldownStatus.nextEligibleDate)}</strong>
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-900 dark:text-emerald-200 space-y-1 shadow-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="size-4 shrink-0" />
                     <span>Eligible to Donate</span>
                   </div>
                   <p className="text-[11px] text-emerald-800 dark:text-emerald-300">

@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 import { NotificationHub } from "@/components/NotificationHub";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
-import { useToggleAvailability } from "@/hooks/useDonor";
+import { useToggleAvailability, useDonorEligibility } from "@/hooks/useDonor";
+import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,13 +47,16 @@ export function SiteNav() {
   const navigate = useNavigate();
   const logout = useLogout();
   const { data: user } = useCurrentUser();
+  const isRegularUser = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
+  const { data: eligibility } = useDonorEligibility(isRegularUser);
   const toggleAvailabilityMutation = useToggleAvailability();
 
-  const isRegularUser = !!user && (user.role === "DONOR" || user.role === "RECIPIENT");
   const isSysAdmin = user?.role === "SYSTEM_ADMIN";
   const isHospitalAdmin = user?.role === "HOSPITAL_ADMIN";
 
-  const isDonorAvailable = user?.donor?.availability_status === "AVAILABLE";
+  const isCooldownActive = !!eligibility?.cooldown_active;
+  const cooldownDays = eligibility?.cooldown_days_remaining ?? 0;
+  const isDonorAvailable = !isCooldownActive && user?.donor?.availability_status === "AVAILABLE";
 
   const currentPath = location.pathname;
   const searchParams = (location.search as Record<string, string>) || {};
@@ -85,6 +89,12 @@ export function SiteNav() {
     );
 
   const handleAvailabilityToggle = (checked: boolean) => {
+    if (isCooldownActive && checked) {
+      toast.error(
+        `Cannot set available while in 90-day recovery cooldown (${cooldownDays} days remaining until eligible).`,
+      );
+      return;
+    }
     toggleAvailabilityMutation.mutate({
       availability_status: checked ? "AVAILABLE" : "UNAVAILABLE",
     });
@@ -229,13 +239,24 @@ export function SiteNav() {
           {/* Donor Availability Toggle Switch for Unified Members */}
           {isRegularUser && (
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-primary-glow/60 bg-primary-glow/30 px-3 py-1 text-xs">
-              <span className="font-medium">{isDonorAvailable ? "Available to Donate" : "Unavailable"}</span>
+              <span className="font-medium">
+                {isCooldownActive
+                  ? `Cooldown (${cooldownDays}d left)`
+                  : isDonorAvailable
+                  ? "Available to Donate"
+                  : "Unavailable"}
+              </span>
               <Switch
                 checked={isDonorAvailable}
                 onCheckedChange={handleAvailabilityToggle}
-                disabled={toggleAvailabilityMutation.isPending}
+                disabled={toggleAvailabilityMutation.isPending || isCooldownActive}
                 className="scale-75 data-[state=checked]:bg-emerald-500"
                 aria-label="Toggle donor availability"
+                title={
+                  isCooldownActive
+                    ? `In 90-day recovery cooldown (${cooldownDays} days remaining)`
+                    : undefined
+                }
               />
             </div>
           )}
@@ -375,12 +396,17 @@ export function SiteNav() {
             {isRegularUser && (
               <div className="flex items-center justify-between rounded-md bg-primary-glow/30 px-3 py-2 text-xs mb-2">
                 <span className="font-semibold">
-                  Donor Status: {isDonorAvailable ? "Available to Donate" : "Unavailable"}
+                  Donor Status:{" "}
+                  {isCooldownActive
+                    ? `Cooldown (${cooldownDays}d left)`
+                    : isDonorAvailable
+                    ? "Available to Donate"
+                    : "Unavailable"}
                 </span>
                 <Switch
                   checked={isDonorAvailable}
                   onCheckedChange={handleAvailabilityToggle}
-                  disabled={toggleAvailabilityMutation.isPending}
+                  disabled={toggleAvailabilityMutation.isPending || isCooldownActive}
                   className="scale-90 data-[state=checked]:bg-emerald-500"
                 />
               </div>
