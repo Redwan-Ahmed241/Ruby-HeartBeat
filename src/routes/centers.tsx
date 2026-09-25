@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import {
   Building2,
   MapPin,
@@ -13,6 +13,9 @@ import {
   Mail,
   CheckCircle2,
   ShieldCheck,
+  Map,
+  LayoutGrid,
+  Loader2,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +28,9 @@ import { toDisplayBloodGroup } from "@/lib/api/types";
 import { formatBloodGroup } from "@/lib/formatters";
 import { ContactBloodBankModal, type BloodBankInfo } from "@/components/ContactBloodBankModal";
 import { toast } from "sonner";
+import type { BloodBankPin } from "@/components/BloodBankMap";
+
+const BloodBankMap = lazy(() => import("@/components/BloodBankMap"));
 
 export const Route = createFileRoute("/centers")({
   head: () => ({
@@ -44,6 +50,8 @@ export interface PartnerBloodBank extends BloodBankInfo {
   operatingHours: string;
   is24Hours: boolean;
   reservesHighlight?: string[];
+  lat: number;
+  lng: number;
 }
 
 const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
@@ -58,6 +66,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: true,
     type: "Public Tertiary Medical Center",
     reservesHighlight: ["Whole Blood", "Platelets", "PRBC"],
+    lat: 23.7260,
+    lng: 90.3975,
   },
   {
     id: "square",
@@ -70,6 +80,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: true,
     type: "Private Super Specialty",
     reservesHighlight: ["Apheresis Platelets", "Plasma", "Cryo"],
+    lat: 23.7525,
+    lng: 90.3813,
   },
   {
     id: "evercare",
@@ -82,6 +94,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: true,
     type: "JCI Accredited Facility",
     reservesHighlight: ["Irradiated Blood", "FFP", "Platelets"],
+    lat: 23.8131,
+    lng: 90.4255,
   },
   {
     id: "united",
@@ -94,6 +108,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: true,
     type: "Private Specialized Hospital",
     reservesHighlight: ["Whole Blood", "Platelet Concentrates"],
+    lat: 23.7933,
+    lng: 90.4152,
   },
   {
     id: "birdem",
@@ -106,6 +122,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: false,
     type: "Diabetic Association of Bangladesh",
     reservesHighlight: ["Packed RBC", "Whole Blood"],
+    lat: 23.7392,
+    lng: 90.3946,
   },
   {
     id: "popular",
@@ -118,6 +136,8 @@ const PARTNER_BLOOD_BANKS: PartnerBloodBank[] = [
     is24Hours: true,
     type: "Diagnostic & Transfusion Center",
     reservesHighlight: ["Plasma (FFP)", "PRBC Units"],
+    lat: 23.7461,
+    lng: 90.3742,
   },
 ];
 
@@ -131,6 +151,7 @@ function BloodBanksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArea, setSelectedArea] = useState("All");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
 
   // Contact modal state
   const [selectedBankForContact, setSelectedBankForContact] = useState<PartnerBloodBank | null>(null);
@@ -175,6 +196,23 @@ function BloodBanksPage() {
       return matchSearch && matchArea;
     });
   }, [searchQuery, selectedArea]);
+
+  // Derive BloodBankPin[] for the map from the filtered set
+  const mapBanks: BloodBankPin[] = useMemo(() => {
+    return filteredBloodBanks.map((b) => ({
+      id: b.id,
+      name: b.name,
+      area: b.area,
+      address: b.address,
+      phone: b.phone,
+      emergencyHotline: b.emergencyHotline,
+      operatingHours: b.operatingHours,
+      is24Hours: b.is24Hours,
+      type: b.type,
+      lat: b.lat,
+      lng: b.lng,
+    }));
+  }, [filteredBloodBanks]);
 
   const handleSyncStock = async () => {
     setIsSyncing(true);
@@ -294,11 +332,63 @@ function BloodBanksPage() {
                 {area}
               </button>
             ))}
+
+            {/* View Toggle: Grid / Map */}
+            <div className="ml-2 flex items-center rounded-lg border border-border/70 bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  viewMode === "grid"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid className="size-3.5" />
+                <span className="hidden sm:inline">Grid</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  viewMode === "map"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Map View"
+              >
+                <Map className="size-3.5" />
+                <span className="hidden sm:inline">Map</span>
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Interactive Map View */}
+        {viewMode === "map" && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="size-4 text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Partner Blood Bank Locations ({filteredBloodBanks.length} Centers)
+              </span>
+            </div>
+            <Suspense
+              fallback={
+                <div className="h-[380px] rounded-2xl border border-border bg-muted/20 flex items-center justify-center">
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading map…</span>
+                </div>
+              }
+            >
+              <BloodBankMap banks={mapBanks} />
+            </Suspense>
+          </div>
+        )}
+
         {/* Blood Bank Directory Cards Grid */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+        <div className={`mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full ${viewMode === "map" ? "hidden" : ""}`}>
           {filteredBloodBanks.map((bank) => {
             const isRequested = requestedBankIds.has(bank.id);
 
@@ -410,7 +500,7 @@ function BloodBanksPage() {
           })}
         </div>
 
-        {filteredBloodBanks.length === 0 && (
+        {filteredBloodBanks.length === 0 && viewMode === "grid" && (
           <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center">
             <Building2 className="mx-auto size-10 text-muted-foreground opacity-50" />
             <h3 className="mt-3 text-base font-semibold text-foreground">No matching blood banks</h3>
