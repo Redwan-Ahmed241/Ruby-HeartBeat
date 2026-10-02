@@ -85,8 +85,8 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
         address: address.trim() || "Dhaka, Bangladesh",
         gender: "Other",
         weight: 68.0,
-        latitude: 23.7937,
-        longitude: 90.4066,
+        latitude: latitude,
+        longitude: longitude,
         nid_or_birth_cert: nidOrBirthCert.trim() || undefined,
       });
 
@@ -288,16 +288,30 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
 
       {/* Area / City */}
       <div className="space-y-1">
-        <Label htmlFor="reg-address" className="text-xs font-semibold">
-          Area / City (Dhaka) *
-        </Label>
-        <Input
+        <div className="flex items-center justify-between">
+          <Label htmlFor="reg-address" className="text-xs font-semibold">
+            Area / City (Dhaka) *
+          </Label>
+          <span className="text-[10px] text-muted-foreground font-mono">
+            GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+          </span>
+        </div>
+        <LocationSelector
           id="reg-address"
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="e.g. Banani, Dhaka or Dhanmondi, Dhaka"
-          required
-          className="text-xs h-9"
+          onChange={(val) => {
+            setAddress(val);
+            const resolved = resolveCoordinates({ areaZone: val, rawAddress: val });
+            setLatitude(resolved.lat);
+            setLongitude(resolved.lng);
+          }}
+          onSelectCoordinates={(loc) => {
+            setAddress(loc.name);
+            setLatitude(loc.lat);
+            setLongitude(loc.lng);
+          }}
+          placeholder="Search or type area (e.g. Aftabnagar, Mirpur, Dhanmondi...)"
+          typeFilter="AREAS_ONLY"
         />
       </div>
 

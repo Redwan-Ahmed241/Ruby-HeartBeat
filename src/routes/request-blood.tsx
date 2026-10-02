@@ -14,8 +14,11 @@ import {
   Home,
   Zap,
   Building2,
+  Crosshair,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { LocationSelector } from "@/components/LocationSelector";
+import { resolveCoordinates } from "@/lib/locationService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -220,20 +223,27 @@ function RequestBlood() {
     setReviewModalOpen(true);
   };
 
+  // Dynamically resolve coordinates based on hospital, area zone, and location details (Doc §1 & §6)
+  const resolvedGeo = resolveCoordinates({
+    hospitalName: form.hospital_name,
+    areaZone: form.area_zone,
+    rawAddress: `${form.hospital_name}, ${form.area_zone}, ${form.location}`,
+  });
+
   const executeDispatch = async () => {
     const apiGroup = toApiBloodGroup(form.group);
     const finalUrgency = isEmergencyLocked ? "EMERGENCY" : form.urgency;
 
-    // Approximate coordinates for Dhaka hospital areas
+    // Use dynamically resolved coordinates for Dhaka hospital / area
     const payload = {
       blood_group: apiGroup,
       component_type: form.component,
       quantity: Number(form.units),
       volume_ml: Number(form.volume_ml) || (Number(form.units) * 450),
       urgency: finalUrgency,
-      required_location: `${form.hospital_name}, ${form.location}`,
-      latitude: 23.7998,
-      longitude: 90.4208,
+      required_location: `${form.hospital_name}, ${form.area_zone}, ${form.location}`,
+      latitude: resolvedGeo.lat,
+      longitude: resolvedGeo.lng,
       notes: form.notes.trim() || undefined,
       patient_name: form.patient.trim(),
       hospital_name: form.hospital_name.trim(),
@@ -533,7 +543,7 @@ function RequestBlood() {
                 <div className="grid gap-2 sm:col-span-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="hosp" className={isEmergency ? "font-semibold text-foreground" : ""}>
-                      Hospital / Medical Facility Name
+                      Hospital / Medical Facility Name *
                     </Label>
                     <span className="text-[11px] text-muted-foreground">Quick Suggestions:</span>
                   </div>
@@ -549,32 +559,38 @@ function RequestBlood() {
                       </button>
                     ))}
                   </div>
-                  <Input
+                  <LocationSelector
                     id="hosp"
-                    maxLength={150}
                     value={form.hospital_name}
-                    onChange={(e) => set("hospital_name")(e.target.value)}
-                    placeholder="e.g. United Hospital, Square Hospital, DMCH"
-                    required
-                    className={isEmergency ? "border-destructive/40 font-medium" : ""}
+                    onChange={(val) => set("hospital_name")(val)}
+                    onSelectCoordinates={(loc) => {
+                      setForm((f) => ({
+                        ...f,
+                        hospital_name: loc.name,
+                        area_zone: loc.area || f.area_zone,
+                      }));
+                    }}
+                    placeholder="Search or enter hospital (e.g. United Hospital, DMCH, Square Hospital...)"
+                    typeFilter="HOSPITALS_ONLY"
                   />
                 </div>
 
-                {/* Area Zone Dropdown */}
+                {/* Area Zone Selector */}
                 <div className="grid gap-2">
-                  <Label htmlFor="zone">Area Zone (Dhaka)</Label>
-                  <Select value={form.area_zone} onValueChange={set("area_zone")}>
-                    <SelectTrigger id="zone">
-                      <SelectValue placeholder="Select Area Zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DHAKA_ZONES.map((zone) => (
-                        <SelectItem key={zone} value={zone}>
-                          {zone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="zone">Area Zone (Dhaka) *</Label>
+                  <LocationSelector
+                    id="zone"
+                    value={form.area_zone}
+                    onChange={(val) => set("area_zone")(val)}
+                    onSelectCoordinates={(loc) => {
+                      setForm((f) => ({
+                        ...f,
+                        area_zone: loc.name,
+                      }));
+                    }}
+                    placeholder="Search area (e.g. Aftabnagar, Banani, Dhanmondi, Mirpur...)"
+                    typeFilter="AREAS_ONLY"
+                  />
                 </div>
 
                 {/* Ward / Specific Location */}
@@ -588,6 +604,25 @@ function RequestBlood() {
                     placeholder="e.g. ICU Ward Bed 04, Level 3"
                     required
                   />
+                </div>
+
+                {/* Clinical Geocoding & Distance Anchor Banner (Doc §6 Clarification) */}
+                <div className="sm:col-span-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Crosshair className="size-4 text-primary" />
+                      Recipient Location Anchor:
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                      GPS: {resolvedGeo.lat.toFixed(4)}, {resolvedGeo.lng.toFixed(4)}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Donor matching and Leaflet map distance are centered on{" "}
+                    <strong className="text-foreground">{resolvedGeo.label}</strong>{" "}
+                    ({resolvedGeo.isHospital ? "verified hospital facility coordinates" : "area/zone centroid coordinates"}).
+                    This anchor is used for Haversine distance ranking and live dispatch mapping.
+                  </p>
                 </div>
 
                 {/* Immediate Contact Phone Number - High Priority */}
@@ -902,14 +937,22 @@ function RequestBlood() {
                 >
                   <DonorMap
                     hospitalLocation={{
-                      lat: createdRequest?.latitude ?? 23.8103,
-                      lng: createdRequest?.longitude ?? 90.4125,
+                      lat: createdRequest?.latitude ?? resolvedGeo.lat,
+                      lng: createdRequest?.longitude ?? resolvedGeo.lng,
                       name: createdRequest?.hospital_name || createdRequest?.required_location || form.hospital_name,
                       area: createdRequest?.area_zone || form.area_zone,
                     }}
                     donorLocation={{
-                      lat: selectedMapMatch.approx_latitude ?? ((createdRequest?.latitude ?? 23.8103) + 0.015),
-                      lng: selectedMapMatch.approx_longitude ?? ((createdRequest?.longitude ?? 90.4125) + 0.015),
+                      lat: selectedMapMatch.approx_latitude ?? (
+                        selectedMapMatch.approx_area
+                          ? resolveCoordinates({ rawAddress: selectedMapMatch.approx_area }).lat
+                          : (createdRequest?.latitude ?? resolvedGeo.lat)
+                      ),
+                      lng: selectedMapMatch.approx_longitude ?? (
+                        selectedMapMatch.approx_area
+                          ? resolveCoordinates({ rawAddress: selectedMapMatch.approx_area }).lng
+                          : (createdRequest?.longitude ?? resolvedGeo.lng)
+                      ),
                       label: selectedMapMatch.donor_name_initial,
                       bloodGroup: selectedMapMatch.blood_group,
                       isApproximate: true,
@@ -980,7 +1023,10 @@ function RequestBlood() {
               <div className="rounded-lg border border-border p-3 space-y-1 bg-card">
                 <span className="text-[10px] font-semibold text-muted-foreground uppercase">Hospital / Medical Facility</span>
                 <p className="text-xs font-bold text-foreground mt-0.5 truncate">{form.hospital_name}</p>
-                <p className="text-[10px] text-muted-foreground">{form.area_zone}</p>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
+                  <MapPin className="size-3 text-red-500 shrink-0" />
+                  {form.area_zone} ({resolvedGeo.lat.toFixed(4)}, {resolvedGeo.lng.toFixed(4)})
+                </p>
               </div>
 
               <div className="rounded-lg border border-border p-3 space-y-1 bg-card">

@@ -38,6 +38,8 @@ import { formatDateOnly, calculateAge } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { toDisplayBloodGroup } from "@/lib/api/types";
 import type { BloodGroup } from "@/lib/api/types";
+import { LocationSelector } from "@/components/LocationSelector";
+import { resolveCoordinates } from "@/lib/locationService";
 
 const searchSchema = z.object({
   tab: z.enum(["profile", "history"]).optional(),
@@ -104,6 +106,8 @@ function ProfilePage() {
   const [weight, setWeight] = useState<string>("65");
   const [hemoglobin, setHemoglobin] = useState<string>("13.5");
   const [locationZone, setLocationZone] = useState("");
+  const [donorLatitude, setDonorLatitude] = useState<number>(23.7937);
+  const [donorLongitude, setDonorLongitude] = useState<number>(90.4066);
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [lastDonationDate, setLastDonationDate] = useState("");
 
@@ -128,10 +132,17 @@ function ProfilePage() {
         setHemoglobin(String(user.donor.medical_info.hemoglobin_level));
       }
       
-      const donorAddress = user.donor?.address || "";
-      // Check if donorAddress matches any zone
-      const matchedZone = DHAKA_ZONES.find((z) => donorAddress.toLowerCase().includes(z.toLowerCase()));
-      setLocationZone(matchedZone || donorAddress || "Dhanmondi");
+      const donorAddress = user.donor?.address || user.recipient?.address || "";
+      setLocationZone(donorAddress || "Banani");
+
+      if (user.donor?.latitude && user.donor?.longitude) {
+        setDonorLatitude(Number(user.donor.latitude));
+        setDonorLongitude(Number(user.donor.longitude));
+      } else {
+        const resolved = resolveCoordinates({ areaZone: donorAddress, rawAddress: donorAddress });
+        setDonorLatitude(resolved.lat);
+        setDonorLongitude(resolved.lng);
+      }
 
       if (user.donor?.blood_group) {
         setBloodGroup(user.donor.blood_group as BloodGroup);
@@ -225,6 +236,8 @@ function ProfilePage() {
       hemoglobin_level: hemoglobin ? parseFloat(hemoglobin) : undefined,
       address: locationZone,
       location_zone: locationZone,
+      latitude: donorLatitude,
+      longitude: donorLongitude,
       blood_group: bloodGroup,
       last_donation_date: lastDonationDate || null,
     });
@@ -453,26 +466,36 @@ function ProfilePage() {
                         </div>
                       </div>
 
-                      {/* Location Zone Dropdown */}
+                      {/* Location Zone Dropdown with Geocoded Selector */}
                       <div className="space-y-1.5">
-                        <Label htmlFor="location_zone" className="text-xs font-semibold flex items-center gap-1">
-                          <MapPin className="size-3 text-primary" />
-                          Location Zone / City Area *
-                        </Label>
-                        <Select value={locationZone} onValueChange={setLocationZone}>
-                          <SelectTrigger id="location_zone" className="text-xs">
-                            <SelectValue placeholder="Select your Dhaka area" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DHAKA_ZONES.map((zone) => (
-                              <SelectItem key={zone} value={zone} className="text-xs">
-                                {zone}, Dhaka
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="location_zone" className="text-xs font-semibold flex items-center gap-1">
+                            <MapPin className="size-3 text-primary" />
+                            Location Zone / City Area *
+                          </Label>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            GPS: {donorLatitude.toFixed(4)}, {donorLongitude.toFixed(4)}
+                          </span>
+                        </div>
+                        <LocationSelector
+                          id="location_zone"
+                          value={locationZone}
+                          onChange={(val) => {
+                            setLocationZone(val);
+                            const res = resolveCoordinates({ areaZone: val, rawAddress: val });
+                            setDonorLatitude(res.lat);
+                            setDonorLongitude(res.lng);
+                          }}
+                          onSelectCoordinates={(loc) => {
+                            setLocationZone(loc.name);
+                            setDonorLatitude(loc.lat);
+                            setDonorLongitude(loc.lng);
+                          }}
+                          placeholder="Search or enter area (e.g. Aftabnagar, Banani, Dhanmondi, Mirpur...)"
+                          typeFilter="AREAS_ONLY"
+                        />
                         <p className="text-[10px] text-muted-foreground">
-                          Matches you with blood requests within your immediate vicinity to minimize transit time.
+                          Matches you with blood requests within your immediate vicinity based on Haversine distance and real GPS coordinates.
                         </p>
                       </div>
                     </CardContent>
