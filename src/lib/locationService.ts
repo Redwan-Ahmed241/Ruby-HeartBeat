@@ -288,9 +288,9 @@ export function searchLocations(query: string, maxResults = 8): LocationEntry[] 
  * 4. Fallback to Central Dhaka (23.8103, 90.4125).
  */
 export function resolveCoordinates(options: {
-  hospitalName?: string | null;
-  areaZone?: string | null;
-  rawAddress?: string | null;
+  hospitalName?: string | null | undefined;
+  areaZone?: string | null | undefined;
+  rawAddress?: string | null | undefined;
 }): { lat: number; lng: number; label: string; area: string; isHospital: boolean } {
   const { hospitalName = "", areaZone = "", rawAddress = "" } = options;
 
