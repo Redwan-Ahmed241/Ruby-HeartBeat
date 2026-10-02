@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -35,12 +36,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error(err);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+    reportLovableError(err, { boundary: "tanstack_root_error_component" });
+  }, [err]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -51,14 +53,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
-        {error?.message && (
+        {err?.message && (
           <div className="mt-4 text-left">
             <details className="rounded-md border border-destructive/20 bg-destructive/5 p-2.5 text-xs text-muted-foreground">
               <summary className="cursor-pointer font-medium text-destructive select-none">
-                Technical details: {error.name || "Error"}
+                Technical details: {err.name || "Error"}
               </summary>
               <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-destructive/80">
-                {error.message}
+                {err.message}
               </pre>
             </details>
           </div>
