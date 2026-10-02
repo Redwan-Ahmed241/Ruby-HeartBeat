@@ -276,97 +276,99 @@ function AdminDashboard() {
             <span>Refresh Queue</span>
           </Button>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="p-0">
           {requestsLoading ? (
             <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin text-primary" /> Loading requests...
             </div>
           ) : bloodRequests && bloodRequests.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Request ID</TableHead>
-                  <TableHead>Required Group</TableHead>
-                  <TableHead>Component</TableHead>
-                  <TableHead>Units</TableHead>
-                  <TableHead>Urgency</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Admin Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...bloodRequests]
-                  .sort((a, b) => {
-                    const timeA = a.request_date ? new Date(a.request_date).getTime() : 0;
-                    const timeB = b.request_date ? new Date(b.request_date).getTime() : 0;
-                    return timeB - timeA;
-                  })
-                  .map((r) => (
-                  <TableRow key={r.request_id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-xs text-foreground">
-                          {r.recipient_name || r.patient_name || "LifeDrop Member"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          ID: {r.recipient_id.slice(0, 8)}...
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {r.request_id.slice(0, 8)}...
-                    </TableCell>
-                    <TableCell>
-                      <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
-                        {toDisplayBloodGroup(r.blood_group)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-xs">{r.component_type}</TableCell>
-                    <TableCell className="text-xs font-semibold">{r.quantity} units</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={r.urgency === "EMERGENCY" ? "destructive" : "secondary"}
-                        className="text-[10px]"
-                      >
-                        {r.urgency}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={r.status === "COMPLETED" ? "default" : r.status === "CANCELLED" ? "destructive" : "outline"}
-                        className="text-[10px]"
-                      >
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
-                      {r.hospital_name || r.required_location}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatExactWithRelative(r.request_date)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.status !== "CANCELLED" && r.status !== "COMPLETED" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold cursor-pointer"
-                          onClick={() => setCancelTargetRequest(r)}
-                        >
-                          <Trash2 className="mr-1 size-3" />
-                          Cancel / Delete
-                        </Button>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground italic">Closed</span>
-                      )}
-                    </TableCell>
+            <div className="w-full overflow-x-auto">
+              <Table className="min-w-[1100px] w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6 min-w-[150px]">Recipient</TableHead>
+                    <TableHead className="min-w-[100px]">Request ID</TableHead>
+                    <TableHead className="min-w-[95px]">Required Group</TableHead>
+                    <TableHead className="min-w-[110px]">Component</TableHead>
+                    <TableHead className="min-w-[80px]">Units</TableHead>
+                    <TableHead className="min-w-[95px]">Urgency</TableHead>
+                    <TableHead className="min-w-[95px]">Status</TableHead>
+                    <TableHead className="min-w-[170px]">Location</TableHead>
+                    <TableHead className="min-w-[190px]">Created</TableHead>
+                    <TableHead className="text-right pr-6 min-w-[140px]">Admin Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {[...bloodRequests]
+                    .sort((a, b) => {
+                      const timeA = a.request_date ? new Date(a.request_date).getTime() : 0;
+                      const timeB = b.request_date ? new Date(b.request_date).getTime() : 0;
+                      return timeB - timeA;
+                    })
+                    .map((r) => (
+                    <TableRow key={r.request_id}>
+                      <TableCell className="pl-6">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-xs text-foreground">
+                            {r.recipient_name || r.patient_name || "LifeDrop Member"}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            ID: {r.recipient_id.slice(0, 8)}...
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {r.request_id.slice(0, 8)}...
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+                          {toDisplayBloodGroup(r.blood_group)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs">{r.component_type}</TableCell>
+                      <TableCell className="text-xs font-semibold">{r.quantity} units</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={r.urgency === "EMERGENCY" ? "destructive" : "secondary"}
+                          className="text-[10px]"
+                        >
+                          {r.urgency}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={r.status === "COMPLETED" ? "default" : r.status === "CANCELLED" ? "destructive" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                        {r.hospital_name || r.required_location}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatExactWithRelative(r.request_date)}
+                      </TableCell>
+                      <TableCell className="text-right pr-6 whitespace-nowrap min-w-[140px]">
+                        {r.status !== "CANCELLED" && r.status !== "COMPLETED" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 text-xs text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                            onClick={() => setCancelTargetRequest(r)}
+                          >
+                            <Trash2 className="size-3.5" />
+                            <span>Cancel</span>
+                          </Button>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Closed</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No blood requests found in the database.
