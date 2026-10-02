@@ -14,6 +14,8 @@ import {
 import type { UserRole, BloodGroup } from "@/lib/api/types";
 import { calculateAge } from "@/lib/dateUtils";
 import { toast } from "sonner";
+import { LocationSelector } from "@/components/LocationSelector";
+import { resolveCoordinates } from "@/lib/locationService";
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -32,6 +34,8 @@ export function RegisterForm({ onSuccess, defaultRole = "DONOR" }: RegisterFormP
   const [dateOfBirth, setDateOfBirth] = useState<string>("");
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<BloodGroup>("O_POSITIVE");
   const [address, setAddress] = useState("Banani, Dhaka");
+  const [latitude, setLatitude] = useState(23.7937);
+  const [longitude, setLongitude] = useState(90.4066);
   const [nidOrBirthCert, setNidOrBirthCert] = useState("");
 
   const calculatedAge = calculateAge(dateOfBirth);

@@ -256,13 +256,25 @@ function AdminDashboard() {
 
       {/* Live Blood Requests Queue */}
       <Card className="mt-8 shadow-[var(--shadow-elegant)]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ClipboardList className="size-5 text-primary" /> Live Blood Requests Queue
-          </CardTitle>
-          <CardDescription>
-            Real requests recorded in `blood_requests` table with urgency status
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between pb-3 flex-wrap gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="size-5 text-primary" /> Live Blood Requests Queue
+            </CardTitle>
+            <CardDescription>
+              All active & recent blood requests with live urgency tracking and administrative moderation.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetchRequests()}
+            disabled={requestsLoading}
+            className="text-xs h-8 gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className={`size-3.5 ${requestsLoading ? "animate-spin" : ""}`} />
+            <span>Refresh Queue</span>
+          </Button>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {requestsLoading ? (
@@ -273,6 +285,7 @@ function AdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Recipient</TableHead>
                   <TableHead>Request ID</TableHead>
                   <TableHead>Required Group</TableHead>
                   <TableHead>Component</TableHead>
@@ -285,8 +298,24 @@ function AdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bloodRequests.map((r) => (
+                {[...bloodRequests]
+                  .sort((a, b) => {
+                    const timeA = a.request_date ? new Date(a.request_date).getTime() : 0;
+                    const timeB = b.request_date ? new Date(b.request_date).getTime() : 0;
+                    return timeB - timeA;
+                  })
+                  .map((r) => (
                   <TableRow key={r.request_id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-xs text-foreground">
+                          {r.recipient_name || r.patient_name || "LifeDrop Member"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ID: {r.recipient_id.slice(0, 8)}...
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">
                       {r.request_id.slice(0, 8)}...
                     </TableCell>
@@ -562,7 +591,7 @@ function AdminDashboard() {
               Cancel & Moderate Blood Request?
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Moderating Request ID: <code className="font-mono text-foreground font-semibold">{cancelTargetRequest?.request_id.slice(0, 8)}...</code> for patient at <strong>{cancelTargetRequest?.hospital_name || cancelTargetRequest?.required_location}</strong>.
+              Moderating Request ID: <code className="font-mono text-foreground font-semibold">{cancelTargetRequest?.request_id.slice(0, 8)}...</code> for recipient <strong>{cancelTargetRequest?.recipient_name || cancelTargetRequest?.patient_name || "LifeDrop Member"}</strong> (Patient: <em>{cancelTargetRequest?.patient_name || "N/A"}</em>) at <strong>{cancelTargetRequest?.hospital_name || cancelTargetRequest?.required_location}</strong>.
             </DialogDescription>
           </DialogHeader>
 

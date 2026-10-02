@@ -2,11 +2,32 @@
  * Standardized Date and Time Formatting Utilities for LifeDrop
  */
 
-export function formatDateTime(isoString: string | null | undefined): string {
-  if (!isoString) return "N/A";
+/**
+ * Parses an ISO string safely as UTC if no timezone offset is explicitly provided.
+ * Prevents the 6-hour offset bug where browsers parse naive UTC timestamps as local Bangladesh time (BST).
+ */
+export function parseUtcIsoDate(isoString: string | null | undefined): Date | null {
+  if (!isoString) return null;
   try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "N/A";
+    let s = String(isoString).trim();
+    if (!s) return null;
+
+    // If date-time string has 'T' or space separator and no timezone offset (Z, +HH:MM, or -HH:MM),
+    // append 'Z' so browsers parse it as UTC rather than local time.
+    if ((s.includes("T") || s.includes(" ")) && !s.endsWith("Z") && !/[+-]\d{2}(:?\d{2})?$/.test(s)) {
+      s = s.replace(" ", "T") + "Z";
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
+
+export function formatDateTime(isoString: string | null | undefined): string {
+  const date = parseUtcIsoDate(isoString);
+  if (!date) return "N/A";
+  try {
     return new Intl.DateTimeFormat("en-GB", {
       day: "numeric",
       month: "short",
@@ -21,10 +42,9 @@ export function formatDateTime(isoString: string | null | undefined): string {
 }
 
 export function formatDateOnly(isoString: string | null | undefined): string {
-  if (!isoString) return "N/A";
+  const date = parseUtcIsoDate(isoString);
+  if (!date) return "N/A";
   try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "N/A";
     return new Intl.DateTimeFormat("en-GB", {
       day: "numeric",
       month: "short",
@@ -36,10 +56,9 @@ export function formatDateOnly(isoString: string | null | undefined): string {
 }
 
 export function formatRelativeTime(isoString: string | null | undefined): string {
-  if (!isoString) return "";
+  const date = parseUtcIsoDate(isoString);
+  if (!date) return "";
   try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return "";
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     

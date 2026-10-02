@@ -806,28 +806,6 @@ function RequestBlood() {
                         >
                           {isAccepted ? "View contact" : "Contact locked"}
                         </Button>
-
-                        {/* Testing helper: simulate donor acceptance */}
-                        {!isAccepted && !isDeclined && (
-                          <div className="flex gap-1.5 pt-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-1/2 text-[10px] h-7"
-                              onClick={() => handleDonorResponse(match.match_id, "ACCEPTED")}
-                            >
-                              Simulate Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-1/2 text-[10px] h-7"
-                              onClick={() => handleDonorResponse(match.match_id, "DECLINED")}
-                            >
-                              Simulate Decline
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>

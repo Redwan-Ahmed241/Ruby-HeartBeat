@@ -184,6 +184,8 @@ export interface UserProfileUpdate {
   hemoglobin_level?: number | null | undefined;
   address?: string | undefined;
   location_zone?: string | undefined;
+  latitude?: number | null | undefined;
+  longitude?: number | null | undefined;
   blood_group?: BloodGroup | undefined;
   last_donation_date?: string | null | undefined;
 }
@@ -350,6 +352,7 @@ export interface AcceptedDonorSummary {
 export interface BloodRequestResponse {
   request_id: string;
   recipient_id: string;
+  recipient_name?: string | null | undefined;
   blood_group: BloodGroup;
   component_type: ComponentType;
   quantity: number;
